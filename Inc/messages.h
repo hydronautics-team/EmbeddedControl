@@ -1,55 +1,57 @@
 #ifndef MESSAGES_H
 #define MESSAGES_H
 
-#define REQUEST_VMA_LENGTH              7
+/* STM send requests and VMA send responses */
+#define VMA_REQUEST_LENGTH              7
 
-#define REQUEST_VMA_AA                  0
-#define REQUEST_VMA_ADDRESS             2
-#define REQUEST_VMA_SETTING             3
-#define REQUEST_VMA_VELOCITY            4
-#define REQUEST_VMA_CHECKSUM            6
+#define VMA_REQUEST_AA                  0
+#define VMA_REQUEST_ADDRESS             2
+#define VMA_REQUEST_SETTING             3
+#define VMA_REQUEST_VELOCITY1           4
+#define VMA_REQUEST_VELOCITY2           5
+#define VMA_REQUEST_CHECKSUM            6
 
 
-#define RESPONSE_VMA_LENGTH             8
+#define VMA_RESPONSE_LENGTH             8
 
-#define RESPONSE_VMA_AA                 0
-#define RESPONSE_VMA_ADDRESS            2
-#define RESPONSE_VMA_ERRORS             3
-#define RESPONSE_VMA_DATA               4
-#define RESPONSE_VMA_CHECKSUM           8
+#define VMA_RESPONSE_AA                 0
+#define VMA_RESPONSE_ADDRESS            2
+#define VMA_RESPONSE_ERRORS             3
+#define VMA_RESPONSE_DATA               4
+#define VMA_RESPONSE_CHECKSUM           8
 
 /* Shore send requests and STM send responses */
-/* --- ETHERNET REQUEST NORMAL MODE --- */
-#define REQUEST_NORMAL_CODE             0xFF
+/* --- SHORE REQUEST NORMAL MODE --- */
+#define SHORE_REQUEST_CODE             0xFF
 
-#define REQUEST_NORMAL_LENGTH           26
+#define SHORE_REQUEST_LENGTH           26
 
-#define REQUEST_NORMAL_TYPE             0
-#define REQUEST_NORMAL_MARCH            1
-#define REQUEST_NORMAL_LAG              3
-#define REQUEST_NORMAL_DEPTH            5
-#define REQUEST_NORMAL_ROLL             7
-#define REQUEST_NORMAL_PITCH            9
-#define REQUEST_NORMAL_YAW              11
+#define SHORE_REQUEST_TYPE             0
+#define SHORE_REQUEST_MARCH            1
+#define SHORE_REQUEST_LAG              3
+#define SHORE_REQUEST_DEPTH            5
+#define SHORE_REQUEST_ROLL             7
+#define SHORE_REQUEST_PITCH            9
+#define SHORE_REQUEST_YAW              11
 
-#define REQUEST_NORMAL_LIGHT            13
-#define REQUEST_NORMAL_GRAB             14
-#define REQUEST_NORMAL_TILT             15
-#define REQUEST_NORMAL_GRAB_ROTATE      16
-#define REQUEST_NORMAL_BLUETOOTH        17
-#define REQUEST_NORMAL_BOTTOM_LIGHT     17
+#define SHORE_REQUEST_LIGHT            13
+#define SHORE_REQUEST_GRAB             14
+#define SHORE_REQUEST_TILT             15
+#define SHORE_REQUEST_GRAB_ROTATE      16
+#define SHORE_REQUEST_BLUETOOTH        17
+#define SHORE_REQUEST_BOTTOM_LIGHT     17
 
-#define REQUEST_NORMAL_STABILIZE_DEPTH  18
-#define REQUEST_NORMAL_STABILIZE_ROLL   19
-#define REQUEST_NORMAL_STABILIZE_PITCH  20
-#define REQUEST_NORMAL_STABILIZE_YAW    21
-#define REQUEST_NORMAL_RESET_IMU        22
+#define SHORE_REQUEST_STABILIZE_DEPTH  18
+#define SHORE_REQUEST_STABILIZE_ROLL   19
+#define SHORE_REQUEST_STABILIZE_PITCH  20
+#define SHORE_REQUEST_STABILIZE_YAW    21
+#define SHORE_REQUEST_RESET_IMU        22
 
-#define REQUEST_NORMAL_CHECKSUM         23
+#define SHORE_REQUEST_CHECKSUM         23
 
 
 
-/* --- ETHERNET REQUEST DIRECT MODE --- */
+/* --- SHORE REQUEST CONFIG MODE --- */
 #define REQUEST_CONFIG_CODE             0x55
 
 #define REQUEST_CONFIG_LENGTH           151
@@ -120,23 +122,23 @@
 #define REQUEST_CONFIG_CHECKSUM         149
 
 
-/* --- ETHERNET RESPONSE MODE --- */
-#define RESPONSE_LENGTH                 20
+/* --- SHORE RESPONSE MODE --- */
+#define SHORE_RESPONSE_LENGTH                 20
 
-#define RESPONSE_ROLL                   0
-#define RESPONSE_PITCH                  2
-#define RESPONSE_YAW                    4
+#define SHORE_RESPONSE_ROLL                   0
+#define SHORE_RESPONSE_PITCH                  2
+#define SHORE_RESPONSE_YAW                    4
 
-#define RESPONSE_ROLL_SPEED             6
-#define RESPONSE_PITCH_SPEED            8
-#define RESPONSE_YAW_SPEED              10
+#define SHORE_RESPONSE_ROLL_SPEED             6
+#define SHORE_RESPONSE_PITCH_SPEED            8
+#define SHORE_RESPONSE_YAW_SPEED              10
 
-#define RESPONSE_TEMPERATURE            12
-#define RESPONSE_PRESSURE               14
+#define SHORE_RESPONSE_TEMPERATURE            12
+#define SHORE_RESPONSE_PRESSURE               14
 
-#define RESPONSE_MOTOR_ERRORS           16
+#define SHORE_RESPONSE_MOTOR_ERRORS           16
 
-#define RESPONSE_CHECKSUM               18
+#define SHORE_RESPONSE_CHECKSUM               18
 
 
 

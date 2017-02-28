@@ -57,7 +57,6 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-struct robot IceBreaker;
 
 
 /* USER CODE END PV */

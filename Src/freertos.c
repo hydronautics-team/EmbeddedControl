@@ -49,6 +49,7 @@
 /* USER CODE BEGIN Includes */     
 #include "main.h"
 #include "messages.h"
+#include "robot.h"
 #include "stm32f3xx_hal.h"
 #include "cmsis_os.h"
 #include "dma.h"
@@ -59,14 +60,28 @@
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
-osThreadId defaultTaskHandle;
+osThreadId LedBlinkingHandle;
+osThreadId ShoreCommunicationHandle;
+osThreadId VmaDevCommunicationHandle;
+osThreadId SensorsCommunicationHandle;
+osThreadId StabilizationHandle;
 
 /* USER CODE BEGIN Variables */
+struct robot Ice;
 
+bool shore_RX_enable;
+bool shore_TX_enable;
+
+uint8_t shore_request_buf[SHORE_REQUEST_LENGTH];
+uint8_t shore_response_buf[SHORE_RESPONSE_LENGTH];
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
-void StartDefaultTask(void const * argument);
+void LedBlinkingTask(void const * argument);
+void ShoreCommunicationTask(void const * argument);
+void VmaDevCommunicationTask(void const * argument);
+void SensorsCommunicationTask(void const * argument);
+void StabilizationTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -96,9 +111,25 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the thread(s) */
-  /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+  /* definition and creation of LedBlinking */
+  osThreadDef(LedBlinking, LedBlinkingTask, osPriorityNormal, 0, 64);
+  LedBlinkingHandle = osThreadCreate(osThread(LedBlinking), NULL);
+
+  /* definition and creation of ShoreCommunication */
+  osThreadDef(ShoreCommunication, ShoreCommunicationTask, osPriorityNormal, 0, 64);
+  ShoreCommunicationHandle = osThreadCreate(osThread(ShoreCommunication), NULL);
+
+  /* definition and creation of VmaDevCommunication */
+  osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityNormal, 0, 64);
+  VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
+
+  /* definition and creation of SensorsCommunication */
+  osThreadDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 64);
+  SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
+
+  /* definition and creation of Stabilization */
+  osThreadDef(Stabilization, StabilizationTask, osPriorityIdle, 0, 64);
+  StabilizationHandle = osThreadCreate(osThread(Stabilization), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -109,50 +140,130 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 }
 
-/* StartDefaultTask function */
-void StartDefaultTask(void const * argument)
+/* LedBlinkingTask function */
+void LedBlinkingTask(void const * argument)
 {
 
-  /* USER CODE BEGIN StartDefaultTask */
+  /* USER CODE BEGIN LedBlinkingTask */
   /* Infinite loop */
   for(;;)
   {
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 		osDelay(250);
-			
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD5_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+		HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
 		osDelay(250);
-		
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD7_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
+		HAL_GPIO_TogglePin(LD7_GPIO_Port, LD7_Pin);
+		osDelay(250);		
+		HAL_GPIO_TogglePin(LD7_GPIO_Port, LD7_Pin);
+		HAL_GPIO_TogglePin(LD9_GPIO_Port, LD9_Pin);
+		osDelay(250);		
+		HAL_GPIO_TogglePin(LD9_GPIO_Port, LD9_Pin);
+		HAL_GPIO_TogglePin(LD10_GPIO_Port, LD10_Pin);
+		osDelay(250);		
+		HAL_GPIO_TogglePin(LD10_GPIO_Port, LD10_Pin);
+		HAL_GPIO_TogglePin(LD8_GPIO_Port, LD8_Pin);
+		osDelay(250);		
+		HAL_GPIO_TogglePin(LD8_GPIO_Port, LD8_Pin);
+		HAL_GPIO_TogglePin(LD6_GPIO_Port, LD6_Pin);
 		osDelay(250);
-		
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD9_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD7_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_TogglePin(LD6_GPIO_Port, LD6_Pin);
+		HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
 		osDelay(250);
-		
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD10_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD9_Pin, GPIO_PIN_RESET);
-		osDelay(250);
-		
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD8_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD10_Pin, GPIO_PIN_RESET);
-		osDelay(250);
-		
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD6_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD8_Pin, GPIO_PIN_RESET);
-		osDelay(250);
-		
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD6_Pin, GPIO_PIN_RESET);
-    osDelay(250);
+		HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
   }
-  /* USER CODE END StartDefaultTask */
+  /* USER CODE END LedBlinkingTask */
+}
+
+/* ShoreCommunicationTask function */
+void ShoreCommunicationTask(void const * argument)
+{
+  /* USER CODE BEGIN ShoreCommunicationTask */
+	shore_RX_enable = true;
+	shore_TX_enable = false;
+	
+	HAL_HalfDuplex_EnableReceiver(&shore_uart);
+  /* Infinite loop */
+  for(;;)
+  {
+		if(shore_RX_enable){
+			HAL_UART_Receive_DMA(&shore_uart, shore_request_buf, SHORE_REQUEST_LENGTH);
+			HAL_UART_RxCpltCallback(&shore_uart);
+			shore_RX_enable = false;
+		}
+    osDelay(50);
+		if(shore_TX_enable){
+			for(uint8_t i = 0; i < SHORE_REQUEST_LENGTH; ++i){
+				shore_response_buf[i] = (shore_response_buf[i] + 1 + i) % 256;
+			}
+			HAL_UART_Transmit_DMA(&shore_uart, shore_response_buf, SHORE_RESPONSE_LENGTH);
+			HAL_UART_TxCpltCallback(&shore_uart);
+			shore_TX_enable = false;
+		}
+  }
+  /* USER CODE END ShoreCommunicationTask */
+}
+
+/* VmaDevCommunicationTask function */
+void VmaDevCommunicationTask(void const * argument)
+{
+  /* USER CODE BEGIN VmaDevCommunicationTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END VmaDevCommunicationTask */
+}
+
+/* SensorsCommunicationTask function */
+void SensorsCommunicationTask(void const * argument)
+{
+  /* USER CODE BEGIN SensorsCommunicationTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END SensorsCommunicationTask */
+}
+
+/* StabilizationTask function */
+void StabilizationTask(void const * argument)
+{
+  /* USER CODE BEGIN StabilizationTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StabilizationTask */
 }
 
 /* USER CODE BEGIN Application */
+
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart == &shore_uart){
+		HAL_HalfDuplex_EnableTransmitter(huart);
+		shore_TX_enable = true;
+	}
+	
+}
+
+
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart == &shore_uart){
+		HAL_HalfDuplex_EnableReceiver(huart);
+		shore_RX_enable = true;
+	}
+	
+}
      
 /* USER CODE END Application */
 
