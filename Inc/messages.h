@@ -2,23 +2,23 @@
 #define MESSAGES_H
 
 /* STM send requests and VMA send responses */
-#define VMA_REQUEST_LENGTH              7
+#define VMA_DEV_REQUEST_LENGTH              7
 
-#define VMA_REQUEST_AA                  0
-#define VMA_REQUEST_ADDRESS             2
-#define VMA_REQUEST_SETTING             3
-#define VMA_REQUEST_VELOCITY1           4
-#define VMA_REQUEST_VELOCITY2           5
-#define VMA_REQUEST_CHECKSUM            6
+#define VMA_DEV_REQUEST_AA                  0
+#define VMA_DEV_REQUEST_ADDRESS             2
+#define VMA_DEV_REQUEST_SETTING             3
+#define VMA_DEV_REQUEST_VELOCITY1           4
+#define VMA_DEV_REQUEST_VELOCITY2           5
+#define VMA_DEV_REQUEST_CHECKSUM            6
 
 
-#define VMA_RESPONSE_LENGTH             8
+#define VMA_DEV_RESPONSE_LENGTH             8
 
-#define VMA_RESPONSE_AA                 0
-#define VMA_RESPONSE_ADDRESS            2
-#define VMA_RESPONSE_ERRORS             3
-#define VMA_RESPONSE_DATA               4
-#define VMA_RESPONSE_CHECKSUM           8
+#define VMA_DEV_RESPONSE_AA                 0
+#define VMA_DEV_RESPONSE_ADDRESS            2
+#define VMA_DEV_RESPONSE_ERRORS             3
+#define VMA_DEV_RESPONSE_DATA               4
+#define VMA_DEV_RESPONSE_CHECKSUM           8
 
 /* Shore send requests and STM send responses */
 /* --- SHORE REQUEST NORMAL MODE --- */
@@ -143,9 +143,13 @@
 
 
 
-/* --- IMU command --- */
-
 /* --- IMU input message --- */
+#define IMU_REQUEST_LENGTH                  22
+
+#define IMU_RESPONSE_LENGTH                 22
+
+
+/* --- IMU command --- */
 
 
 #endif

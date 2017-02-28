@@ -5,28 +5,18 @@
 #include <math.h>
 #include <stdint.h>
 
-struct motor{
-	int8_t speed;
-  bool inverse;
-  bool enabled;
-    
-  double k_forward;
-  double k_backward;
-};
-
 struct robot{
 	
-	struct robot_motors{
-		struct motor HLF;
-		struct motor HLB;
-		struct motor HRB;
-		struct motor HRF;
+	struct VMA{
+		uint8_t address;
 		
-		struct motor VL;
-		struct motor VB;
-		struct motor VR;
-		struct motor VF;
-	} motors;
+		int8_t speed;
+		bool inverse;
+		bool enabled;
+			
+		double k_forward;
+		double k_backward;
+	}HLF, HLB, HRB, HRF, VL, VB, VR, VF;
   
   struct robot_sensors{
     int16_t roll;
