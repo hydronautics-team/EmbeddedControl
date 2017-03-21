@@ -73,50 +73,60 @@ struct robot Ice;
 
 bool shore_RX_enable;
 bool shore_TX_enable;
+bool VMA_RX_enable;
+bool VMA_TX_enable;
+bool DEV_RX_enable;
+bool DEV_TX_enable;
+
+bool VMA_RX_enable;
+bool VMA_TX_enable;
+bool DEV_RX_enable;
+bool DEV_TX_enable;
 
 
-uint8_t shore_request_buf[SHORE_REQUEST_LENGTH];
-uint8_t shore_request_config_buf[REQUEST_CONFIG_LENGTH];
-uint8_t shore_response_buf[SHORE_RESPONSE_LENGTH];
 
-uint8_t IMU_request_buf[IMU_REQUEST_LENGTH];
-uint8_t IMU_response_buf[IMU_RESPONSE_LENGTH];
+uint8_t ShoreRequestBuf[SHORE_REQUEST_LENGTH];
+uint8_t ShoreRequestConfigBuf[REQUEST_CONFIG_LENGTH];
+uint8_t ShoreResponseBuf[SHORE_RESPONSE_LENGTH];
 
-uint8_t HLF_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t HLF_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t IMU_RequestBuf[IMU_REQUEST_LENGTH];
+uint8_t IMU_ResponseBuf[IMU_RESPONSE_LENGTH];
 
-uint8_t HLB_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t HLB_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t HLF_RequestBuf[VMA_DEV_REQUEST_LENGTH] = {0xAA, 0xAA, 0xF0, 0, 1, 2, 3};
+uint8_t HLF_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t HRB_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t HRB_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t HLB_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t HLB_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t HRF_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t HRF_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t HRB_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t HRB_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t VF_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t VF_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t HRF_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t HRF_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t VL_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t VL_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VF_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VF_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t VB_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t VB_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VL_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VL_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t VR_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t VR_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VB_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VB_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t DEV1_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t DEV1_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VR_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VR_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t DEV2_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t DEV2_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t Dev1RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t Dev1ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t DEV3_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t DEV3_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t Dev2RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t Dev2ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t DEV4_request_buf[VMA_DEV_REQUEST_LENGTH];
-uint8_t DEV4_response_buf[VMA_DEV_REQUEST_LENGTH];
+uint8_t Dev3RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t Dev3ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
+
+uint8_t Dev4RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t Dev4ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
 /* USER CODE END Variables */
 
@@ -190,8 +200,7 @@ void LedBlinkingTask(void const * argument)
 
   /* USER CODE BEGIN LedBlinkingTask */
   /* Infinite loop */
-  for(;;)
-  {
+  for(;;){
 		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 		osDelay(250);
 		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
@@ -229,20 +238,16 @@ void ShoreCommunicationTask(void const * argument)
 	
 	HAL_HalfDuplex_EnableReceiver(&shore_uart);
   /* Infinite loop */
-  for(;;)
-  {
-		if(shore_RX_enable){
-			HAL_UART_Receive_DMA(&shore_uart, shore_request_buf, SHORE_REQUEST_LENGTH);
-			HAL_UART_RxCpltCallback(&shore_uart);
+  for(;;){
+		if(shore_RX_enable && vma_dev_uart.RxState == HAL_UART_STATE_READY){
+			HAL_UART_Receive_DMA(&shore_uart, ShoreRequestBuf, SHORE_REQUEST_LENGTH);
 			shore_RX_enable = false;
 		}
-    osDelay(50);
-		if(shore_TX_enable){
+		else if(shore_TX_enable && vma_dev_uart.gState == HAL_UART_STATE_READY){
 			for(uint8_t i = 0; i < SHORE_REQUEST_LENGTH; ++i){
-				shore_response_buf[i] = (shore_response_buf[i] + 1 + i) % 256;
+				ShoreResponseBuf[i] = (ShoreResponseBuf[i] + 1 + i) % 256;
 			}
-			HAL_UART_Transmit_DMA(&shore_uart, shore_response_buf, SHORE_RESPONSE_LENGTH);
-			HAL_UART_TxCpltCallback(&shore_uart);
+			HAL_UART_Transmit_DMA(&shore_uart, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
 			shore_TX_enable = false;
 		}
   }
@@ -253,10 +258,33 @@ void ShoreCommunicationTask(void const * argument)
 void VmaDevCommunicationTask(void const * argument)
 {
   /* USER CODE BEGIN VmaDevCommunicationTask */
+	VMA_RX_enable = false;
+	VMA_TX_enable = true;
+	DEV_RX_enable = false;
+	DEV_TX_enable = true;
+	
+	HAL_HalfDuplex_EnableTransmitter(&vma_dev_uart);
+	HAL_HalfDuplex_EnableTransmitter(&dev_uart);
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
+  for(;;){
+		if (VMA_TX_enable && vma_dev_uart.gState == HAL_UART_STATE_READY){
+			HAL_UART_Transmit_IT(&vma_dev_uart, HLF_RequestBuf, VMA_DEV_REQUEST_LENGTH);
+			VMA_TX_enable = false;
+			VMA_RX_enable = true;
+		}
+		else if (DEV_TX_enable){
+			HAL_UART_Transmit_IT(&dev_uart, HLF_RequestBuf, VMA_DEV_REQUEST_LENGTH);
+			DEV_TX_enable = false;
+			DEV_RX_enable = true;
+		}
+		else if (VMA_RX_enable && vma_dev_uart.RxState == HAL_UART_STATE_READY){
+			HAL_UART_Receive_IT(&vma_dev_uart, HLF_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+			VMA_RX_enable = false;
+		}
+		else if (DEV_RX_enable && dev_uart.RxState == HAL_UART_STATE_READY){
+			HAL_UART_Receive_IT(&dev_uart, HLF_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+			DEV_RX_enable = false;
+		}
   }
   /* USER CODE END VmaDevCommunicationTask */
 }
@@ -265,6 +293,7 @@ void VmaDevCommunicationTask(void const * argument)
 void SensorsCommunicationTask(void const * argument)
 {
   /* USER CODE BEGIN SensorsCommunicationTask */
+	
   /* Infinite loop */
   for(;;)
   {
@@ -289,25 +318,43 @@ void StabilizationTask(void const * argument)
 
 
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-	if(huart == &shore_uart){
-		HAL_HalfDuplex_EnableTransmitter(huart);
-		shore_TX_enable = true;
-	}
-	
-}
-
-
-
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &shore_uart){
-		HAL_HalfDuplex_EnableReceiver(huart);
+		HAL_HalfDuplex_EnableReceiver(&shore_uart);
 		shore_RX_enable = true;
 	}
-	
+	else if(huart == &vma_dev_uart){
+		HAL_HalfDuplex_EnableReceiver(&vma_dev_uart);
+		VMA_RX_enable = true;
+	}
+	else if(huart == &dev_uart){
+		HAL_HalfDuplex_EnableReceiver(&dev_uart);
+		DEV_RX_enable = true;		
+	}
 }
+
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart == &shore_uart){
+		HAL_HalfDuplex_EnableTransmitter(&shore_uart);
+		shore_TX_enable = true;
+	}
+	else if(huart == &vma_dev_uart){
+		HAL_HalfDuplex_EnableTransmitter(&vma_dev_uart);
+		VMA_TX_enable = true;
+	}
+	else if(huart == &dev_uart){
+		HAL_HalfDuplex_EnableTransmitter(&dev_uart);
+		DEV_TX_enable = true;		
+	}
+}
+
+
+
+
 
 
 
@@ -380,117 +427,117 @@ float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos)
 
 void ShoreConfigRequest()
 {
-  Ice.depth_stabilization.const_time = shore_request_config_buf[REQUEST_CONFIG_CONST_TIME_DEPTH];
-  Ice.depth_stabilization.K1 = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K1_DEPTH);
-  Ice.depth_stabilization.K2 = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K2_DEPTH);
-  Ice.depth_stabilization.start_value = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_START_DEPTH);
-  Ice.depth_stabilization.gain = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_GAIN_DEPTH);
+  Ice.depth_stabilization.const_time = ShoreRequestConfigBuf[REQUEST_CONFIG_CONST_TIME_DEPTH];
+  Ice.depth_stabilization.K1 = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K1_DEPTH);
+  Ice.depth_stabilization.K2 = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K2_DEPTH);
+  Ice.depth_stabilization.start_value = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_START_DEPTH);
+  Ice.depth_stabilization.gain = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_GAIN_DEPTH);
   
-  Ice.roll_stabilization.const_time = shore_request_config_buf[REQUEST_CONFIG_CONST_TIME_ROLL];
-  Ice.roll_stabilization.K1 = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K1_ROLL);
-  Ice.roll_stabilization.K2 = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K2_ROLL);
-  Ice.roll_stabilization.start_value = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_START_ROLL);
-  Ice.roll_stabilization.gain = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_GAIN_ROLL);
+  Ice.roll_stabilization.const_time = ShoreRequestConfigBuf[REQUEST_CONFIG_CONST_TIME_ROLL];
+  Ice.roll_stabilization.K1 = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K1_ROLL);
+  Ice.roll_stabilization.K2 = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K2_ROLL);
+  Ice.roll_stabilization.start_value = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_START_ROLL);
+  Ice.roll_stabilization.gain = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_GAIN_ROLL);
   
-  Ice.pitch_stabilization.const_time = shore_request_config_buf[REQUEST_CONFIG_CONST_TIME_PITCH];
-  Ice.pitch_stabilization.K1 = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K1_PITCH);
-  Ice.pitch_stabilization.K2 = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K2_PITCH);
-  Ice.pitch_stabilization.start_value = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_START_PITCH);
-  Ice.pitch_stabilization.gain = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_GAIN_PITCH);
+  Ice.pitch_stabilization.const_time = ShoreRequestConfigBuf[REQUEST_CONFIG_CONST_TIME_PITCH];
+  Ice.pitch_stabilization.K1 = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K1_PITCH);
+  Ice.pitch_stabilization.K2 = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K2_PITCH);
+  Ice.pitch_stabilization.start_value = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_START_PITCH);
+  Ice.pitch_stabilization.gain = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_GAIN_PITCH);
   
-  Ice.yaw_stabilization.const_time = shore_request_config_buf[REQUEST_CONFIG_CONST_TIME_YAW];
-  Ice.yaw_stabilization.K1 = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K1_YAW);
-  Ice.yaw_stabilization.K2 = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K2_YAW);
-  Ice.yaw_stabilization.start_value = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_START_YAW);
-  Ice.yaw_stabilization.gain = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_GAIN_YAW);
+  Ice.yaw_stabilization.const_time = ShoreRequestConfigBuf[REQUEST_CONFIG_CONST_TIME_YAW];
+  Ice.yaw_stabilization.K1 = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K1_YAW);
+  Ice.yaw_stabilization.K2 = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K2_YAW);
+  Ice.yaw_stabilization.start_value = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_START_YAW);
+  Ice.yaw_stabilization.gain = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_GAIN_YAW);
   
-  Ice.HLB.address = shore_request_config_buf[REQUEST_CONFIG_POSITION_HLB];
-  Ice.HLF.address = shore_request_config_buf[REQUEST_CONFIG_POSITION_HLF];
-  Ice.HRB.address = shore_request_config_buf[REQUEST_CONFIG_POSITION_HRB];
-  Ice.HRF.address = shore_request_config_buf[REQUEST_CONFIG_POSITION_HRF];
-  Ice.VB.address = shore_request_config_buf[REQUEST_CONFIG_POSITION_VB];
-  Ice.VF.address = shore_request_config_buf[REQUEST_CONFIG_POSITION_VF];
-  Ice.VL.address  = shore_request_config_buf[REQUEST_CONFIG_POSITION_VL];
-  Ice.VR.address = shore_request_config_buf[REQUEST_CONFIG_POSITION_VR];
+  Ice.HLB.address = ShoreRequestConfigBuf[REQUEST_CONFIG_POSITION_HLB];
+  Ice.HLF.address = ShoreRequestConfigBuf[REQUEST_CONFIG_POSITION_HLF];
+  Ice.HRB.address = ShoreRequestConfigBuf[REQUEST_CONFIG_POSITION_HRB];
+  Ice.HRF.address = ShoreRequestConfigBuf[REQUEST_CONFIG_POSITION_HRF];
+  Ice.VB.address = ShoreRequestConfigBuf[REQUEST_CONFIG_POSITION_VB];
+  Ice.VF.address = ShoreRequestConfigBuf[REQUEST_CONFIG_POSITION_VF];
+  Ice.VL.address  = ShoreRequestConfigBuf[REQUEST_CONFIG_POSITION_VL];
+  Ice.VR.address = ShoreRequestConfigBuf[REQUEST_CONFIG_POSITION_VR];
   
-  Ice.HLB.inverse = shore_request_config_buf[REQUEST_CONFIG_INVERSE_HLB];
-  Ice.HLF.inverse = shore_request_config_buf[REQUEST_CONFIG_INVERSE_HLF];
-  Ice.HRB.inverse = shore_request_config_buf[REQUEST_CONFIG_INVERSE_HRB];
-  Ice.HRF.inverse = shore_request_config_buf[REQUEST_CONFIG_INVERSE_HRF];
-  Ice.VB.inverse = shore_request_config_buf[REQUEST_CONFIG_INVERSE_VB];
-  Ice.VF.inverse = shore_request_config_buf[REQUEST_CONFIG_INVERSE_VF];
-  Ice.VL.inverse = shore_request_config_buf[REQUEST_CONFIG_INVERSE_VL];
-  Ice.VR.inverse = shore_request_config_buf[REQUEST_CONFIG_INVERSE_VR];
+  Ice.HLB.inverse = ShoreRequestConfigBuf[REQUEST_CONFIG_INVERSE_HLB];
+  Ice.HLF.inverse = ShoreRequestConfigBuf[REQUEST_CONFIG_INVERSE_HLF];
+  Ice.HRB.inverse = ShoreRequestConfigBuf[REQUEST_CONFIG_INVERSE_HRB];
+  Ice.HRF.inverse = ShoreRequestConfigBuf[REQUEST_CONFIG_INVERSE_HRF];
+  Ice.VB.inverse = ShoreRequestConfigBuf[REQUEST_CONFIG_INVERSE_VB];
+  Ice.VF.inverse = ShoreRequestConfigBuf[REQUEST_CONFIG_INVERSE_VF];
+  Ice.VL.inverse = ShoreRequestConfigBuf[REQUEST_CONFIG_INVERSE_VL];
+  Ice.VR.inverse = ShoreRequestConfigBuf[REQUEST_CONFIG_INVERSE_VR];
   
-  Ice.HLB.k_forward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_FORWARD_HLB);
-  Ice.HLF.k_forward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_FORWARD_HLF);
-  Ice.HRB.k_forward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_FORWARD_HRB);
-  Ice.HRF.k_forward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_FORWARD_HRF);
-  Ice.VB.k_forward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_FORWARD_VB);
-  Ice.VF.k_forward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_FORWARD_VF);
-  Ice.VL.k_forward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_FORWARD_VL);
-  Ice.VR.k_forward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_FORWARD_VR);
+  Ice.HLB.k_forward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_FORWARD_HLB);
+  Ice.HLF.k_forward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_FORWARD_HLF);
+  Ice.HRB.k_forward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_FORWARD_HRB);
+  Ice.HRF.k_forward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_FORWARD_HRF);
+  Ice.VB.k_forward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_FORWARD_VB);
+  Ice.VF.k_forward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_FORWARD_VF);
+  Ice.VL.k_forward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_FORWARD_VL);
+  Ice.VR.k_forward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_FORWARD_VR);
   
-  Ice.HLB.k_backward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_BACKWARD_HLB);
-  Ice.HLF.k_backward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_BACKWARD_HLF);
-  Ice.HRB.k_backward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_BACKWARD_HRB);
-  Ice.HRF.k_backward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_BACKWARD_HRF);
-  Ice.VB.k_backward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_BACKWARD_VB);
-  Ice.VF.k_backward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_BACKWARD_VF);
-  Ice.VL.k_backward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_BACKWARD_VL);
-  Ice.VR.k_backward = FloatFromUint8(shore_request_config_buf, REQUEST_CONFIG_K_BACKWARD_VR);
+  Ice.HLB.k_backward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_BACKWARD_HLB);
+  Ice.HLF.k_backward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_BACKWARD_HLF);
+  Ice.HRB.k_backward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_BACKWARD_HRB);
+  Ice.HRF.k_backward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_BACKWARD_HRF);
+  Ice.VB.k_backward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_BACKWARD_VB);
+  Ice.VF.k_backward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_BACKWARD_VF);
+  Ice.VL.k_backward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_BACKWARD_VL);
+  Ice.VR.k_backward = FloatFromUint8(ShoreRequestConfigBuf, REQUEST_CONFIG_K_BACKWARD_VR);
 }
 
 
 
 void ShoreRequest()
 {
-  Ice.movement.march = (int16_t)((shore_request_buf[SHORE_REQUEST_MARCH] << 8) + shore_request_buf[SHORE_REQUEST_MARCH + 1]);
-  Ice.movement.lag = (int16_t)((shore_request_buf[SHORE_REQUEST_LAG] << 8) + shore_request_buf[SHORE_REQUEST_LAG + 1]);
-  Ice.movement.depth = (int16_t)((shore_request_buf[SHORE_REQUEST_DEPTH] << 8) + shore_request_buf[SHORE_REQUEST_DEPTH + 1]);
-  Ice.movement.pitch = (int16_t)((shore_request_buf[SHORE_REQUEST_ROLL] << 8) + shore_request_buf[SHORE_REQUEST_ROLL + 1]);
-  Ice.movement.roll = (int16_t)((shore_request_buf[SHORE_REQUEST_PITCH] << 8) + shore_request_buf[SHORE_REQUEST_PITCH + 1]);
-  Ice.movement.yaw = (int16_t)((shore_request_buf[SHORE_REQUEST_YAW] << 8) + shore_request_buf[SHORE_REQUEST_YAW + 1]);
+  Ice.movement.march = (int16_t)((ShoreRequestBuf[SHORE_REQUEST_MARCH] << 8) + ShoreRequestBuf[SHORE_REQUEST_MARCH + 1]);
+  Ice.movement.lag = (int16_t)((ShoreRequestBuf[SHORE_REQUEST_LAG] << 8) + ShoreRequestBuf[SHORE_REQUEST_LAG + 1]);
+  Ice.movement.depth = (int16_t)((ShoreRequestBuf[SHORE_REQUEST_DEPTH] << 8) + ShoreRequestBuf[SHORE_REQUEST_DEPTH + 1]);
+  Ice.movement.pitch = (int16_t)((ShoreRequestBuf[SHORE_REQUEST_ROLL] << 8) + ShoreRequestBuf[SHORE_REQUEST_ROLL + 1]);
+  Ice.movement.roll = (int16_t)((ShoreRequestBuf[SHORE_REQUEST_PITCH] << 8) + ShoreRequestBuf[SHORE_REQUEST_PITCH + 1]);
+  Ice.movement.yaw = (int16_t)((ShoreRequestBuf[SHORE_REQUEST_YAW] << 8) + ShoreRequestBuf[SHORE_REQUEST_YAW + 1]);
 
-  Ice.device.light = shore_request_buf[SHORE_REQUEST_LIGHT];
-  Ice.device.bluetooth_light = shore_request_buf[SHORE_REQUEST_BLUETOOTH];
-  Ice.device.bottom_light = shore_request_buf[SHORE_REQUEST_BOTTOM_LIGHT];
-  Ice.device.grab = shore_request_buf[SHORE_REQUEST_GRAB];
-  Ice.device.grab_rotate  = shore_request_buf[SHORE_REQUEST_GRAB_ROTATE]; 
-  Ice.device.tilt = shore_request_buf[SHORE_REQUEST_TILT];
+  Ice.device.light = ShoreRequestBuf[SHORE_REQUEST_LIGHT];
+  Ice.device.bluetooth_light = ShoreRequestBuf[SHORE_REQUEST_BLUETOOTH];
+  Ice.device.bottom_light = ShoreRequestBuf[SHORE_REQUEST_BOTTOM_LIGHT];
+  Ice.device.grab = ShoreRequestBuf[SHORE_REQUEST_GRAB];
+  Ice.device.grab_rotate  = ShoreRequestBuf[SHORE_REQUEST_GRAB_ROTATE]; 
+  Ice.device.tilt = ShoreRequestBuf[SHORE_REQUEST_TILT];
 
-  Ice.depth_stabilization.enable = (bool) shore_request_buf[SHORE_REQUEST_STABILIZE_DEPTH];
-  Ice.roll_stabilization.enable = (bool) shore_request_buf[SHORE_REQUEST_STABILIZE_ROLL];
-  Ice.pitch_stabilization.enable = (bool) shore_request_buf[SHORE_REQUEST_STABILIZE_PITCH ];
-  Ice.yaw_stabilization.enable = (bool) shore_request_buf[SHORE_REQUEST_STABILIZE_YAW ];
+  Ice.depth_stabilization.enable = (bool) ShoreRequestBuf[SHORE_REQUEST_STABILIZE_DEPTH];
+  Ice.roll_stabilization.enable = (bool) ShoreRequestBuf[SHORE_REQUEST_STABILIZE_ROLL];
+  Ice.pitch_stabilization.enable = (bool) ShoreRequestBuf[SHORE_REQUEST_STABILIZE_PITCH ];
+  Ice.yaw_stabilization.enable = (bool) ShoreRequestBuf[SHORE_REQUEST_STABILIZE_YAW ];
 
-  Ice.device.reset_IMU = (bool) shore_request_buf[SHORE_REQUEST_RESET_IMU];
+  Ice.device.reset_IMU = (bool) ShoreRequestBuf[SHORE_REQUEST_RESET_IMU];
 }
 
 
 
 void ShoreResponse()
 { 
-  shore_response_buf[SHORE_RESPONSE_ROLL] = (uint8_t)(Ice.sensors.roll >> 8);
-  shore_response_buf[SHORE_RESPONSE_ROLL + 1] = (uint8_t)(Ice.sensors.roll);  // does it work?
-  shore_response_buf[SHORE_RESPONSE_PITCH] = (uint8_t)(Ice.sensors.pitch >> 8);
-  shore_response_buf[SHORE_RESPONSE_PITCH + 1] = (uint8_t)(Ice.sensors.pitch);
-  shore_response_buf[SHORE_RESPONSE_YAW] = (uint8_t)(Ice.sensors.yaw >> 8);
-  shore_response_buf[SHORE_RESPONSE_YAW + 1] = (uint8_t)(Ice.sensors.yaw);
-  shore_response_buf[SHORE_RESPONSE_ROLL_SPEED] = (uint8_t)(Ice.sensors.roll_speed >> 8);
-  shore_response_buf[SHORE_RESPONSE_ROLL_SPEED + 1] = (uint8_t)(Ice.sensors.roll_speed);
-  shore_response_buf[SHORE_RESPONSE_PITCH_SPEED] = (uint8_t)(Ice.sensors.pitch_speed >> 8);
-  shore_response_buf[SHORE_RESPONSE_PITCH_SPEED + 1] = (uint8_t)(Ice.sensors.pitch_speed);
-  shore_response_buf[SHORE_RESPONSE_YAW_SPEED] = (uint8_t)(Ice.sensors.yaw_speed >> 8);
-  shore_response_buf[SHORE_RESPONSE_YAW_SPEED + 1] = (uint8_t)(Ice.sensors.yaw_speed);
-  shore_response_buf[SHORE_RESPONSE_TEMPERATURE] = 0x55;
-  shore_response_buf[SHORE_RESPONSE_TEMPERATURE + 1] = 0xAA;
-  shore_response_buf[SHORE_RESPONSE_PRESSURE] = (uint8_t)(Ice.sensors.pressure >> 8);
-  shore_response_buf[SHORE_RESPONSE_PRESSURE + 1] = (uint8_t)(Ice.sensors.pressure);
-  shore_response_buf[SHORE_RESPONSE_MOTOR_ERRORS] = 0x55;
-  shore_response_buf[SHORE_RESPONSE_MOTOR_ERRORS + 1] = 0xAA;
+  ShoreResponseBuf[SHORE_RESPONSE_ROLL] = (uint8_t)(Ice.sensors.roll >> 8);
+  ShoreResponseBuf[SHORE_RESPONSE_ROLL + 1] = (uint8_t)(Ice.sensors.roll);  // does it work?
+  ShoreResponseBuf[SHORE_RESPONSE_PITCH] = (uint8_t)(Ice.sensors.pitch >> 8);
+  ShoreResponseBuf[SHORE_RESPONSE_PITCH + 1] = (uint8_t)(Ice.sensors.pitch);
+  ShoreResponseBuf[SHORE_RESPONSE_YAW] = (uint8_t)(Ice.sensors.yaw >> 8);
+  ShoreResponseBuf[SHORE_RESPONSE_YAW + 1] = (uint8_t)(Ice.sensors.yaw);
+  ShoreResponseBuf[SHORE_RESPONSE_ROLL_SPEED] = (uint8_t)(Ice.sensors.roll_speed >> 8);
+  ShoreResponseBuf[SHORE_RESPONSE_ROLL_SPEED + 1] = (uint8_t)(Ice.sensors.roll_speed);
+  ShoreResponseBuf[SHORE_RESPONSE_PITCH_SPEED] = (uint8_t)(Ice.sensors.pitch_speed >> 8);
+  ShoreResponseBuf[SHORE_RESPONSE_PITCH_SPEED + 1] = (uint8_t)(Ice.sensors.pitch_speed);
+  ShoreResponseBuf[SHORE_RESPONSE_YAW_SPEED] = (uint8_t)(Ice.sensors.yaw_speed >> 8);
+  ShoreResponseBuf[SHORE_RESPONSE_YAW_SPEED + 1] = (uint8_t)(Ice.sensors.yaw_speed);
+  ShoreResponseBuf[SHORE_RESPONSE_TEMPERATURE] = 0x55;
+  ShoreResponseBuf[SHORE_RESPONSE_TEMPERATURE + 1] = 0xAA;
+  ShoreResponseBuf[SHORE_RESPONSE_PRESSURE] = (uint8_t)(Ice.sensors.pressure >> 8);
+  ShoreResponseBuf[SHORE_RESPONSE_PRESSURE + 1] = (uint8_t)(Ice.sensors.pressure);
+  ShoreResponseBuf[SHORE_RESPONSE_MOTOR_ERRORS] = 0x55;
+  ShoreResponseBuf[SHORE_RESPONSE_MOTOR_ERRORS + 1] = 0xAA;
   
-  AddChecksumm16b(shore_response_buf, SHORE_RESPONSE_LENGTH);
+  AddChecksumm16b(ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
 }
 
 
@@ -513,18 +560,18 @@ void IMU_Response()
 {
   uint8_t i = 0;
 	while(i < IMU_RESPONSE_LENGTH){
-		if ((IMU_response_buf[i] == 's') && (IMU_response_buf[(i + 1) % IMU_RESPONSE_LENGTH] == 'n') && (IMU_response_buf[(i + 2) % IMU_RESPONSE_LENGTH] == 'p') && (IMU_response_buf[(i + 3) % IMU_RESPONSE_LENGTH] == 0xC8)){
-			switch(IMU_response_buf[(i + 4) % IMU_RESPONSE_LENGTH]){
+		if ((IMU_ResponseBuf[i] == 's') && (IMU_ResponseBuf[(i + 1) % IMU_RESPONSE_LENGTH] == 'n') && (IMU_ResponseBuf[(i + 2) % IMU_RESPONSE_LENGTH] == 'p') && (IMU_ResponseBuf[(i + 3) % IMU_RESPONSE_LENGTH] == 0xC8)){
+			switch(IMU_ResponseBuf[(i + 4) % IMU_RESPONSE_LENGTH]){
 				case 0x62:
-					Ice.sensors.roll = (int16_t) ((IMU_response_buf[(i + 5) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_response_buf[(i + 6) % IMU_RESPONSE_LENGTH]);
-					Ice.sensors.pitch = (int16_t) ((IMU_response_buf[(i + 7) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_response_buf[(i + 8) % IMU_RESPONSE_LENGTH]);
-					Ice.sensors.yaw = (int16_t) ((IMU_response_buf[(i + 9) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_response_buf[(i + 10) % IMU_RESPONSE_LENGTH]);
+					Ice.sensors.roll = (int16_t) ((IMU_ResponseBuf[(i + 5) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_ResponseBuf[(i + 6) % IMU_RESPONSE_LENGTH]);
+					Ice.sensors.pitch = (int16_t) ((IMU_ResponseBuf[(i + 7) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_ResponseBuf[(i + 8) % IMU_RESPONSE_LENGTH]);
+					Ice.sensors.yaw = (int16_t) ((IMU_ResponseBuf[(i + 9) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_ResponseBuf[(i + 10) % IMU_RESPONSE_LENGTH]);
 					i = i + 14;
 				break;
 				case 0x5C:
-					Ice.sensors.roll_speed = (int16_t) ((IMU_response_buf[(i + 5) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_response_buf[(i + 6) % IMU_RESPONSE_LENGTH]);
-					Ice.sensors.pitch_speed = (int16_t) ((IMU_response_buf[(i + 7) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_response_buf[(i + 8) % IMU_RESPONSE_LENGTH]);
-					Ice.sensors.yaw_speed = (int16_t) ((IMU_response_buf[(i + 9) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_response_buf[(i + 10) % IMU_RESPONSE_LENGTH]);
+					Ice.sensors.roll_speed = (int16_t) ((IMU_ResponseBuf[(i + 5) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_ResponseBuf[(i + 6) % IMU_RESPONSE_LENGTH]);
+					Ice.sensors.pitch_speed = (int16_t) ((IMU_ResponseBuf[(i + 7) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_ResponseBuf[(i + 8) % IMU_RESPONSE_LENGTH]);
+					Ice.sensors.yaw_speed = (int16_t) ((IMU_ResponseBuf[(i + 9) % IMU_RESPONSE_LENGTH] << 8 ) + IMU_ResponseBuf[(i + 10) % IMU_RESPONSE_LENGTH]);
 					i = i + 14;
 				break;
 			}
@@ -548,30 +595,30 @@ uint16_t IMU_checksum(uint8_t* arr, uint8_t size)
 
 void IMU_Reset()
 {
-  IMU_request_buf[0] = 's';
-  IMU_request_buf[1] = 'n';
-  IMU_request_buf[2] = 'p';
-  IMU_request_buf[3] = 0x00;
-  IMU_request_buf[4] = 0xAC;  // Zero_gyros
-  uint16_t checksum = IMU_checksum(IMU_request_buf, 5);
-  IMU_request_buf[5] = checksum >> 8;
-  IMU_request_buf[6] = (uint8_t) checksum;
-  IMU_request_buf[7] = 's';
-  IMU_request_buf[8] = 'n';
-  IMU_request_buf[9] = 'p';
-  IMU_request_buf[10] = 0x00;
-  IMU_request_buf[11] = 0xAD;  // Reset EKF
-  checksum = IMU_checksum(IMU_request_buf + 7, 5);
-  IMU_request_buf[12] = checksum >> 8;
-  IMU_request_buf[13] = (uint8_t) checksum;
-  IMU_request_buf[14] = 's';
-  IMU_request_buf[15] = 'n';
-  IMU_request_buf[16] = 'p';
-  IMU_request_buf[17] = 0x00;
-  IMU_request_buf[18] = 0xAF;  // Set Accelerometer Reference vector
-  checksum = IMU_checksum(IMU_request_buf + 14, 5);
-  IMU_request_buf[19] = checksum >> 8;
-  IMU_request_buf[20] = (uint8_t) checksum;
+  IMU_RequestBuf[0] = 's';
+  IMU_RequestBuf[1] = 'n';
+  IMU_RequestBuf[2] = 'p';
+  IMU_RequestBuf[3] = 0x00;
+  IMU_RequestBuf[4] = 0xAC;  // Zero_gyros
+  uint16_t checksum = IMU_checksum(IMU_RequestBuf, 5);
+  IMU_RequestBuf[5] = checksum >> 8;
+  IMU_RequestBuf[6] = (uint8_t) checksum;
+  IMU_RequestBuf[7] = 's';
+  IMU_RequestBuf[8] = 'n';
+  IMU_RequestBuf[9] = 'p';
+  IMU_RequestBuf[10] = 0x00;
+  IMU_RequestBuf[11] = 0xAD;  // Reset EKF
+  checksum = IMU_checksum(IMU_RequestBuf + 7, 5);
+  IMU_RequestBuf[12] = checksum >> 8;
+  IMU_RequestBuf[13] = (uint8_t) checksum;
+  IMU_RequestBuf[14] = 's';
+  IMU_RequestBuf[15] = 'n';
+  IMU_RequestBuf[16] = 'p';
+  IMU_RequestBuf[17] = 0x00;
+  IMU_RequestBuf[18] = 0xAF;  // Set Accelerometer Reference vector
+  checksum = IMU_checksum(IMU_RequestBuf + 14, 5);
+  IMU_RequestBuf[19] = checksum >> 8;
+  IMU_RequestBuf[20] = (uint8_t) checksum;
 }
 /* USER CODE END Application */
 

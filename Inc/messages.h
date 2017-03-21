@@ -24,7 +24,7 @@
 /* --- SHORE REQUEST NORMAL MODE --- */
 #define SHORE_REQUEST_CODE             0xFF
 
-#define SHORE_REQUEST_LENGTH           26
+#define SHORE_REQUEST_LENGTH           25
 
 #define SHORE_REQUEST_TYPE             0
 #define SHORE_REQUEST_MARCH            1
