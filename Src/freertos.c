@@ -239,16 +239,17 @@ void ShoreCommunicationTask(void const * argument)
 	HAL_HalfDuplex_EnableReceiver(&shore_uart);
   /* Infinite loop */
   for(;;){
-		if(shore_RX_enable && vma_dev_uart.RxState == HAL_UART_STATE_READY){
+		if(shore_RX_enable && shore_uart.RxState == HAL_UART_STATE_READY){
 			HAL_UART_Receive_DMA(&shore_uart, ShoreRequestBuf, SHORE_REQUEST_LENGTH);
 			shore_RX_enable = false;
 		}
-		else if(shore_TX_enable && vma_dev_uart.gState == HAL_UART_STATE_READY){
+		else if(shore_TX_enable && shore_uart.gState == HAL_UART_STATE_READY){
 			for(uint8_t i = 0; i < SHORE_REQUEST_LENGTH; ++i){
 				ShoreResponseBuf[i] = (ShoreResponseBuf[i] + 1 + i) % 256;
 			}
 			HAL_UART_Transmit_DMA(&shore_uart, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
 			shore_TX_enable = false;
+			shore_RX_enable = true;
 		}
   }
   /* USER CODE END ShoreCommunicationTask */
@@ -322,15 +323,12 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &shore_uart){
 		HAL_HalfDuplex_EnableReceiver(&shore_uart);
-		shore_RX_enable = true;
 	}
 	else if(huart == &vma_dev_uart){
 		HAL_HalfDuplex_EnableReceiver(&vma_dev_uart);
-		VMA_RX_enable = true;
 	}
 	else if(huart == &dev_uart){
 		HAL_HalfDuplex_EnableReceiver(&dev_uart);
-		DEV_RX_enable = true;		
 	}
 }
 
@@ -351,10 +349,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		DEV_TX_enable = true;		
 	}
 }
-
-
-
-
 
 
 
