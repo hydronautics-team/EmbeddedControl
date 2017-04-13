@@ -92,28 +92,28 @@ uint8_t ShoreResponseBuf[SHORE_RESPONSE_LENGTH];
 uint8_t IMU_RequestBuf[IMU_REQUEST_LENGTH];
 uint8_t IMU_ResponseBuf[IMU_RESPONSE_LENGTH];
 
-uint8_t HLF_RequestBuf[VMA_DEV_REQUEST_LENGTH] = {0xAA, 0xAA, 0xF0, 0, 1, 2, 3};
+uint8_t HLF_RequestBuf[VMA_DEV_REQUEST_LENGTH] = {0xAA, 0xAA, 0x01, 0x7F, 1, 2, 0xD7};
 uint8_t HLF_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t HLB_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t HLB_RequestBuf[VMA_DEV_REQUEST_LENGTH] = {0xAA, 0xAA, 0x02, 0x7F, 1, 2, 0xD8};
 uint8_t HLB_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t HRB_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t HRB_RequestBuf[VMA_DEV_REQUEST_LENGTH] = {0xAA, 0xAA, 0x03, 0x7F, 1, 2, 0xD9};
 uint8_t HRB_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t HRF_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t HRF_RequestBuf[VMA_DEV_REQUEST_LENGTH] = {0xAA, 0xAA, 0x04, 0x7F, 1, 2, 0xDA};
 uint8_t HRF_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t VF_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VF_RequestBuf[VMA_DEV_REQUEST_LENGTH] = {0xAA, 0xAA, 0x05, 0x7F, 1, 2, 0xDB};
 uint8_t VF_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t VL_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VL_RequestBuf[VMA_DEV_REQUEST_LENGTH] = {0xAA, 0xAA, 0x06, 0x7F, 1, 2, 0xDC};
 uint8_t VL_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t VB_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VB_RequestBuf[VMA_DEV_REQUEST_LENGTH] = {0xAA, 0xAA, 0x07, 0x7F, 1, 2, 0xDD};
 uint8_t VB_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
-uint8_t VR_RequestBuf[VMA_DEV_REQUEST_LENGTH];
+uint8_t VR_RequestBuf[VMA_DEV_REQUEST_LENGTH] = {0xAA, 0xAA, 0x08, 0x7F, 1, 2, 0xDE};
 uint8_t VR_ResponseBuf[VMA_DEV_RESPONSE_LENGTH];
 
 uint8_t Dev1RequestBuf[VMA_DEV_REQUEST_LENGTH];
@@ -249,7 +249,6 @@ void ShoreCommunicationTask(void const * argument)
 			}
 			HAL_UART_Transmit_DMA(&shore_uart, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
 			shore_TX_enable = false;
-			shore_RX_enable = true;
 		}
   }
   /* USER CODE END ShoreCommunicationTask */
@@ -264,23 +263,93 @@ void VmaDevCommunicationTask(void const * argument)
 	DEV_RX_enable = false;
 	DEV_TX_enable = true;
 	
+	uint8_t i = 2;
+	
 	HAL_HalfDuplex_EnableTransmitter(&vma_dev_uart);
 	HAL_HalfDuplex_EnableTransmitter(&dev_uart);
+	
   /* Infinite loop */
   for(;;){
 		if (VMA_TX_enable && vma_dev_uart.gState == HAL_UART_STATE_READY){
-			HAL_UART_Transmit_IT(&vma_dev_uart, HLF_RequestBuf, VMA_DEV_REQUEST_LENGTH);
-			VMA_TX_enable = false;
-			VMA_RX_enable = true;
+			switch(i){
+				case 1:
+					HAL_UART_Transmit_IT(&vma_dev_uart, HLF_RequestBuf, VMA_DEV_REQUEST_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 2:
+					HAL_UART_Transmit_IT(&vma_dev_uart, HLB_RequestBuf, VMA_DEV_REQUEST_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 3:
+					HAL_UART_Transmit_IT(&vma_dev_uart, HRB_RequestBuf, VMA_DEV_REQUEST_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 4:
+					HAL_UART_Transmit_IT(&vma_dev_uart, HRF_RequestBuf, VMA_DEV_REQUEST_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 5:
+					HAL_UART_Transmit_IT(&vma_dev_uart, VF_RequestBuf, VMA_DEV_REQUEST_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 6:
+					HAL_UART_Transmit_IT(&vma_dev_uart, VL_RequestBuf, VMA_DEV_REQUEST_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 7:
+					HAL_UART_Transmit_IT(&vma_dev_uart, VB_RequestBuf, VMA_DEV_REQUEST_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 8:
+					HAL_UART_Transmit_IT(&vma_dev_uart, VR_RequestBuf, VMA_DEV_REQUEST_LENGTH);
+					VMA_TX_enable = false;
+					break;
+			}
 		}
-		else if (DEV_TX_enable){
+		else if (DEV_TX_enable && dev_uart.gState == HAL_UART_STATE_READY){
 			HAL_UART_Transmit_IT(&dev_uart, HLF_RequestBuf, VMA_DEV_REQUEST_LENGTH);
 			DEV_TX_enable = false;
-			DEV_RX_enable = true;
 		}
 		else if (VMA_RX_enable && vma_dev_uart.RxState == HAL_UART_STATE_READY){
-			HAL_UART_Receive_IT(&vma_dev_uart, HLF_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-			VMA_RX_enable = false;
+			switch(i){
+				case 1:
+					HAL_UART_Receive_IT(&vma_dev_uart, HLF_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 2:
+					HAL_UART_Receive_IT(&vma_dev_uart, HLB_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 3:
+					HAL_UART_Receive_IT(&vma_dev_uart, HRB_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 4:
+					HAL_UART_Receive_IT(&vma_dev_uart, HRF_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 5:
+					HAL_UART_Receive_IT(&vma_dev_uart, VF_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 6:
+					HAL_UART_Receive_IT(&vma_dev_uart, VL_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 7:
+					HAL_UART_Receive_IT(&vma_dev_uart, VB_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMA_TX_enable = false;
+					break;
+				case 8:
+					HAL_UART_Receive_IT(&vma_dev_uart, VR_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMA_TX_enable = false;
+					break;
+			}
+			i = (i + 1) % 5;
+			if (i == 0){
+				i = 2;
+			}
+			HAL_Delay(20);
 		}
 		else if (DEV_RX_enable && dev_uart.RxState == HAL_UART_STATE_READY){
 			HAL_UART_Receive_IT(&dev_uart, HLF_ResponseBuf, VMA_DEV_RESPONSE_LENGTH);
@@ -323,12 +392,15 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &shore_uart){
 		HAL_HalfDuplex_EnableReceiver(&shore_uart);
+		shore_RX_enable = true;
 	}
 	else if(huart == &vma_dev_uart){
 		HAL_HalfDuplex_EnableReceiver(&vma_dev_uart);
+		VMA_RX_enable = true;
 	}
 	else if(huart == &dev_uart){
 		HAL_HalfDuplex_EnableReceiver(&dev_uart);
+		DEV_RX_enable = true;
 	}
 }
 
