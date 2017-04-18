@@ -5,9 +5,30 @@
 #include <math.h>
 #include <stdint.h>
 
-struct robot{
+enum VMA{
+	HLF = 1,
+	HLB, 
+	HRB, 
+	HRF, 
+	VL, 
+	VB, 
+	VR, 
+	VF
+};
+
+
+enum DEV{
+	SUCKER = 1,
+	GRUB,
+	GRUBROTATION,
+	TILT
+};
 	
-	struct VMA{
+
+
+struct Robot{
+	
+	struct robotVMA{
 		uint8_t address;
 		
 		int8_t speed;
@@ -18,7 +39,7 @@ struct robot{
 		double k_backward;
 	}HLF, HLB, HRB, HRF, VL, VB, VR, VF;
   
-  struct robot_sensors{
+  struct robotSensors{
     int16_t roll;
     int16_t pitch;
     int16_t yaw;
@@ -29,11 +50,11 @@ struct robot{
     uint16_t pressure;
   } sensors;
   
-  struct robot_errors{
+  struct robotErrors{
     uint16_t motor_errors;
   } errors;
   
-	struct shore_position_control{
+	struct shorePositionControl{
 		int16_t march;
     int16_t lag;
     int16_t depth;
@@ -42,8 +63,8 @@ struct robot{
     int16_t yaw;
 	} movement;
   
-  struct device_control{
-    bool reset_IMU;
+  struct deviceControl{
+    bool resetIMU;
     uint8_t light;
 		uint8_t bottom_light;
 		uint8_t bluetooth_light;
