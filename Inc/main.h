@@ -74,10 +74,10 @@
 #define LD6_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
 
-#define shore_uart huart1
-#define vma_dev_uart huart2
-#define dev_uart huart3
-#define imu_uart huart4
+#define shoreUart huart1
+#define vmaUart huart2
+#define devUart huart3
+#define imuUart huart4
 
 /* USER CODE END Private defines */
 

@@ -1,18 +1,9 @@
 #include "checksum.h"
 
 
-uint8_t easyCheckSumm(uint8_t *msg, uint16_t length)
-{
-	uint8_t crc = 0;
-	for (uint8_t i = 0; i < length - 1; i++){ 
-		crc = crc + msg[i]; 
-	}
-	return crc;
-}
-
 
 /* CRC16-CCITT algorithm */
-uint8_t isChecksumm16bCorrect(uint8_t *msg, uint16_t length)
+bool isChecksumm16bCorrect(uint8_t *msg, uint16_t length)
 {
   int i;
 	uint16_t crc = 0, crc_got = (uint16_t)((msg[length - 2] << 8) + msg[length - 1]);
@@ -55,7 +46,7 @@ void addChecksumm16b(uint8_t *msg, uint16_t length)
 
 
 
-uint8_t isCheckSumm8bCorrect(uint8_t *msg, uint16_t length)
+bool isChecksumm8bCorrect(uint8_t *msg, uint16_t length)
 {
 	uint8_t crcGot, crc = 0;
 	int i;
@@ -87,10 +78,10 @@ void addCheckSumm8b(uint8_t *msg, uint16_t length)
 
 
 
-uint16_t IMUchecksum(uint8_t* buf, uint8_t size)
+uint16_t IMUchecksum(uint8_t *buf, uint16_t length)
 {
   uint16_t checksum = 0;
-  for(uint8_t i = 0; i < size; ++i){
+  for(uint8_t i = 0; i < length; ++i){
     checksum += buf[i];
   }
   return checksum;

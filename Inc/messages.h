@@ -2,6 +2,7 @@
 #define MESSAGES_H
 
 #include <stdint.h>
+#include <stdlib.h>
 #include "robot.h"
 #include "checksum.h"
 
@@ -102,14 +103,14 @@
 #define REQUEST_CONFIG_POSITION_VL      75
 #define REQUEST_CONFIG_POSITION_VR      76
 
-#define REQUEST_CONFIG_INVERSE_HLB      77
-#define REQUEST_CONFIG_INVERSE_HLF      78
-#define REQUEST_CONFIG_INVERSE_HRB      79
-#define REQUEST_CONFIG_INVERSE_HRF      80
-#define REQUEST_CONFIG_INVERSE_VB       81
-#define REQUEST_CONFIG_INVERSE_VF       82
-#define REQUEST_CONFIG_INVERSE_VL       83
-#define REQUEST_CONFIG_INVERSE_VR       84
+#define REQUEST_CONFIG_SETTING_HLB      77
+#define REQUEST_CONFIG_SETTING_HLF      78
+#define REQUEST_CONFIG_SETTING_HRB      79
+#define REQUEST_CONFIG_SETTING_HRF      80
+#define REQUEST_CONFIG_SETTING_VB       81
+#define REQUEST_CONFIG_SETTING_VF       82
+#define REQUEST_CONFIG_SETTING_VL       83
+#define REQUEST_CONFIG_SETTING_VR       84
 
 #define REQUEST_CONFIG_K_FORWARD_HLB    85
 #define REQUEST_CONFIG_K_FORWARD_HLF    89
@@ -149,7 +150,7 @@
 
 #define SHORE_RESPONSE_CHECKSUM               18
 
-// add 8x2 byte current VMA + 8 byte velocity VMA + 9?byte bluetooth + 5x2 Dev current + 5 dev velocity
+// add 8x2 byte current VMA + 8 byte velocity VMA + 8 byte errors + 6x2 Dev current + byte 0x00EEEEEE
 
 
 
@@ -163,8 +164,8 @@
 
 
 
-void DevRequestUpdate(uint8_t *buf, uint8_t DEV);
-void VMARequestUpdate(uint8_t *buf, uint8_t VMA);
+void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV);
+void VMARequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV);
 
 void ShoreRequest(struct Robot *robot, uint8_t *requestBuf);
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf);

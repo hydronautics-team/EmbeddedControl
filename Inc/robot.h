@@ -5,53 +5,59 @@
 #include <math.h>
 #include <stdint.h>
 
+#define VMA_NUMBER            8
+#define VMA_DRIVER_NUMBER     8
+#define DEV_DRIVER_NUMBER     4    
+ 
+
 enum VMA{
-	HLF = 1,
-	HLB, 
+	HLB = 0,
+	HLF, 
 	HRB, 
 	HRF, 
-	VL, 
 	VB, 
-	VR, 
-	VF
+	VF, 
+	VL, 
+	VR
 };
 
 
+
 enum DEV{
-	SUCKER = 1,
+	AGAR = 0,
 	GRUB,
 	GRUBROTATION,
 	TILT
 };
-	
+
 
 
 struct Robot{
 	
 	struct robotVMA{
 		uint8_t address;
-		
 		int8_t speed;
-		bool inverse;
-		bool enabled;
+		
+		// There is flags of: enabling, inversing, ...
+		uint8_t settings;  
 			
-		double k_forward;
-		double k_backward;
-	}HLF, HLB, HRB, HRF, VL, VB, VR, VF;
+		double kForward;
+		double kBackward;
+	}VMA[VMA_NUMBER];
   
   struct robotSensors{
     int16_t roll;
     int16_t pitch;
     int16_t yaw;
-    int16_t roll_speed;
-    int16_t pitch_speed;
-    int16_t yaw_speed;
+    int16_t rollSpeed;
+    int16_t pitchSpeed;
+    int16_t yawSpeed;
     
     uint16_t pressure;
   } sensors;
   
   struct robotErrors{
-    uint16_t motor_errors;
+    uint16_t motorErrors;
   } errors;
   
 	struct shorePositionControl{
@@ -64,24 +70,26 @@ struct Robot{
 	} movement;
   
   struct deviceControl{
-    bool resetIMU;
-    uint8_t light;
-		uint8_t bottom_light;
-		uint8_t bluetooth_light;
+    
+		bool resetIMU;
+    
+		uint8_t light;
+		uint8_t bottomLight;
+		uint8_t bluetoothLight;
     uint8_t grab;
-    int8_t grab_rotate;
+    int8_t grabRotate;
     int8_t tilt;
   } device;
   
   struct stabilization{
     bool enable;
-    bool const_time;
+    bool constTime;
     float K1;
     float K2;
-    float start_value;
+    float startValue;
     float gain;
-    float error_speed;
-  } depth_stabilization, roll_stabilization, pitch_stabilization, yaw_stabilization;
+    float speedError;
+  } depthStabilization, rollStabilization, pitchStabilization, yawStabilization;
 	
 }; 
 
