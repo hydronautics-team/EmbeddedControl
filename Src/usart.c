@@ -120,14 +120,14 @@ void receiveByte(uint8_t UART, uint8_t *byte)
 		case SHORE_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart1);
 			HAL_UART_Receive_IT(&huart1, byte, 1);
-			while (uart1PackageReceived != true){
+			while (!uart1PackageReceived){
 				delayUs(1);
 			}
 			uart1PackageReceived = false;
 			break;
 		case VMA_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart2);
-			HAL_UART_Receive_IT(&huart2, byte, 1);
+			HAL_UART_Receive_DMA(&huart2, byte, 1);
 			while (!uart2PackageReceived){
 				delayUs(1);
 			}
@@ -135,7 +135,7 @@ void receiveByte(uint8_t UART, uint8_t *byte)
 			break;
 		case DEV_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart3);
-			HAL_UART_Receive_IT(&huart3, byte, 1);
+			HAL_UART_Receive_DMA(&huart3, byte, 1);
 			while (!uart3PackageReceived){
 				delayUs(1);
 			}
@@ -143,7 +143,7 @@ void receiveByte(uint8_t UART, uint8_t *byte)
 			break;
 		case IMU_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart4);
-			HAL_UART_Receive_IT(&huart4, byte, 1);
+			HAL_UART_Receive_DMA(&huart4, byte, 1);
 			while (!uart4PackageReceived){
 				delayUs(1);
 			}
@@ -206,10 +206,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 }
 
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
-{
-	huart->ErrorCode = 0;
-}
+//void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+//{
+//	huart->ErrorCode = 0;
+//}
 
 /* USER CODE END 0 */
 

@@ -125,7 +125,7 @@ void MX_FREERTOS_Init(void) {
   SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
 
   /* definition and creation of Stabilization */
-  osThreadDef(Stabilization, StabilizationTask, osPriorityIdle, 0, 64);
+  osThreadDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64);
   StabilizationHandle = osThreadCreate(osThread(Stabilization), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -194,7 +194,7 @@ void ShoreCommunicationTask(void const * argument)
 				transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);			
 				break;
 		}
-		osDelay(15);
+		osDelay(5);
 	}
   /* USER CODE END ShoreCommunicationTask */
 }
@@ -266,7 +266,7 @@ void VmaDevCommunicationTask(void const * argument)
 		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
 		DevResponseUpdate(&Q100, DevRequestBuf, TILT);
 		
-		osDelay(10);
+		osDelay(1);
   }
   /* USER CODE END VmaDevCommunicationTask */
 }
