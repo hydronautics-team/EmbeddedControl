@@ -49,6 +49,167 @@
 #include "dma.h"
 
 /* USER CODE BEGIN 0 */
+#include "tim.h"
+
+bool uart1PackageTransmit = false;
+bool uart2PackageTransmit = false;
+bool uart3PackageTransmit = false;
+bool uart4PackageTransmit = false;
+
+bool uart1PackageReceived = false;
+bool uart2PackageReceived = false;
+bool uart3PackageReceived = false;
+bool uart4PackageReceived = false;
+
+void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
+{
+	switch(UART){
+		case SHORE_UART:
+			HAL_HalfDuplex_EnableTransmitter(&huart1);
+			HAL_UART_Transmit_DMA(&huart1, buf, length);
+			while (!uart1PackageTransmit){
+				osDelay(1);
+			}
+			uart1PackageTransmit = false;
+			break;
+		case VMA_UART:
+			HAL_HalfDuplex_EnableTransmitter(&huart2);
+			HAL_UART_Transmit_DMA(&huart2, buf, length);
+			while (!uart2PackageTransmit){
+				osDelay(1);
+			}
+			uart2PackageTransmit = false;
+			break;
+		case DEV_UART:
+			HAL_HalfDuplex_EnableTransmitter(&huart3);
+			HAL_UART_Transmit_DMA(&huart3, buf, length);
+			while (!uart3PackageTransmit){
+				HAL_Delay(2);
+			}
+			uart3PackageTransmit = false;
+			break;
+		case IMU_UART:
+			HAL_UART_Transmit_DMA(&huart4, buf, length);
+			while (!uart4PackageTransmit){
+				osDelay(1);
+			}
+			uart4PackageTransmit = false;
+			break;
+	}
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart == &huart1){
+		uart1PackageTransmit = true;
+	}
+	else if(huart == &huart2){
+		uart2PackageTransmit = true;
+	}
+	else if(huart == &huart3){
+		uart3PackageTransmit = true;
+	}
+	else if(huart == &huart4){
+		uart4PackageTransmit = true;
+	}
+}
+
+void receiveByte(uint8_t UART, uint8_t *byte)
+{
+	switch(UART){
+		case SHORE_UART:
+			HAL_HalfDuplex_EnableReceiver(&huart1);
+			HAL_UART_Receive_IT(&huart1, byte, 1);
+			while (uart1PackageReceived != true){
+				delayUs(1);
+			}
+			uart1PackageReceived = false;
+			break;
+		case VMA_UART:
+			HAL_HalfDuplex_EnableReceiver(&huart2);
+			HAL_UART_Receive_IT(&huart2, byte, 1);
+			while (!uart2PackageReceived){
+				delayUs(1);
+			}
+			uart2PackageReceived = false;
+			break;
+		case DEV_UART:
+			HAL_HalfDuplex_EnableReceiver(&huart3);
+			HAL_UART_Receive_IT(&huart3, byte, 1);
+			while (!uart3PackageReceived){
+				delayUs(1);
+			}
+			uart3PackageReceived = false;
+			break;
+		case IMU_UART:
+			HAL_HalfDuplex_EnableReceiver(&huart4);
+			HAL_UART_Receive_IT(&huart4, byte, 1);
+			while (!uart4PackageReceived){
+				delayUs(1);
+			}
+			uart4PackageReceived = false;
+			break;
+	}
+}
+
+void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
+{
+	switch(UART){
+		case SHORE_UART:
+			HAL_HalfDuplex_EnableReceiver(&huart1);
+			HAL_UART_Receive_DMA(&huart1, buf, length);
+			while (!uart1PackageReceived){
+				osDelay(1);
+			}
+			uart1PackageReceived = false;
+			break;
+		case VMA_UART:
+			HAL_HalfDuplex_EnableReceiver(&huart2);
+			HAL_UART_Receive_DMA(&huart2, buf, length);
+			while (!uart2PackageReceived){
+				osDelay(1);
+			}
+			uart2PackageReceived = false;
+			break;
+		case DEV_UART:
+			HAL_HalfDuplex_EnableReceiver(&huart3);
+			HAL_UART_Receive_DMA(&huart3, buf, length);
+			while (!uart3PackageReceived){
+				osDelay(1);
+			}
+			uart3PackageReceived = false;
+			break;
+		case IMU_UART:
+			HAL_HalfDuplex_EnableReceiver(&huart4);
+			HAL_UART_Receive_DMA(&huart4, buf, length);
+			while (!uart4PackageReceived){
+				osDelay(1);
+			}
+			uart4PackageReceived = false;
+			break;
+	}
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart == &huart1){
+		uart1PackageReceived = true;
+	}
+	else if(huart == &huart2){
+		uart2PackageReceived = true;
+	}
+	else if(huart == &huart3){
+		uart3PackageReceived = true;
+	}
+	else if(huart == &huart4){
+		uart4PackageReceived = true;
+	}
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+	huart->ErrorCode = 0;
+}
 
 /* USER CODE END 0 */
 
@@ -60,6 +221,8 @@ DMA_HandleTypeDef hdma_uart4_rx;
 DMA_HandleTypeDef hdma_uart4_tx;
 DMA_HandleTypeDef hdma_usart1_tx;
 DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart2_rx;
+DMA_HandleTypeDef hdma_usart2_tx;
 DMA_HandleTypeDef hdma_usart3_rx;
 DMA_HandleTypeDef hdma_usart3_tx;
 
@@ -89,7 +252,7 @@ void MX_USART1_UART_Init(void)
 {
 
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 57600;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -304,6 +467,38 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+    /* Peripheral DMA init*/
+  
+    hdma_usart2_rx.Instance = DMA1_Channel6;
+    hdma_usart2_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_usart2_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_usart2_rx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_usart2_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    hdma_usart2_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    hdma_usart2_rx.Init.Mode = DMA_NORMAL;
+    hdma_usart2_rx.Init.Priority = DMA_PRIORITY_LOW;
+    if (HAL_DMA_Init(&hdma_usart2_rx) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(uartHandle,hdmarx,hdma_usart2_rx);
+
+    hdma_usart2_tx.Instance = DMA1_Channel7;
+    hdma_usart2_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    hdma_usart2_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_usart2_tx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_usart2_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    hdma_usart2_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    hdma_usart2_tx.Init.Mode = DMA_NORMAL;
+    hdma_usart2_tx.Init.Priority = DMA_PRIORITY_LOW;
+    if (HAL_DMA_Init(&hdma_usart2_tx) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(uartHandle,hdmatx,hdma_usart2_tx);
+
     /* Peripheral interrupt init */
     HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART2_IRQn);
@@ -449,6 +644,10 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
     PA3     ------> USART2_RX 
     */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
+
+    /* Peripheral DMA DeInit*/
+    HAL_DMA_DeInit(uartHandle->hdmarx);
+    HAL_DMA_DeInit(uartHandle->hdmatx);
 
     /* Peripheral interrupt Deinit*/
     HAL_NVIC_DisableIRQ(USART2_IRQn);

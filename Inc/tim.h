@@ -1,7 +1,8 @@
 /**
   ******************************************************************************
-  * File Name          : main.h
-  * Description        : This file contains the common defines of the application
+  * File Name          : TIM.h
+  * Description        : This file provides code for the configuration
+  *                      of the TIM instances.
   ******************************************************************************
   *
   * Copyright (c) 2017 STMicroelectronics International N.V. 
@@ -41,47 +42,46 @@
   ******************************************************************************
   */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H
-#define __MAIN_H
-  /* Includes ------------------------------------------------------------------*/
+#ifndef __tim_H
+#define __tim_H
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
+/* Includes ------------------------------------------------------------------*/
+#include "stm32f3xx_hal.h"
+#include "main.h"
 
 /* USER CODE BEGIN Includes */
-#include "global.h"
-#include "robot.h"
 
 /* USER CODE END Includes */
 
-/* Private define ------------------------------------------------------------*/
+extern TIM_HandleTypeDef htim7;
 
-#define B1_Pin GPIO_PIN_0
-#define B1_GPIO_Port GPIOA
-#define LD4_Pin GPIO_PIN_8
-#define LD4_GPIO_Port GPIOE
-#define LD3_Pin GPIO_PIN_9
-#define LD3_GPIO_Port GPIOE
-#define LD5_Pin GPIO_PIN_10
-#define LD5_GPIO_Port GPIOE
-#define LD7_Pin GPIO_PIN_11
-#define LD7_GPIO_Port GPIOE
-#define LD9_Pin GPIO_PIN_12
-#define LD9_GPIO_Port GPIOE
-#define LD10_Pin GPIO_PIN_13
-#define LD10_GPIO_Port GPIOE
-#define LD8_Pin GPIO_PIN_14
-#define LD8_GPIO_Port GPIOE
-#define LD6_Pin GPIO_PIN_15
-#define LD6_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
-
+void delayUs(uint16_t delay);
 /* USER CODE END Private defines */
 
-/**
-  * @}
-  */ 
+extern void Error_Handler(void);
+
+void MX_TIM7_Init(void);
+
+/* USER CODE BEGIN Prototypes */
+void delayUS(uint16_t delay);
+
+/* USER CODE END Prototypes */
+
+#ifdef __cplusplus
+}
+#endif
+#endif /*__ tim_H */
 
 /**
   * @}
-*/ 
+  */
 
-#endif /* __MAIN_H */
+/**
+  * @}
+  */
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

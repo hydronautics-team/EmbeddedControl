@@ -310,7 +310,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
+            <Optim>1</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -335,7 +335,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F303xC</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;                ../Drivers/STM32F3xx_HAL_Driver/Inc;                ../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy;                ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;                ../Drivers/CMSIS/Device/ST/STM32F3xx/Include;                ../Middlewares/Third_Party/FreeRTOS/Source/include;                ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;                ../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Inc;                    ../Drivers/STM32F3xx_HAL_Driver/Inc;                    ../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy;                    ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;                    ../Drivers/CMSIS/Device/ST/STM32F3xx/Include;                    ../Middlewares/Third_Party/FreeRTOS/Source/include;                    ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;                    ../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -580,19 +580,29 @@
               <FilePath>../Src/stm32f3xx_hal_timebase_TIM.c</FilePath>
             </File>
             <File>
-              <FileName>stabilization.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\stabilization.c</FilePath>
-            </File>
-            <File>
               <FileName>checksum.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Src\checksum.c</FilePath>
             </File>
             <File>
-              <FileName>messages.c</FileName>
+              <FileName>global.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Src\messages.c</FilePath>
+              <FilePath>..\Src\global.c</FilePath>
+            </File>
+            <File>
+              <FileName>communication.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\communication.c</FilePath>
+            </File>
+            <File>
+              <FileName>stabilization.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\stabilization.c</FilePath>
+            </File>
+            <File>
+              <FileName>tim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Src/tim.c</FilePath>
             </File>
           </Files>
         </Group>

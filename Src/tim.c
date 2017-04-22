@@ -1,7 +1,8 @@
 /**
   ******************************************************************************
-  * File Name          : main.h
-  * Description        : This file contains the common defines of the application
+  * File Name          : TIM.c
+  * Description        : This file provides code for the configuration
+  *                      of the TIM instances.
   ******************************************************************************
   *
   * Copyright (c) 2017 STMicroelectronics International N.V. 
@@ -40,48 +41,92 @@
   *
   ******************************************************************************
   */
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H
-#define __MAIN_H
-  /* Includes ------------------------------------------------------------------*/
 
-/* USER CODE BEGIN Includes */
-#include "global.h"
-#include "robot.h"
+/* Includes ------------------------------------------------------------------*/
+#include "tim.h"
 
-/* USER CODE END Includes */
+/* USER CODE BEGIN 0 */
+void delayUs(uint16_t delay)
+{
+	uint8_t i;
+	htim7.Instance->ARR = delay;
+	htim7.Instance->EGR = TIM_EGR_UG;
+	htim7.Instance->CR1 = TIM_CR1_CEN|TIM_CR1_OPM;
+	while ((htim7.Instance->CR1 & TIM_CR1_CEN) != 0){
+		++i;
+		--i;
+	}
+}
+/* USER CODE END 0 */
 
-/* Private define ------------------------------------------------------------*/
+TIM_HandleTypeDef htim7;
 
-#define B1_Pin GPIO_PIN_0
-#define B1_GPIO_Port GPIOA
-#define LD4_Pin GPIO_PIN_8
-#define LD4_GPIO_Port GPIOE
-#define LD3_Pin GPIO_PIN_9
-#define LD3_GPIO_Port GPIOE
-#define LD5_Pin GPIO_PIN_10
-#define LD5_GPIO_Port GPIOE
-#define LD7_Pin GPIO_PIN_11
-#define LD7_GPIO_Port GPIOE
-#define LD9_Pin GPIO_PIN_12
-#define LD9_GPIO_Port GPIOE
-#define LD10_Pin GPIO_PIN_13
-#define LD10_GPIO_Port GPIOE
-#define LD8_Pin GPIO_PIN_14
-#define LD8_GPIO_Port GPIOE
-#define LD6_Pin GPIO_PIN_15
-#define LD6_GPIO_Port GPIOE
-/* USER CODE BEGIN Private defines */
+/* TIM7 init function */
+void MX_TIM7_Init(void)
+{
+  TIM_MasterConfigTypeDef sMasterConfig;
 
-/* USER CODE END Private defines */
+  htim7.Instance = TIM7;
+  htim7.Init.Prescaler = 0;
+  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim7.Init.Period = 0;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+}
+
+void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
+{
+
+  if(tim_baseHandle->Instance==TIM7)
+  {
+  /* USER CODE BEGIN TIM7_MspInit 0 */
+
+  /* USER CODE END TIM7_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_TIM7_CLK_ENABLE();
+  /* USER CODE BEGIN TIM7_MspInit 1 */
+
+  /* USER CODE END TIM7_MspInit 1 */
+  }
+}
+
+void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
+{
+
+  if(tim_baseHandle->Instance==TIM7)
+  {
+  /* USER CODE BEGIN TIM7_MspDeInit 0 */
+
+  /* USER CODE END TIM7_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM7_CLK_DISABLE();
+  }
+  /* USER CODE BEGIN TIM7_MspDeInit 1 */
+
+  /* USER CODE END TIM7_MspDeInit 1 */
+} 
+
+/* USER CODE BEGIN 1 */
+
+/* USER CODE END 1 */
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-*/ 
+  */
 
-#endif /* __MAIN_H */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

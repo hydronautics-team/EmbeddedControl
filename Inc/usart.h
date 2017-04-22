@@ -53,6 +53,9 @@
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "cmsis_os.h"
 
 /* USER CODE END Includes */
 
@@ -62,6 +65,12 @@ extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN Private defines */
+enum{
+	SHORE_UART = 1,
+	VMA_UART,
+	DEV_UART,
+	IMU_UART
+};
 
 /* USER CODE END Private defines */
 
@@ -73,6 +82,9 @@ void MX_USART2_UART_Init(void);
 void MX_USART3_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+void receiveByte(uint8_t UART, uint8_t *byte);
+void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length);
+void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length);
 
 /* USER CODE END Prototypes */
 

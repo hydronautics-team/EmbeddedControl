@@ -5,9 +5,10 @@
 #include <math.h>
 #include <stdint.h>
 
-#define VMA_NUMBER            8
-#define VMA_DRIVER_NUMBER     8
-#define DEV_DRIVER_NUMBER     4    
+#define VMA_NUMBER              8
+#define VMA_DRIVER_NUMBER       8
+#define DEV_DRIVER_NUMBER       6    
+#define BLUETOOTH_MESSAGE_SIZE  8
  
 
 enum VMA{
@@ -25,8 +26,8 @@ enum VMA{
 
 enum DEV{
 	AGAR = 0,
-	GRUB,
-	GRUBROTATION,
+	GRAB,
+	GRABROTATION,
 	TILT
 };
 
@@ -39,7 +40,8 @@ struct Robot{
 		int8_t speed;
 		
 		// There is flags of: enabling, inversing, ...
-		uint8_t settings;  
+		uint8_t settings;
+		uint16_t current;
 			
 		double kForward;
 		double kBackward;
@@ -52,15 +54,16 @@ struct Robot{
     int16_t rollSpeed;
     int16_t pitchSpeed;
     int16_t yawSpeed;
+		bool resetIMU;
     
     uint16_t pressure;
   } sensors;
-  
-  struct robotErrors{
-    uint16_t motorErrors;
-  } errors;
-  
-	struct shorePositionControl{
+	
+	struct robotBluetooth{
+		char message[BLUETOOTH_MESSAGE_SIZE];
+	} bluetooth;
+
+	struct RobotMovement{
 		int16_t march;
     int16_t lag;
     int16_t depth;
@@ -68,20 +71,42 @@ struct Robot{
     int16_t pitch;
     int16_t yaw;
 	} movement;
+	
+	struct RobotDevice{
+		struct RobotLight{
+			uint8_t address;
+			uint8_t settings;
+			uint8_t brightness;
+			uint16_t current;
+		} light, bottomLight;
+		
+		struct RobotGrab{
+			uint8_t squeezeAddress;
+			uint8_t rotationAddress;
+			uint8_t settings;
+			uint8_t squeeze;
+			int8_t rotation;
+			uint16_t squeezeCurrent;
+			uint16_t rotationCurrent;
+		} grab;
+		
+		struct RobotTilt{
+			uint8_t address;
+			uint8_t settings;
+			int8_t rotation;
+			uint16_t current;
+		} tilt;
+		
+		struct RobotAgarGrab{
+			uint8_t address;
+			uint8_t settings;
+			uint8_t opening;
+			uint16_t current;
+		} agar;
+		uint8_t errors;
+	}device;
   
-  struct deviceControl{
-    
-		bool resetIMU;
-    
-		uint8_t light;
-		uint8_t bottomLight;
-		uint8_t bluetoothLight;
-    uint8_t grab;
-    int8_t grabRotate;
-    int8_t tilt;
-  } device;
-  
-  struct stabilization{
+  struct RobotStabilization{
     bool enable;
     bool constTime;
     float K1;

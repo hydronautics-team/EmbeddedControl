@@ -3,7 +3,7 @@
 
 
 /* CRC16-CCITT algorithm */
-bool isChecksumm16bCorrect(uint8_t *msg, uint16_t length)
+bool IsChecksumm16bCorrect(uint8_t *msg, uint16_t length)
 {
   int i;
 	uint16_t crc = 0, crc_got = (uint16_t)((msg[length - 2] << 8) + msg[length - 1]);
@@ -27,7 +27,7 @@ bool isChecksumm16bCorrect(uint8_t *msg, uint16_t length)
 
 
 /* CRC16-CCITT algorithm */
-void addChecksumm16b(uint8_t *msg, uint16_t length)
+void AddChecksumm16b(uint8_t *msg, uint16_t length)
 {
 	uint16_t crc = 0;
 	int i = 0;
@@ -46,7 +46,7 @@ void addChecksumm16b(uint8_t *msg, uint16_t length)
 
 
 
-bool isChecksumm8bCorrect(uint8_t *msg, uint16_t length)
+bool IsChecksumm8bCorrect(uint8_t *msg, uint16_t length)
 {
 	uint8_t crcGot, crc = 0;
 	int i;
@@ -64,7 +64,7 @@ bool isChecksumm8bCorrect(uint8_t *msg, uint16_t length)
 
 
 
-void addCheckSumm8b(uint8_t *msg, uint16_t length)
+void AddChecksumm8b(uint8_t *msg, uint16_t length)
 {
 	uint8_t crc = 0;
 	int i = 0;

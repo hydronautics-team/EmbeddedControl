@@ -1,11 +1,6 @@
 #ifndef MESSAGES_H
 #define MESSAGES_H
 
-#include <stdint.h>
-#include <stdlib.h>
-#include "robot.h"
-#include "checksum.h"
-
 /* STM send requests and VMA send responses */
 #define VMA_DEV_REQUEST_LENGTH              7
 
@@ -38,34 +33,35 @@
 #define SHORE_REQUEST_LENGTH           26
 
 #define SHORE_REQUEST_TYPE             0
-#define SHORE_REQUEST_MARCH            1
-#define SHORE_REQUEST_LAG              3
-#define SHORE_REQUEST_DEPTH            5
-#define SHORE_REQUEST_ROLL             7
-#define SHORE_REQUEST_PITCH            9
-#define SHORE_REQUEST_YAW              11
+#define SHORE_REQUEST_FLAGS            1
+#define SHORE_REQUEST_MARCH            2
+#define SHORE_REQUEST_LAG              4
+#define SHORE_REQUEST_DEPTH            6
+#define SHORE_REQUEST_ROLL             8
+#define SHORE_REQUEST_PITCH            10
+#define SHORE_REQUEST_YAW              12
 
-#define SHORE_REQUEST_LIGHT            13
-#define SHORE_REQUEST_GRAB             14
-#define SHORE_REQUEST_TILT             15
-#define SHORE_REQUEST_GRAB_ROTATE      16
-#define SHORE_REQUEST_BLUETOOTH        17
-#define SHORE_REQUEST_BOTTOM_LIGHT     18
+#define SHORE_REQUEST_LIGHT            14
+#define SHORE_REQUEST_GRAB             15
+#define SHORE_REQUEST_TILT             16
+#define SHORE_REQUEST_GRAB_ROTATE      17
+#define SHORE_REQUEST_AGAR             18
+#define SHORE_REQUEST_BOTTOM_LIGHT     19
 
-#define SHORE_REQUEST_STABILIZE_DEPTH  19
-#define SHORE_REQUEST_STABILIZE_ROLL   20
-#define SHORE_REQUEST_STABILIZE_PITCH  21
-#define SHORE_REQUEST_STABILIZE_YAW    22
-#define SHORE_REQUEST_RESET_IMU        23
+#define SHORE_REQUEST_STABILIZE_DEPTH  20
+#define SHORE_REQUEST_STABILIZE_ROLL   21
+#define SHORE_REQUEST_STABILIZE_PITCH  22
+#define SHORE_REQUEST_STABILIZE_YAW    23
+#define SHORE_REQUEST_RESET_IMU        24
 
-#define SHORE_REQUEST_CHECKSUM         24
+#define SHORE_REQUEST_CHECKSUM         25
 
 
 
 /* --- SHORE REQUEST CONFIG MODE --- */
 #define REQUEST_CONFIG_CODE             0x55
 
-#define REQUEST_CONFIG_LENGTH           151
+#define REQUEST_CONFIG_LENGTH           150
 
 #define REQUEST_CONFIG_TYPE             0
 
@@ -134,7 +130,7 @@
 
 
 /* --- SHORE RESPONSE MODE --- */
-#define SHORE_RESPONSE_LENGTH                 20
+#define SHORE_RESPONSE_LENGTH                 63
 
 #define SHORE_RESPONSE_ROLL                   0
 #define SHORE_RESPONSE_PITCH                  2
@@ -144,13 +140,41 @@
 #define SHORE_RESPONSE_PITCH_SPEED            8
 #define SHORE_RESPONSE_YAW_SPEED              10
 
-#define SHORE_RESPONSE_PRESSURE               14
+#define SHORE_RESPONSE_PRESSURE               12
 
-#define SHORE_RESPONSE_MOTOR_ERRORS           16
+#define SHORE_RESPONSE_BLUETOOTH              14
 
-#define SHORE_RESPONSE_CHECKSUM               18
+#define SHORE_RESPONSE_VMA_CURRENT_HLB        22
+#define SHORE_RESPONSE_VMA_CURRENT_HLF        24
+#define SHORE_RESPONSE_VMA_CURRENT_HRB        26
+#define SHORE_RESPONSE_VMA_CURRENT_HRF        28
+#define SHORE_RESPONSE_VMA_CURRENT_VB         30
+#define SHORE_RESPONSE_VMA_CURRENT_VF         32
+#define SHORE_RESPONSE_VMA_CURRENT_VL         34
+#define SHORE_RESPONSE_VMA_CURRENT_VR         36
 
-// add 8x2 byte current VMA + 8 byte velocity VMA + 8 byte errors + 6x2 Dev current + byte 0x00EEEEEE
+
+#define SHORE_RESPONSE_VMA_VELOCITY_HLB       38
+#define SHORE_RESPONSE_VMA_VELOCITY_HLF       39
+#define SHORE_RESPONSE_VMA_VELOCITY_HRB       40
+#define SHORE_RESPONSE_VMA_VELOCITY_HRF       41
+#define SHORE_RESPONSE_VMA_VELOCITY_VB        42
+#define SHORE_RESPONSE_VMA_VELOCITY_VF        43
+#define SHORE_RESPONSE_VMA_VELOCITY_VL        44
+#define SHORE_RESPONSE_VMA_VELOCITY_VR        45
+
+#define SHORE_RESPONSE_LIGHT_CURRENT          46
+#define SHORE_RESPONSE_BOTTOM_LIGHT_CURRENT   48
+#define SHORE_RESPONSE_AGAR_CURRENT           50
+#define SHORE_RESPONSE_GRAB_CURRENT           52
+#define SHORE_RESPONSE_GRAB_ROTATE_CURRENT    54
+#define SHORE_RESPONSE_CURRENT_TILT           56
+
+#define SHORE_RESPONSE_VMA_ERRORS             58
+
+#define SHORE_RESPONSE_DEV_ERRORS             60
+
+#define SHORE_RESPONSE_CHECKSUM               61
 
 
 
@@ -161,18 +185,6 @@
 
 
 /* --- IMU command --- */
-
-
-
-void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV);
-void VMARequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV);
-
-void ShoreRequest(struct Robot *robot, uint8_t *requestBuf);
-void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf);
-
-void ShoreResponse(struct Robot *robot, uint8_t *responseBuf);
-
-void IMUResponse(struct Robot *robot, uint8_t *IMUResponseBuf);
 
 
 

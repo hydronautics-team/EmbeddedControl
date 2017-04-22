@@ -46,11 +46,11 @@
 #include "cmsis_os.h"
 #include "dma.h"
 #include "i2c.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
-#include "messages.h"
 
 /* USER CODE END Includes */
 
@@ -58,34 +58,6 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-struct Robot Q100;
-
-bool shore_RX_enable;
-bool shore_TX_enable;
-bool VMA_RX_enable;
-bool VMA_TX_enable;
-bool DEV_RX_enable;
-bool DEV_TX_enable;
-
-bool VMA_RX_enable;
-bool VMA_TX_enable;
-bool DEV_RX_enable;
-bool DEV_TX_enable;
-
-
-uint8_t ShoreRequestBuf[SHORE_REQUEST_LENGTH];
-uint8_t ShoreRequestConfigBuf[REQUEST_CONFIG_LENGTH];
-uint8_t ShoreResponseBuf[SHORE_RESPONSE_LENGTH];
-
-uint8_t IMURequestBuf[IMU_REQUEST_LENGTH];
-uint8_t IMUResponseBuf[IMU_RESPONSE_LENGTH];
-
-uint8_t VMARequestBuf[VMA_DEV_REQUEST_LENGTH];
-uint8_t VMAResponseBuf[VMA_DEV_RESPONSE_LENGTH];
-
-uint8_t DevRequestBuf[VMA_DEV_REQUEST_LENGTH];
-uint8_t DevResponseBuf[VMA_DEV_RESPONSE_LENGTH];
-
 
 /* USER CODE END PV */
 
@@ -110,7 +82,13 @@ void variableInit()
 	Q100.VMA[VB].address = 0x06;
 	Q100.VMA[VR].address = 0x07;
 	Q100.VMA[VF].address = 0x08;
+	
+	Q100.device.agar.address = 0x01;
+	Q100.device.grab.squeezeAddress = 0x02;
+	Q100.device.grab.rotationAddress = 0x03;
+	Q100.device.tilt.address = 0x04;
 }
+
 
 /* USER CODE END 0 */
 
@@ -137,6 +115,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART3_UART_Init();
   MX_I2C1_Init();
+  MX_TIM7_Init();
 
   /* USER CODE BEGIN 2 */
 	variableInit();
@@ -260,8 +239,9 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler */
   /* User can add his own implementation to report the HAL error return state */
-  while(1) 
+  while(1)
   {
+		
   }
   /* USER CODE END Error_Handler */ 
 }
