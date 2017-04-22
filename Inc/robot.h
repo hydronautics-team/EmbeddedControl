@@ -27,8 +27,10 @@ enum VMA{
 enum DEV{
 	AGAR = 0,
 	GRAB,
-	GRABROTATION,
-	TILT
+	GRAB_ROTATION,
+	TILT,
+	LIGHT,
+	BOTTOM_LIGHT
 };
 
 
@@ -37,7 +39,11 @@ struct Robot{
 	
 	struct robotVMA{
 		uint8_t address;
-		int8_t speed;
+		int8_t desiredSpeed;
+		int8_t realSpeed;
+		int8_t speedError;
+		
+		uint8_t errors;
 		
 		// There is flags of: enabling, inversing, ...
 		uint8_t settings;

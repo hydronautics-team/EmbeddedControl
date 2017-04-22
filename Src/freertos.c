@@ -140,7 +140,6 @@ void MX_FREERTOS_Init(void) {
 /* LedBlinkingTask function */
 void LedBlinkingTask(void const * argument)
 {
-
   /* USER CODE BEGIN LedBlinkingTask */
   /* Infinite loop */
   for(;;){
@@ -256,10 +255,10 @@ void VmaDevCommunicationTask(void const * argument)
 		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
 		DevResponseUpdate(&Q100, DevRequestBuf, GRAB);
 		
-		DevRequestUpdate(&Q100, DevRequestBuf, GRABROTATION);
+		DevRequestUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
 		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
 		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-		DevResponseUpdate(&Q100, DevRequestBuf, GRABROTATION);
+		DevResponseUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
 
 		DevRequestUpdate(&Q100, DevRequestBuf, TILT);
 		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);

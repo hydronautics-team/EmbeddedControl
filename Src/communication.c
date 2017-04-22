@@ -19,7 +19,7 @@ void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV)
 			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->device.grab.squeeze;
 			buf[VMA_DEV_REQUEST_VELOCITY2] = NULL;
 			break;
-		case GRABROTATION:
+		case GRAB_ROTATION:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->device.grab.rotationAddress;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->device.grab.settings;
 			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->device.grab.rotation;
@@ -36,73 +36,103 @@ void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV)
 }
 
 
-
-void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV)
+void writeBit(uint8_t *byte, uint8_t value, uint8_t biteNumb)
 {
+	if (value == 0){
+		*byte &= ~(1 << biteNumb);
+	}
+	else{
+		*byte |= (1 << biteNumb);
+	}
+}
+
+
+void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
+{
+	if(IsChecksumm8bCorrect(buf, VMA_DEV_RESPONSE_LENGTH)){
+		switch(dev){
+			case AGAR:
+				robot->device.agar.current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+				writeBit(&(robot->device.errors), buf[VMA_DEV_RESPONSE_ERRORS], AGAR);
+				break;
+			case GRAB:
+				robot->device.grab.squeezeCurrent = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+				writeBit(&(robot->device.errors), buf[VMA_DEV_RESPONSE_ERRORS], GRAB);
+				break;
+			case GRAB_ROTATION:
+				robot->device.agar.current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+				writeBit(&(robot->device.errors), buf[VMA_DEV_RESPONSE_ERRORS], GRAB_ROTATION);
+				break;
+			case TILT:
+				robot->device.agar.current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+				writeBit(&(robot->device.errors), buf[VMA_DEV_RESPONSE_ERRORS], TILT);
+				break;
+		}
+	}
 	
 }
 
 
 
-void VMARequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV)
+void VMARequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
 {
 	buf[VMA_DEV_REQUEST_AA1] = 0xAA;
 	buf[VMA_DEV_REQUEST_AA2] = 0xAA;
 	
-	switch(DEV){
+	switch(vma){
 		case HLB:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[HLB].address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[HLB].settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[HLB].speed;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[HLB].desiredSpeed;
 			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.light.brightness;
 			break;
 		
 		case HLF:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[HLF].address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[HLF].settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[HLF].speed;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[HLF].desiredSpeed;
 			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.bottomLight.brightness;
 			break;
 		
 		case HRB:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[HRB].address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[HRB].settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[HRB].speed;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[HRB].desiredSpeed;
 			buf[VMA_DEV_REQUEST_VELOCITY2] = NULL;
 			break;
 		
 		case HRF:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[HRF].address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[HRF].settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[HRF].speed;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[HRF].desiredSpeed;
 			buf[VMA_DEV_REQUEST_VELOCITY2] = NULL;
 			break;
 		
 		case VB:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[VB].address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[VB].settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[VB].speed;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[VB].desiredSpeed;
 			buf[VMA_DEV_REQUEST_VELOCITY2] = NULL;
 			break;
 		
 		case VF:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[VF].address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[VF].settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[VF].speed;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[VF].desiredSpeed;
 			buf[VMA_DEV_REQUEST_VELOCITY2] = NULL;
 			break;
 		
 		case VL:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[VL].address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[VL].settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[VL].speed;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[VL].desiredSpeed;
 			buf[VMA_DEV_REQUEST_VELOCITY2] = NULL;
 			break;
 		
 		case VR:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[VR].address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[VR].settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[VR].speed;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[VR].desiredSpeed;
 			buf[VMA_DEV_REQUEST_VELOCITY2] = NULL;
 			break;
 	}
@@ -111,9 +141,62 @@ void VMARequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV)
 
 
 
-void VMAResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t VMA)
+void VMAResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
 {
-	
+//TODO errors parsing!
+	if(IsChecksumm8bCorrect(buf, VMA_DEV_RESPONSE_LENGTH)){
+		switch(vma){
+			case HLB:
+				robot->VMA[HLB].errors = buf[VMA_DEV_RESPONSE_ERRORS];
+				robot->VMA[HLB].current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+			  robot->device.light.current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_2H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_2L]);
+				robot->VMA[HLB].realSpeed = buf[VMA_DEV_RESPONSE_VELOCITY1];
+				break;
+			
+			case HLF:
+				robot->VMA[HLF].errors = buf[VMA_DEV_RESPONSE_ERRORS];
+				robot->VMA[HLF].current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+			  robot->device.bottomLight.current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_2H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_2L]);
+				robot->VMA[HLF].realSpeed = buf[VMA_DEV_RESPONSE_VELOCITY1];
+				break;
+			
+			case HRB:
+				robot->VMA[HRB].errors = buf[VMA_DEV_RESPONSE_ERRORS];
+				robot->VMA[HRB].current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+				robot->VMA[HRB].realSpeed = buf[VMA_DEV_RESPONSE_VELOCITY1];
+				break;
+			
+			case HRF:
+				robot->VMA[HRF].errors = buf[VMA_DEV_RESPONSE_ERRORS];
+				robot->VMA[HRF].current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+				robot->VMA[HRF].realSpeed = buf[VMA_DEV_RESPONSE_VELOCITY1];
+				break;
+			
+			case VB:
+				robot->VMA[VB].errors = buf[VMA_DEV_RESPONSE_ERRORS];
+				robot->VMA[VB].current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+				robot->VMA[VB].realSpeed = buf[VMA_DEV_RESPONSE_VELOCITY1];
+				break;
+			
+			case VF:
+				robot->VMA[VF].errors = buf[VMA_DEV_RESPONSE_ERRORS];
+				robot->VMA[VF].current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+				robot->VMA[VF].realSpeed = buf[VMA_DEV_RESPONSE_VELOCITY1];
+				break;
+			
+			case VL:
+				robot->VMA[VL].errors = buf[VMA_DEV_RESPONSE_ERRORS];
+				robot->VMA[VL].current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+				robot->VMA[VL].realSpeed = buf[VMA_DEV_RESPONSE_VELOCITY1];
+				break;
+			
+			case VR:
+				robot->VMA[VR].errors = buf[VMA_DEV_RESPONSE_ERRORS];
+				robot->VMA[VR].current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_1H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_1L]);
+				robot->VMA[VR].realSpeed = buf[VMA_DEV_RESPONSE_VELOCITY1];
+				break;
+		}
+	}
 }
 
 
@@ -255,14 +338,14 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 	responseBuf[SHORE_RESPONSE_VMA_CURRENT_VR] = robot->VMA[VR].current >> 8;
   responseBuf[SHORE_RESPONSE_VMA_CURRENT_VR + 1] = robot->VMA[VR].current;
 	
-	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HLB] = robot->VMA[HLB].speed;
-	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HLF] = robot->VMA[HLF].speed;
-	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HRB] = robot->VMA[HRB].speed;
-	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HRF] = robot->VMA[HRF].speed;
-	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VB] = robot->VMA[VB].speed;
-	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VF] = robot->VMA[VF].speed;
-	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VL] = robot->VMA[VR].speed;
-	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VR] = robot->VMA[VR].speed;
+	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HLB] = robot->VMA[HLB].desiredSpeed;
+	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HLF] = robot->VMA[HLF].desiredSpeed;
+	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HRB] = robot->VMA[HRB].desiredSpeed;
+	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HRF] = robot->VMA[HRF].desiredSpeed;
+	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VB] = robot->VMA[VB].desiredSpeed;
+	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VF] = robot->VMA[VF].desiredSpeed;
+	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VL] = robot->VMA[VR].desiredSpeed;
+	responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VR] = robot->VMA[VR].desiredSpeed;
 	
 	
 	responseBuf[SHORE_RESPONSE_LIGHT_CURRENT] = robot->device.light.current;

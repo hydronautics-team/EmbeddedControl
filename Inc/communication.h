@@ -11,11 +11,11 @@
 
 float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos);
 
-void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV);
-void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV);
+void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev);
+void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev);
 
-void VMARequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t VMA);
-void VMAResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t VMA);
+void VMARequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma);
+void VMAResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma);
 
 void ShoreRequest(struct Robot *robot, uint8_t *requestBuf);
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf);
