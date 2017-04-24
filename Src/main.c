@@ -74,8 +74,8 @@ void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN 0 */
 void variableInit()
 {
-	Q100.VMA[HLF].address = 0x01;
-	Q100.VMA[HLB].address = 0x02;
+	Q100.VMA[HLB].address = 0x01;
+	Q100.VMA[HLF].address = 0x02;
 	Q100.VMA[HRB].address = 0x03;
 	Q100.VMA[HRF].address = 0x04;
 	Q100.VMA[VL].address = 0x05;

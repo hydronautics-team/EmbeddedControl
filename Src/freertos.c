@@ -58,6 +58,7 @@ osThreadId ShoreCommunicationHandle;
 osThreadId VmaDevCommunicationHandle;
 osThreadId SensorsCommunicationHandle;
 osThreadId StabilizationHandle;
+osThreadId DevCommunicationHandle;
 
 /* USER CODE BEGIN Variables */
 bool shore_RX_enable;
@@ -79,6 +80,7 @@ void ShoreCommunicationTask(void const * argument);
 void VmaDevCommunicationTask(void const * argument);
 void SensorsCommunicationTask(void const * argument);
 void StabilizationTask(void const * argument);
+void StartDevCommunication(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -117,7 +119,7 @@ void MX_FREERTOS_Init(void) {
   ShoreCommunicationHandle = osThreadCreate(osThread(ShoreCommunication), NULL);
 
   /* definition and creation of VmaDevCommunication */
-  osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityNormal, 0, 64);
+  osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityAboveNormal, 0, 64);
   VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
 
   /* definition and creation of SensorsCommunication */
@@ -127,6 +129,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of Stabilization */
   osThreadDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64);
   StabilizationHandle = osThreadCreate(osThread(Stabilization), NULL);
+
+  /* definition and creation of DevCommunication */
+  osThreadDef(DevCommunication, StartDevCommunication, osPriorityAboveNormal, 0, 64);
+  DevCommunicationHandle = osThreadCreate(osThread(DevCommunication), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -140,6 +146,7 @@ void MX_FREERTOS_Init(void) {
 /* LedBlinkingTask function */
 void LedBlinkingTask(void const * argument)
 {
+
   /* USER CODE BEGIN LedBlinkingTask */
   /* Infinite loop */
   for(;;){
@@ -176,6 +183,7 @@ void ShoreCommunicationTask(void const * argument)
 {
   /* USER CODE BEGIN ShoreCommunicationTask */
 	uint8_t packageType;
+	uint32_t sysTime = osKernelSysTick();
   /* Infinite loop */
   for(;;){
 		receiveByte(SHORE_UART, &packageType);
@@ -193,7 +201,7 @@ void ShoreCommunicationTask(void const * argument)
 				transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);			
 				break;
 		}
-		osDelay(5);
+		osDelayUntil(&sysTime, 25);
 	}
   /* USER CODE END ShoreCommunicationTask */
 }
@@ -202,70 +210,70 @@ void ShoreCommunicationTask(void const * argument)
 void VmaDevCommunicationTask(void const * argument)
 {
   /* USER CODE BEGIN VmaDevCommunicationTask */
+	uint32_t sysTime = osKernelSysTick();
+	uint8_t VMATransaction = 0;
 
   /* Infinite loop */
   for(;;){
-		VMARequestUpdate(&Q100, VMARequestBuf, HLB);
-		transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-		VMAResponseUpdate(&Q100, VMAResponseBuf, HLB);
-		
-		VMARequestUpdate(&Q100, VMARequestBuf, HLF);
-		transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-		VMAResponseUpdate(&Q100, VMAResponseBuf, HLF);
-		
-		VMARequestUpdate(&Q100, VMARequestBuf, HRB);
-		transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-		VMAResponseUpdate(&Q100, VMAResponseBuf, HRB);
-		
-		VMARequestUpdate(&Q100, VMARequestBuf, HRF);
-		transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-		VMAResponseUpdate(&Q100, VMAResponseBuf, HRF);
-		
-		VMARequestUpdate(&Q100, VMARequestBuf, VB);
-		transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-		VMAResponseUpdate(&Q100, VMAResponseBuf, VB);
-		
-		VMARequestUpdate(&Q100, VMARequestBuf, VF);
-		transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-		VMAResponseUpdate(&Q100, VMAResponseBuf, VF);
-		
-		VMARequestUpdate(&Q100, VMARequestBuf, VL);
-		transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-		VMAResponseUpdate(&Q100, VMAResponseBuf, VL);
-		
-		VMARequestUpdate(&Q100, VMARequestBuf, VR);
-		transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-		VMAResponseUpdate(&Q100, VMAResponseBuf, VR);
-	
-		DevRequestUpdate(&Q100, DevRequestBuf, AGAR);
-		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-		DevResponseUpdate(&Q100, DevRequestBuf, AGAR);
-
-		DevRequestUpdate(&Q100, DevRequestBuf, GRAB);
-		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-		DevResponseUpdate(&Q100, DevRequestBuf, GRAB);
-		
-		DevRequestUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
-		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-		DevResponseUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
-
-		DevRequestUpdate(&Q100, DevRequestBuf, TILT);
-		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-		DevResponseUpdate(&Q100, DevRequestBuf, TILT);
-		
-		osDelay(1);
+		switch(VMATransaction){
+			case HLB:
+				VMARequestUpdate(&Q100, VMARequestBuf, HLB);
+				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				VMAResponseUpdate(&Q100, VMAResponseBuf, HLB);
+			break;
+			
+			case HLF:
+				VMARequestUpdate(&Q100, VMARequestBuf, HLF);
+				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				VMAResponseUpdate(&Q100, VMAResponseBuf, HLF);
+			break;
+			
+			case HRB:
+				VMARequestUpdate(&Q100, VMARequestBuf, HRB);
+				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				VMAResponseUpdate(&Q100, VMAResponseBuf, HRB);
+			break;
+			
+			case HRF:
+				VMARequestUpdate(&Q100, VMARequestBuf, HRF);
+				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				VMAResponseUpdate(&Q100, VMAResponseBuf, HRF);
+			break;
+			
+			case VB:
+				VMARequestUpdate(&Q100, VMARequestBuf, VB);
+				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				VMAResponseUpdate(&Q100, VMAResponseBuf, VB);
+			break;
+			
+			case VF:		
+				VMARequestUpdate(&Q100, VMARequestBuf, VF);
+				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				VMAResponseUpdate(&Q100, VMAResponseBuf, VF);
+			break;
+			
+			case VL:
+				VMARequestUpdate(&Q100, VMARequestBuf, VL);
+				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				VMAResponseUpdate(&Q100, VMAResponseBuf, VL);
+			break;
+			
+			case VR:
+				VMARequestUpdate(&Q100, VMARequestBuf, VR);
+				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				VMAResponseUpdate(&Q100, VMAResponseBuf, VR);
+			break;
+		}
+		VMATransaction = (VMATransaction + 1) % VMA_NUMBER;
+		osDelayUntil(&sysTime, 10);
   }
   /* USER CODE END VmaDevCommunicationTask */
 }
@@ -292,6 +300,43 @@ void StabilizationTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END StabilizationTask */
+}
+
+/* StartDevCommunication function */
+void StartDevCommunication(void const * argument)
+{
+  /* USER CODE BEGIN StartDevCommunication */
+  /* Infinite loop */
+  for(;;){
+		DevRequestUpdate(&Q100, DevRequestBuf, AGAR);
+		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
+		DevResponseUpdate(&Q100, DevRequestBuf, AGAR);
+		
+		osDelay(20);
+
+		DevRequestUpdate(&Q100, DevRequestBuf, GRAB);
+		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
+		DevResponseUpdate(&Q100, DevRequestBuf, GRAB);
+		
+		osDelay(20);
+		
+		DevRequestUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
+		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
+		DevResponseUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
+		
+		osDelay(20);
+
+		DevRequestUpdate(&Q100, DevRequestBuf, TILT);
+		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
+		DevResponseUpdate(&Q100, DevRequestBuf, TILT);
+		
+		osDelay(20);
+  }
+  /* USER CODE END StartDevCommunication */
 }
 
 /* USER CODE BEGIN Application */
