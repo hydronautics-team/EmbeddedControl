@@ -295,6 +295,16 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
   robot->yawStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_YAW ];
 
   robot->sensors.resetIMU = (bool) requestBuf[SHORE_REQUEST_RESET_IMU];
+	
+//TODO 
+	robot->VMA[HLB].desiredSpeed = -  robot->movement.march/3 + robot->movement.lag/3  - (robot->movement.yaw + robot->yawStabilization.speedError)/3; 
+  robot->VMA[HLF].desiredSpeed = +  robot->movement.march/3 + robot->movement.lag/3  + (robot->movement.yaw + robot->yawStabilization.speedError)/3; 
+  robot->VMA[HRB].desiredSpeed = -  robot->movement.march/3 - robot->movement.lag/3  + (robot->movement.yaw + robot->yawStabilization.speedError)/3;
+  robot->VMA[HRF].desiredSpeed = +  robot->movement.march/3 - robot->movement.lag/3  - (robot->movement.yaw + robot->yawStabilization.speedError)/3;
+  robot->VMA[VB].desiredSpeed  = -  robot->movement.depth/3 + (robot->movement.pitch + robot->pitchStabilization.speedError)/3; 
+  robot->VMA[VF].desiredSpeed  = +  robot->movement.depth/3 + (robot->movement.pitch + robot->pitchStabilization.speedError)/3; 
+  robot->VMA[VL].desiredSpeed  = - (robot->movement.depth + robot->depthStabilization.speedError)/3 + (robot->movement.roll + robot->rollStabilization.speedError)/3;
+  robot->VMA[VR].desiredSpeed  = - (robot->movement.depth + robot->depthStabilization.speedError)/3 - (robot->movement.roll + robot->rollStabilization.speedError)/3;
 }
 
 

@@ -50,6 +50,7 @@
 
 /* USER CODE BEGIN 0 */
 #include "tim.h"
+#define TASK_WAITING	10
 
 bool uart1PackageTransmit = false;
 bool uart2PackageTransmit = false;
@@ -63,11 +64,12 @@ bool uart4PackageReceived = false;
 
 void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 {
+	TickType_t timeBegin = xTaskGetTickCount();
 	switch(UART){
 		case SHORE_UART:
 			HAL_HalfDuplex_EnableTransmitter(&huart1);
 			HAL_UART_Transmit_DMA(&huart1, buf, length);
-			while (!uart1PackageTransmit){
+			while (!uart1PackageTransmit && xTaskGetTickCount() - timeBegin < TASK_WAITING){
 				osDelay(1);
 			}
 			uart1PackageTransmit = false;
@@ -75,7 +77,7 @@ void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 		case VMA_UART:
 			HAL_HalfDuplex_EnableTransmitter(&huart2);
 			HAL_UART_Transmit_DMA(&huart2, buf, length);
-			while (!uart2PackageTransmit){
+			while (!uart2PackageTransmit && xTaskGetTickCount() - timeBegin < TASK_WAITING){
 				osDelay(1);
 			}
 			uart2PackageTransmit = false;
@@ -83,14 +85,14 @@ void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 		case DEV_UART:
 			HAL_HalfDuplex_EnableTransmitter(&huart3);
 			HAL_UART_Transmit_DMA(&huart3, buf, length);
-			while (!uart3PackageTransmit){
-				HAL_Delay(2);
+			while (!uart3PackageTransmit && xTaskGetTickCount() - timeBegin < TASK_WAITING){
+				osDelay(1);
 			}
 			uart3PackageTransmit = false;
 			break;
 		case IMU_UART:
 			HAL_UART_Transmit_DMA(&huart4, buf, length);
-			while (!uart4PackageTransmit){
+			while (!uart4PackageTransmit && xTaskGetTickCount() - timeBegin < TASK_WAITING){
 				osDelay(1);
 			}
 			uart4PackageTransmit = false;
@@ -116,40 +118,37 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 
 void receiveByte(uint8_t UART, uint8_t *byte)
 {
+	TickType_t timeBegin = xTaskGetTickCount();
 	switch(UART){
 		case SHORE_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart1);
 			HAL_UART_Receive_IT(&huart1, byte, 1);
-			while (!uart1PackageReceived){
+			while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < 1){
 				delayUs(1);
-				//osDelay(1);
 			}
 			uart1PackageReceived = false;
 			break;
 		case VMA_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart2);
 			HAL_UART_Receive_DMA(&huart2, byte, 1);
-			while (!uart2PackageReceived){
+			while (!uart2PackageReceived && xTaskGetTickCount() - timeBegin < 1){
 				delayUs(1);
-				//osDelay(1);
 			}
 			uart2PackageReceived = false;
 			break;
 		case DEV_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart3);
 			HAL_UART_Receive_DMA(&huart3, byte, 1);
-			while (!uart3PackageReceived){
+			while (!uart3PackageReceived && xTaskGetTickCount() - timeBegin < 1){
 				delayUs(1);
-				//osDelay(1);
 			}
 			uart3PackageReceived = false;
 			break;
 		case IMU_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart4);
 			HAL_UART_Receive_DMA(&huart4, byte, 1);
-			while (!uart4PackageReceived){
+			while (!uart4PackageReceived && xTaskGetTickCount() - timeBegin < 1){
 				delayUs(1);
-				//osDelay(1);
 			}
 			uart4PackageReceived = false;
 			break;
@@ -164,7 +163,7 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 			HAL_HalfDuplex_EnableReceiver(&huart1);
 			HAL_UART_Receive_DMA(&huart1, buf, length);
 			
-			while (!uart1PackageReceived || xTaskGetTickCount() - timeBegin < 20){
+			while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < TASK_WAITING){
 				osDelay(1);
 			}
 			uart1PackageReceived = false;
@@ -172,7 +171,7 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 		case VMA_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart2);
 			HAL_UART_Receive_DMA(&huart2, buf, length);
-			while (!uart2PackageReceived  || xTaskGetTickCount() - timeBegin < 20){
+			while (!uart2PackageReceived  && xTaskGetTickCount() - timeBegin < TASK_WAITING){
 				osDelay(1);
 			}
 			uart2PackageReceived = false;
@@ -180,7 +179,7 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 		case DEV_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart3);
 			HAL_UART_Receive_DMA(&huart3, buf, length);
-			while (!uart3PackageReceived  || xTaskGetTickCount() - timeBegin < 20){
+			while (!uart3PackageReceived  && xTaskGetTickCount() - timeBegin < TASK_WAITING){
 				osDelay(1);
 			}
 			uart3PackageReceived = false;
@@ -188,7 +187,7 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 		case IMU_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart4);
 			HAL_UART_Receive_DMA(&huart4, buf, length);
-			while (!uart4PackageReceived  || xTaskGetTickCount() - timeBegin < 20){
+			while (!uart4PackageReceived  && xTaskGetTickCount() - timeBegin < TASK_WAITING){
 				osDelay(1);
 			}
 			uart4PackageReceived = false;

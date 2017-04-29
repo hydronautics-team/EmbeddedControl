@@ -272,7 +272,7 @@ void VmaDevCommunicationTask(void const * argument)
 				VMAResponseUpdate(&Q100, VMAResponseBuf, VR);
 			break;
 		}
-		VMATransaction = (VMATransaction + 1) % VMA_NUMBER;
+		VMATransaction = (VMATransaction + 1) % VMA_DRIVER_NUMBER;
 		osDelayUntil(&sysTime, 10);
   }
   /* USER CODE END VmaDevCommunicationTask */
@@ -306,35 +306,41 @@ void StabilizationTask(void const * argument)
 void StartDevCommunication(void const * argument)
 {
   /* USER CODE BEGIN StartDevCommunication */
-  /* Infinite loop */
+	uint32_t sysTime = osKernelSysTick();
+	uint8_t DevTransaction = 0;
+  /* Infinite loop */		
   for(;;){
-		DevRequestUpdate(&Q100, DevRequestBuf, AGAR);
-		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-		DevResponseUpdate(&Q100, DevRequestBuf, AGAR);
-		
-		osDelay(20);
-
-		DevRequestUpdate(&Q100, DevRequestBuf, GRAB);
-		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-		DevResponseUpdate(&Q100, DevRequestBuf, GRAB);
-		
-		osDelay(20);
-		
-		DevRequestUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
-		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-		DevResponseUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
-		
-		osDelay(20);
-
-		DevRequestUpdate(&Q100, DevRequestBuf, TILT);
-		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-		receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-		DevResponseUpdate(&Q100, DevRequestBuf, TILT);
-		
-		osDelay(20);
+		switch(DevTransaction){
+			case AGAR:
+				DevRequestUpdate(&Q100, DevRequestBuf, AGAR);
+				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
+				DevResponseUpdate(&Q100, DevRequestBuf, AGAR);
+			break;
+			
+			case GRAB:
+				DevRequestUpdate(&Q100, DevRequestBuf, GRAB);
+				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
+				DevResponseUpdate(&Q100, DevRequestBuf, GRAB);
+			break;
+			
+			case GRAB_ROTATION:
+				DevRequestUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
+				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
+				DevResponseUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
+			break;
+			
+			case TILT:
+				DevRequestUpdate(&Q100, DevRequestBuf, TILT);
+				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+				receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
+				DevResponseUpdate(&Q100, DevRequestBuf, TILT);
+			break;
+		}
+		DevTransaction = (DevTransaction + 1) % DEV_DRIVER_NUMBER;
+		osDelayUntil(&sysTime, 20);
   }
   /* USER CODE END StartDevCommunication */
 }
