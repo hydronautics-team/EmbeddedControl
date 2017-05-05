@@ -275,36 +275,38 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 
 void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 {
-  robot->movement.march = (int16_t)((requestBuf[SHORE_REQUEST_MARCH] << 8) + requestBuf[SHORE_REQUEST_MARCH + 1]);
-  robot->movement.lag = (int16_t)((requestBuf[SHORE_REQUEST_LAG] << 8) + requestBuf[SHORE_REQUEST_LAG + 1]);
-  robot->movement.depth = (int16_t)((requestBuf[SHORE_REQUEST_DEPTH] << 8) + requestBuf[SHORE_REQUEST_DEPTH + 1]);
-  robot->movement.pitch = (int16_t)((requestBuf[SHORE_REQUEST_ROLL] << 8) + requestBuf[SHORE_REQUEST_ROLL + 1]);
-  robot->movement.roll = (int16_t)((requestBuf[SHORE_REQUEST_PITCH] << 8) + requestBuf[SHORE_REQUEST_PITCH + 1]);
-  robot->movement.yaw = (int16_t)((requestBuf[SHORE_REQUEST_YAW] << 8) + requestBuf[SHORE_REQUEST_YAW + 1]);
+	if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)){
+		robot->movement.march = (int16_t)((requestBuf[SHORE_REQUEST_MARCH] << 8) + requestBuf[SHORE_REQUEST_MARCH + 1]);
+		robot->movement.lag = (int16_t)((requestBuf[SHORE_REQUEST_LAG] << 8) + requestBuf[SHORE_REQUEST_LAG + 1]);
+		robot->movement.depth = (int16_t)((requestBuf[SHORE_REQUEST_DEPTH] << 8) + requestBuf[SHORE_REQUEST_DEPTH + 1]);
+		robot->movement.pitch = (int16_t)((requestBuf[SHORE_REQUEST_ROLL] << 8) + requestBuf[SHORE_REQUEST_ROLL + 1]);
+		robot->movement.roll = (int16_t)((requestBuf[SHORE_REQUEST_PITCH] << 8) + requestBuf[SHORE_REQUEST_PITCH + 1]);
+		robot->movement.yaw = (int16_t)((requestBuf[SHORE_REQUEST_YAW] << 8) + requestBuf[SHORE_REQUEST_YAW + 1]);
 
-  robot->device.light.brightness = requestBuf[SHORE_REQUEST_LIGHT];
-  robot->device.agar.opening = requestBuf[SHORE_REQUEST_AGAR];
-  robot->device.bottomLight.brightness = requestBuf[SHORE_REQUEST_BOTTOM_LIGHT];
-  robot->device.grab.squeeze = requestBuf[SHORE_REQUEST_GRAB];
-  robot->device.grab.rotation  = requestBuf[SHORE_REQUEST_GRAB_ROTATE]; 
-  robot->device.tilt.rotation = requestBuf[SHORE_REQUEST_TILT];
+		robot->device.light.brightness = requestBuf[SHORE_REQUEST_LIGHT];
+		robot->device.agar.opening = requestBuf[SHORE_REQUEST_AGAR];
+		robot->device.bottomLight.brightness = requestBuf[SHORE_REQUEST_BOTTOM_LIGHT];
+		robot->device.grab.squeeze = requestBuf[SHORE_REQUEST_GRAB];
+		robot->device.grab.rotation  = requestBuf[SHORE_REQUEST_GRAB_ROTATE]; 
+		robot->device.tilt.rotation = requestBuf[SHORE_REQUEST_TILT];
 
-  robot->depthStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_DEPTH];
-  robot->rollStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_ROLL];
-  robot->pitchStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_PITCH ];
-  robot->yawStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_YAW ];
+		robot->depthStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_DEPTH];
+		robot->rollStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_ROLL];
+		robot->pitchStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_PITCH ];
+		robot->yawStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_YAW ];
 
-  robot->sensors.resetIMU = (bool) requestBuf[SHORE_REQUEST_RESET_IMU];
-	
-//TODO 
-	robot->VMA[HLB].desiredSpeed = -  robot->movement.march/3 + robot->movement.lag/3  - (robot->movement.yaw + robot->yawStabilization.speedError)/3; 
-  robot->VMA[HLF].desiredSpeed = +  robot->movement.march/3 + robot->movement.lag/3  + (robot->movement.yaw + robot->yawStabilization.speedError)/3; 
-  robot->VMA[HRB].desiredSpeed = -  robot->movement.march/3 - robot->movement.lag/3  + (robot->movement.yaw + robot->yawStabilization.speedError)/3;
-  robot->VMA[HRF].desiredSpeed = +  robot->movement.march/3 - robot->movement.lag/3  - (robot->movement.yaw + robot->yawStabilization.speedError)/3;
-  robot->VMA[VB].desiredSpeed  = -  robot->movement.depth/3 + (robot->movement.pitch + robot->pitchStabilization.speedError)/3; 
-  robot->VMA[VF].desiredSpeed  = +  robot->movement.depth/3 + (robot->movement.pitch + robot->pitchStabilization.speedError)/3; 
-  robot->VMA[VL].desiredSpeed  = - (robot->movement.depth + robot->depthStabilization.speedError)/3 + (robot->movement.roll + robot->rollStabilization.speedError)/3;
-  robot->VMA[VR].desiredSpeed  = - (robot->movement.depth + robot->depthStabilization.speedError)/3 - (robot->movement.roll + robot->rollStabilization.speedError)/3;
+		robot->sensors.resetIMU = (bool) requestBuf[SHORE_REQUEST_RESET_IMU];
+		
+	//TODO 
+		robot->VMA[HLB].desiredSpeed = -  robot->movement.march/3 + robot->movement.lag/3  - (robot->movement.yaw + robot->yawStabilization.speedError)/3; 
+		robot->VMA[HLF].desiredSpeed = +  robot->movement.march/3 + robot->movement.lag/3  + (robot->movement.yaw + robot->yawStabilization.speedError)/3; 
+		robot->VMA[HRB].desiredSpeed = -  robot->movement.march/3 - robot->movement.lag/3  + (robot->movement.yaw + robot->yawStabilization.speedError)/3;
+		robot->VMA[HRF].desiredSpeed = +  robot->movement.march/3 - robot->movement.lag/3  - (robot->movement.yaw + robot->yawStabilization.speedError)/3;
+		robot->VMA[VB].desiredSpeed  = -  robot->movement.depth/3 + (robot->movement.pitch + robot->pitchStabilization.speedError)/3; 
+		robot->VMA[VF].desiredSpeed  = +  robot->movement.depth/3 + (robot->movement.pitch + robot->pitchStabilization.speedError)/3; 
+		robot->VMA[VL].desiredSpeed  = - (robot->movement.depth + robot->depthStabilization.speedError)/3 + (robot->movement.roll + robot->rollStabilization.speedError)/3;
+		robot->VMA[VR].desiredSpeed  = - (robot->movement.depth + robot->depthStabilization.speedError)/3 - (robot->movement.roll + robot->rollStabilization.speedError)/3;
+	}
 }
 
 

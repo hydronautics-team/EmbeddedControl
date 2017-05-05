@@ -7,7 +7,7 @@
 
 #define VMA_NUMBER              8
 #define VMA_DRIVER_NUMBER       8
-#define DEV_DRIVER_NUMBER       6    
+#define DEV_DRIVER_NUMBER       4    
 #define BLUETOOTH_MESSAGE_SIZE  8
  
 
