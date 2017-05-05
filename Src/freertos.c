@@ -95,12 +95,7 @@ void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size)
 
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-	while(HAL_UART_GetState(&huart4)!= HAL_UART_STATE_READY) { }
-	
-	HAL_UART_Receive_DMA(&huart4,IMU_Receive,sizeof(IMU_Receive));		
-	uint8_t msg[IMU_TRANSMIT_PACKET_SIZE] = { 's','n','p',0x80,0x00,0x47,0xC0,0x2D,0x1E,0x00,0x00 }; // 5th byte - register adress byte
-	CompChecksum(&msg[IMU_TRANSMIT_PACKET_SIZE-1],&msg[IMU_TRANSMIT_PACKET_SIZE-2],msg,IMU_TRANSMIT_PACKET_SIZE);
-	HAL_UART_Transmit(&huart4,msg,IMU_TRANSMIT_PACKET_SIZE,1000);
+	IMUReset();
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -292,71 +287,8 @@ void SensorsCommunicationTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-		uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*2], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];;
-		for(uint8_t i=0; i<sizeof(IMU_Output); i++)
-			IMU_Output[i] = IMU_Receive[i];
-	
-		uint8_t pos=0, found=0;
-		for(uint8_t i=0; i<IMU_RECEIVE_PACKET_SIZE*2; i++)
-		{
-			if(IMU_Output[i] == 's' && IMU_Output[i+1] == 'n' && IMU_Output[i+2] == 'p' && IMU_Output[i+3] == 0xC8 &&  IMU_Output[i+4] == 0x5C)
-			{	
-				pos=i;
-				found=1;
-			}
-		}
-	
-		if(found == 0) 
-		{	
-			IMU_Parsed[0] = 'E';
-			IMU_Parsed[1] = 'R';
-			IMU_Parsed[2] = 'R';
-			IMU_Parsed[3] = '\0';
-		}
-		else
-		{
-			for(uint8_t i=0; i<sizeof(IMU_Parsed); i++)
-				IMU_Parsed[i] = IMU_Output[pos+i];
-		
-			uint8_t NewChecksum[2],BadChecksum;
-			for(uint8_t i=0; i<IMU_CHECKSUMS; i++)
-			{
-				CompChecksum(&NewChecksum[1],&NewChecksum[0],&IMU_Parsed[i*IMU_RECEIVE_PACKET_SIZE],IMU_RECEIVE_PACKET_SIZE*(i+1)-2);
-				if(NewChecksum[0] != IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*(i+1)-2] || NewChecksum[1] != IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*(i+1)-1])
-					BadChecksum=1;
-			}	
-		
-			if(BadChecksum == 1)
-			{
-				IMU_Parsed[0] = 'B';
-				IMU_Parsed[1] = 'A';
-				IMU_Parsed[2] = 'D';
-				IMU_Parsed[3] = '\0';
-			}	
-			else
-			{
-				Q100.sensors.yaw = (((uint16_t) IMU_Parsed[EULER_PHI]) << 8) + IMU_Parsed[EULER_PHI+1];
-				Q100.sensors.roll = (((uint16_t) IMU_Parsed[EULER_TETA]) << 8) + IMU_Parsed[EULER_TETA+1];
-				Q100.sensors.pitch = (((uint16_t) IMU_Parsed[EULER_PSI]) << 8) + IMU_Parsed[EULER_PSI+1];
-				
-				Q100.sensors.rollSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_X]) << 8) + IMU_Parsed[GYRO_PROC_X+1];
-				Q100.sensors.pitchSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_Y]) << 8) + IMU_Parsed[GYRO_PROC_Y+1];
-				Q100.sensors.yawSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_Z]) << 8) + IMU_Parsed[GYRO_PROC_Z+1];
-					
-				Q100.sensors.accelX = (((uint16_t) IMU_Parsed[ACCEL_PROC_X]) << 8) + IMU_Parsed[ACCEL_PROC_X+1];
-				Q100.sensors.accelY = (((uint16_t) IMU_Parsed[ACCEL_PROC_Y]) << 8) + IMU_Parsed[ACCEL_PROC_Y+1];
-				Q100.sensors.accelZ = (((uint16_t) IMU_Parsed[ACCEL_PROC_Z]) << 8) + IMU_Parsed[ACCEL_PROC_Z+1];
-				
-				Q100.sensors.magX = (((uint16_t) IMU_Parsed[MAG_PROC_X]) << 8) + IMU_Parsed[MAG_PROC_X+1];
-				Q100.sensors.magY = (((uint16_t) IMU_Parsed[MAG_PROC_Y]) << 8) + IMU_Parsed[MAG_PROC_Y+1];
-				Q100.sensors.magZ = (((uint16_t) IMU_Parsed[MAG_PROC_Z]) << 8) + IMU_Parsed[MAG_PROC_Z+1];
-					
-				Q100.sensors.quatA = (((uint16_t) IMU_Parsed[QUAT_A]) << 8) + IMU_Parsed[QUAT_A+1];
-				Q100.sensors.quatB = (((uint16_t) IMU_Parsed[QUAT_B]) << 8) + IMU_Parsed[QUAT_B+1];
-				Q100.sensors.quatC = (((uint16_t) IMU_Parsed[QUAT_C]) << 8) + IMU_Parsed[QUAT_C+1];
-				Q100.sensors.quatD = (((uint16_t) IMU_Parsed[QUAT_D]) << 8) + IMU_Parsed[QUAT_D+1];
-			}	
-		}
+		uint8_t error;
+		IMUReceive(&Q100,IMU_Receive,&error);
     osDelay(1);
   }
   /* USER CODE END SensorsCommunicationTask */
@@ -417,15 +349,7 @@ void StartDevCommunication(void const * argument)
 }
 
 /* USER CODE BEGIN Application */
-void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size)
-{
-	uint16_t checksum = 0;
-	for(uint8_t i=0; i<size; i++)
-		checksum += (uint16_t) msg[i];
-		
-	*lowbyte = (uint8_t) ((checksum & 0xFF00) >> 8);
-	*upbyte = (uint8_t) (checksum & 0x00FF);
-}	
+
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
