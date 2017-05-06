@@ -2,6 +2,11 @@
 
 struct Robot Q100;
 
+enum ImuErrcodes {
+	IMU_FIND_ERROR=1,
+	IMU_BAD_CHECKSUM_ERROR
+};
+
 uint8_t ShoreRequestBuf[SHORE_REQUEST_LENGTH];
 uint8_t ShoreRequestConfigBuf[REQUEST_CONFIG_LENGTH];
 uint8_t ShoreResponseBuf[SHORE_RESPONSE_LENGTH];

@@ -380,9 +380,9 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 
 void IMUReceive(struct Robot *robot, uint8_t *IMUReceiveBuf, uint8_t *ErrCode)
 {
-  uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*2], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];;
+  uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*2], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];
 	for(uint8_t i=0; i<sizeof(IMU_Output); i++)
-	IMU_Output[i] = IMUReceiveBuf[i];
+		IMU_Output[i] = IMUReceiveBuf[i];
 	
 	uint8_t pos=0, found=0;
 	for(uint8_t i=0; i<IMU_RECEIVE_PACKET_SIZE*2; i++)
@@ -391,6 +391,7 @@ void IMUReceive(struct Robot *robot, uint8_t *IMUReceiveBuf, uint8_t *ErrCode)
 		{	
 			pos=i;
 			found=1;
+			break;
 		}
 	}
 	
@@ -401,10 +402,10 @@ void IMUReceive(struct Robot *robot, uint8_t *IMUReceiveBuf, uint8_t *ErrCode)
 		for(uint8_t i=0; i<sizeof(IMU_Parsed); i++)
 			IMU_Parsed[i] = IMU_Output[pos+i];
 		
-		uint8_t NewChecksum[2],BadChecksum;
-		for(uint8_t i=0; i<IMU_CHECKSUMS; i++)
+		uint8_t NewChecksum[2],BadChecksum=0;
+		for(uint8_t i=0; i<IMU_CHECKSUMS-1; i++)
 		{
-			CompChecksum(&NewChecksum[1],&NewChecksum[0],&IMU_Parsed[i*IMU_RECEIVE_PACKET_SIZE],IMU_RECEIVE_PACKET_SIZE*(i+1)-2);
+			CompChecksum(&NewChecksum[1],&NewChecksum[0],&IMU_Parsed[i*IMU_RECEIVE_PACKET_SIZE],IMU_RECEIVE_PACKET_SIZE-2);
 			if(NewChecksum[0] != IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*(i+1)-2] || NewChecksum[1] != IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*(i+1)-1])
 				BadChecksum=1;
 		}	
