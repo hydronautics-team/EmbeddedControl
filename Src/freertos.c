@@ -82,10 +82,11 @@ void SensorsCommunicationTask(void const * argument);
 void StabilizationTask(void const * argument);
 void StartDevCommunication(void const * argument);
 
+
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* USER CODE BEGIN FunctionPrototypes */
-
+void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size);
 /* USER CODE END FunctionPrototypes */
 
 /* Hook prototypes */
@@ -94,7 +95,7 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-       
+	IMUReset();
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -284,8 +285,10 @@ void SensorsCommunicationTask(void const * argument)
   /* USER CODE BEGIN SensorsCommunicationTask */
 	
   /* Infinite loop */
-  for(;;){
-    osDelay(1);
+  for(;;)
+  {
+		uint8_t error;
+		IMUReceive(&Q100,IMU_Receive,&error);
   }
   /* USER CODE END SensorsCommunicationTask */
 }
@@ -345,6 +348,7 @@ void StartDevCommunication(void const * argument)
 }
 
 /* USER CODE BEGIN Application */
+
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

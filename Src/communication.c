@@ -1,5 +1,9 @@
 #include "communication.h"
 
+enum ImuErrcodes {
+	IMU_FIND_ERROR=1,
+	IMU_BAD_CHECKSUM_ERROR
+};
 
 void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV)
 {
@@ -376,56 +380,80 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 }
 
 
-void IMUResponse(struct Robot *robot, uint8_t *IMUResponseBuf)
+void IMUReceive(struct Robot *robot, uint8_t *IMUReceiveBuf, uint8_t *ErrCode)
 {
-  uint8_t i = 0;
-	while(i < IMU_RESPONSE_LENGTH){
-		if ((IMUResponseBuf[i] == 's') && (IMUResponseBuf[(i + 1) % IMU_RESPONSE_LENGTH] == 'n') && (IMUResponseBuf[(i + 2) % IMU_RESPONSE_LENGTH] == 'p') && (IMUResponseBuf[(i + 3) % IMU_RESPONSE_LENGTH] == 0xC8)){
-			switch(IMUResponseBuf[(i + 4) % IMU_RESPONSE_LENGTH]){
-				case 0x62:
-					robot->sensors.roll = (int16_t) ((IMUResponseBuf[(i + 5) % IMU_RESPONSE_LENGTH] << 8 ) + IMUResponseBuf[(i + 6) % IMU_RESPONSE_LENGTH]);
-					robot->sensors.pitch = (int16_t) ((IMUResponseBuf[(i + 7) % IMU_RESPONSE_LENGTH] << 8 ) + IMUResponseBuf[(i + 8) % IMU_RESPONSE_LENGTH]);
-					robot->sensors.yaw = (int16_t) ((IMUResponseBuf[(i + 9) % IMU_RESPONSE_LENGTH] << 8 ) + IMUResponseBuf[(i + 10) % IMU_RESPONSE_LENGTH]);
-					i = i + 14;
-				break;
-				case 0x5C:
-					robot->sensors.rollSpeed = (int16_t) ((IMUResponseBuf[(i + 5) % IMU_RESPONSE_LENGTH] << 8 ) + IMUResponseBuf[(i + 6) % IMU_RESPONSE_LENGTH]);
-					robot->sensors.pitchSpeed = (int16_t) ((IMUResponseBuf[(i + 7) % IMU_RESPONSE_LENGTH] << 8 ) + IMUResponseBuf[(i + 8) % IMU_RESPONSE_LENGTH]);
-					robot->sensors.yawSpeed = (int16_t) ((IMUResponseBuf[(i + 9) % IMU_RESPONSE_LENGTH] << 8 ) + IMUResponseBuf[(i + 10) % IMU_RESPONSE_LENGTH]);
-					i = i + 14;
-				break;
-			}
+  uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*2], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];
+	for(uint8_t i=0; i<sizeof(IMU_Output); i++)
+		IMU_Output[i] = IMUReceiveBuf[i];
+	
+	uint8_t pos=0, found=0;
+	for(uint8_t i=0; i<IMU_RECEIVE_PACKET_SIZE*2; i++)
+	{
+		if(IMU_Output[i] == 's' && IMU_Output[i+1] == 'n' && IMU_Output[i+2] == 'p' && IMU_Output[i+3] == 0xC8 &&  IMU_Output[i+4] == 0x5C)
+		{	
+			pos=i;
+			found=1;
+			break;
 		}
-		++i;
+	}
+	
+	if(found == 0) 
+		*ErrCode = IMU_FIND_ERROR;
+	else
+	{
+		for(uint8_t i=0; i<sizeof(IMU_Parsed); i++)
+			IMU_Parsed[i] = IMU_Output[pos+i];
+		
+		uint8_t NewChecksum[2],BadChecksum=0;
+		for(uint8_t i=0; i<IMU_CHECKSUMS-1; i++)
+		{
+			CompChecksum(&NewChecksum[1],&NewChecksum[0],&IMU_Parsed[i*IMU_RECEIVE_PACKET_SIZE],IMU_RECEIVE_PACKET_SIZE-2);
+			if(NewChecksum[0] != IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*(i+1)-2] || NewChecksum[1] != IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*(i+1)-1])
+				BadChecksum=1;
+		}	
+		
+		if(BadChecksum == 1)
+				*ErrCode = IMU_BAD_CHECKSUM_ERROR;
+		else
+		{
+			robot->sensors.yaw = (((uint16_t) IMU_Parsed[EULER_PHI]) << 8) + IMU_Parsed[EULER_PHI+1];
+			robot->sensors.roll = (((uint16_t) IMU_Parsed[EULER_TETA]) << 8) + IMU_Parsed[EULER_TETA+1];
+			robot->sensors.pitch = (((uint16_t) IMU_Parsed[EULER_PSI]) << 8) + IMU_Parsed[EULER_PSI+1];
+				
+			robot->sensors.rollSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_X]) << 8) + IMU_Parsed[GYRO_PROC_X+1];
+			robot->sensors.pitchSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_Y]) << 8) + IMU_Parsed[GYRO_PROC_Y+1];
+			robot->sensors.yawSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_Z]) << 8) + IMU_Parsed[GYRO_PROC_Z+1];
+					
+			robot->sensors.accelX = (((uint16_t) IMU_Parsed[ACCEL_PROC_X]) << 8) + IMU_Parsed[ACCEL_PROC_X+1];
+			robot->sensors.accelY = (((uint16_t) IMU_Parsed[ACCEL_PROC_Y]) << 8) + IMU_Parsed[ACCEL_PROC_Y+1];
+			robot->sensors.accelZ = (((uint16_t) IMU_Parsed[ACCEL_PROC_Z]) << 8) + IMU_Parsed[ACCEL_PROC_Z+1];
+				
+			robot->sensors.magX = (((uint16_t) IMU_Parsed[MAG_PROC_X]) << 8) + IMU_Parsed[MAG_PROC_X+1];
+			robot->sensors.magY = (((uint16_t) IMU_Parsed[MAG_PROC_Y]) << 8) + IMU_Parsed[MAG_PROC_Y+1];
+			robot->sensors.magZ = (((uint16_t) IMU_Parsed[MAG_PROC_Z]) << 8) + IMU_Parsed[MAG_PROC_Z+1];
+					
+			robot->sensors.quatA = (((uint16_t) IMU_Parsed[QUAT_A]) << 8) + IMU_Parsed[QUAT_A+1];
+			robot->sensors.quatB = (((uint16_t) IMU_Parsed[QUAT_B]) << 8) + IMU_Parsed[QUAT_B+1];
+			robot->sensors.quatC = (((uint16_t) IMU_Parsed[QUAT_C]) << 8) + IMU_Parsed[QUAT_C+1];
+			robot->sensors.quatD = (((uint16_t) IMU_Parsed[QUAT_D]) << 8) + IMU_Parsed[QUAT_D+1];
+		}	
 	}
 }
 
-
-
 void IMUReset()
 {
-  IMURequestBuf[0] = 's';
-  IMURequestBuf[1] = 'n';
-  IMURequestBuf[2] = 'p';
-  IMURequestBuf[3] = 0x00;
-  IMURequestBuf[4] = 0xAC;  // Zero_gyros
-  uint16_t checksum = IMUchecksum(IMURequestBuf, 5);
-  IMURequestBuf[5] = checksum >> 8;
-  IMURequestBuf[6] = (uint8_t) checksum;
-  IMURequestBuf[7] = 's';
-  IMURequestBuf[8] = 'n';
-  IMURequestBuf[9] = 'p';
-  IMURequestBuf[10] = 0x00;
-  IMURequestBuf[11] = 0xAD;  // Reset EKF
-  checksum = IMUchecksum(IMURequestBuf + 7, 5);
-  IMURequestBuf[12] = checksum >> 8;
-  IMURequestBuf[13] = (uint8_t) checksum;
-  IMURequestBuf[14] = 's';
-  IMURequestBuf[15] = 'n';
-  IMURequestBuf[16] = 'p';
-  IMURequestBuf[17] = 0x00;
-  IMURequestBuf[18] = 0xAF;  // Set Accelerometer Reference vector
-  checksum = IMUchecksum(IMURequestBuf + 14, 5);
-  IMURequestBuf[19] = checksum >> 8;
-  IMURequestBuf[20] = (uint8_t) checksum;
+	HAL_UART_Receive_DMA(&huart4,IMU_Receive,sizeof(IMU_Receive));		
+	uint8_t msg[IMU_TRANSMIT_PACKET_SIZE] = { 's','n','p',0x80,0x00,0x47,0xC0,0x2D,0x1E,0x00,0x00 }; // 5th byte - register adress byte
+	CompChecksum(&msg[IMU_TRANSMIT_PACKET_SIZE-1],&msg[IMU_TRANSMIT_PACKET_SIZE-2],msg,IMU_TRANSMIT_PACKET_SIZE);
+	HAL_UART_Transmit(&huart4,msg,IMU_TRANSMIT_PACKET_SIZE,1000);
 }
+
+void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size)
+{
+	uint16_t checksum = 0;
+	for(uint8_t i=0; i<size; i++)
+		checksum += (uint16_t) msg[i];
+		
+	*lowbyte = (uint8_t) ((checksum & 0xFF00) >> 8);
+	*upbyte = (uint8_t) (checksum & 0x00FF);
+}	
