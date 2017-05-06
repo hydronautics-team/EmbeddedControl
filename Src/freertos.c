@@ -112,27 +112,27 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of LedBlinking */
-  osThreadDef(LedBlinking, LedBlinkingTask, osPriorityNormal, 0, 64);
-  LedBlinkingHandle = osThreadCreate(osThread(LedBlinking), NULL);
+//  osThreadDef(LedBlinking, LedBlinkingTask, osPriorityNormal, 0, 64);
+//  LedBlinkingHandle = osThreadCreate(osThread(LedBlinking), NULL);
 
   /* definition and creation of ShoreCommunication */
-  osThreadDef(ShoreCommunication, ShoreCommunicationTask, osPriorityNormal, 0, 64);
-  ShoreCommunicationHandle = osThreadCreate(osThread(ShoreCommunication), NULL);
+//  osThreadDef(ShoreCommunication, ShoreCommunicationTask, osPriorityNormal, 0, 64);
+//  ShoreCommunicationHandle = osThreadCreate(osThread(ShoreCommunication), NULL);
 
   /* definition and creation of VmaDevCommunication */
-  osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityAboveNormal, 0, 64);
-  VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
+//  osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityRealtime, 0, 64);
+//  VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
 
   /* definition and creation of SensorsCommunication */
-  osThreadDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 64);
-  SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
+//  osThreadDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 64);
+//  SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
 
   /* definition and creation of Stabilization */
-  osThreadDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64);
-  StabilizationHandle = osThreadCreate(osThread(Stabilization), NULL);
+//  osThreadDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64);
+//  StabilizationHandle = osThreadCreate(osThread(Stabilization), NULL);
 
   /* definition and creation of DevCommunication */
-  osThreadDef(DevCommunication, StartDevCommunication, osPriorityAboveNormal, 0, 64);
+  osThreadDef(DevCommunication, StartDevCommunication, osPriorityRealtime, 0, 64);
   DevCommunicationHandle = osThreadCreate(osThread(DevCommunication), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -289,7 +289,6 @@ void SensorsCommunicationTask(void const * argument)
   {
 		uint8_t error;
 		IMUReceive(&Q100,IMU_Receive,&error);
-    osDelay(1);
   }
   /* USER CODE END SensorsCommunicationTask */
 }
@@ -317,29 +316,29 @@ void StartDevCommunication(void const * argument)
 			case AGAR:
 				DevRequestUpdate(&Q100, DevRequestBuf, AGAR);
 				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-				DevResponseUpdate(&Q100, DevRequestBuf, AGAR);
+				receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				DevResponseUpdate(&Q100, DevResponseBuf, AGAR);
 			break;
 			
 			case GRAB:
 				DevRequestUpdate(&Q100, DevRequestBuf, GRAB);
 				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-				DevResponseUpdate(&Q100, DevRequestBuf, GRAB);
+				receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				DevResponseUpdate(&Q100, DevResponseBuf, GRAB);
 			break;
 			
 			case GRAB_ROTATION:
 				DevRequestUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
 				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-				DevResponseUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
+				receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				DevResponseUpdate(&Q100, DevResponseBuf, GRAB_ROTATION);
 			break;
 			
 			case TILT:
 				DevRequestUpdate(&Q100, DevRequestBuf, TILT);
 				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_RESPONSE_LENGTH);
-				DevResponseUpdate(&Q100, DevRequestBuf, TILT);
+				receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+				DevResponseUpdate(&Q100, DevResponseBuf, TILT);
 			break;
 		}
 		DevTransaction = (DevTransaction + 1) % DEV_DRIVER_NUMBER;
