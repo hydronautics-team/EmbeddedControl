@@ -151,42 +151,47 @@
         <Ww>
           <count>0</count>
           <WinNumber>1</WinNumber>
-          <ItemText>VMA_RX_enable</ItemText>
+          <ItemText>huart1</ItemText>
         </Ww>
         <Ww>
           <count>1</count>
           <WinNumber>1</WinNumber>
-          <ItemText>VMA_TX_enable</ItemText>
+          <ItemText>DevRequestBuf</ItemText>
         </Ww>
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>huart1</ItemText>
+          <ItemText>DevResponseBuf</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>DevRequestBuf</ItemText>
+          <ItemText>huart3</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>DevResponseBuf</ItemText>
+          <ItemText>huart2</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>1</WinNumber>
-          <ItemText>huart3</ItemText>
+          <ItemText>Q100</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
           <WinNumber>1</WinNumber>
-          <ItemText>huart2</ItemText>
+          <ItemText>ShoreResponseBuf</ItemText>
         </Ww>
         <Ww>
           <count>7</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Q100</ItemText>
+          <ItemText>ShoreRequestBuf</ItemText>
+        </Ww>
+        <Ww>
+          <count>8</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>ShoreRequestConfigBuf</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>

@@ -112,24 +112,24 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of LedBlinking */
-//  osThreadDef(LedBlinking, LedBlinkingTask, osPriorityNormal, 0, 64);
-//  LedBlinkingHandle = osThreadCreate(osThread(LedBlinking), NULL);
+  osThreadDef(LedBlinking, LedBlinkingTask, osPriorityNormal, 0, 64);
+  LedBlinkingHandle = osThreadCreate(osThread(LedBlinking), NULL);
 
   /* definition and creation of ShoreCommunication */
-//  osThreadDef(ShoreCommunication, ShoreCommunicationTask, osPriorityNormal, 0, 64);
-//  ShoreCommunicationHandle = osThreadCreate(osThread(ShoreCommunication), NULL);
+  osThreadDef(ShoreCommunication, ShoreCommunicationTask, osPriorityNormal, 0, 64);
+  ShoreCommunicationHandle = osThreadCreate(osThread(ShoreCommunication), NULL);
 
   /* definition and creation of VmaDevCommunication */
-//  osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityRealtime, 0, 64);
-//  VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
+  osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityRealtime, 0, 64);
+  VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
 
   /* definition and creation of SensorsCommunication */
-//  osThreadDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 64);
-//  SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
+  osThreadDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 64);
+  SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
 
   /* definition and creation of Stabilization */
-//  osThreadDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64);
-//  StabilizationHandle = osThreadCreate(osThread(Stabilization), NULL);
+  osThreadDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64);
+  StabilizationHandle = osThreadCreate(osThread(Stabilization), NULL);
 
   /* definition and creation of DevCommunication */
   osThreadDef(DevCommunication, StartDevCommunication, osPriorityRealtime, 0, 64);
@@ -147,33 +147,33 @@ void MX_FREERTOS_Init(void) {
 /* LedBlinkingTask function */
 void LedBlinkingTask(void const * argument)
 {
-
+	uint32_t sysTime = osKernelSysTick();
   /* USER CODE BEGIN LedBlinkingTask */
   /* Infinite loop */
   for(;;){
 		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-		osDelay(250);
+		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 		HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
-		osDelay(250);
+		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
 		HAL_GPIO_TogglePin(LD7_GPIO_Port, LD7_Pin);
-		osDelay(250);		
+		osDelayUntil(&sysTime, 200);	
 		HAL_GPIO_TogglePin(LD7_GPIO_Port, LD7_Pin);
 		HAL_GPIO_TogglePin(LD9_GPIO_Port, LD9_Pin);
-		osDelay(250);		
+		osDelayUntil(&sysTime, 200);	
 		HAL_GPIO_TogglePin(LD9_GPIO_Port, LD9_Pin);
 		HAL_GPIO_TogglePin(LD10_GPIO_Port, LD10_Pin);
-		osDelay(250);		
+		osDelayUntil(&sysTime, 200);		
 		HAL_GPIO_TogglePin(LD10_GPIO_Port, LD10_Pin);
 		HAL_GPIO_TogglePin(LD8_GPIO_Port, LD8_Pin);
-		osDelay(250);		
+		osDelayUntil(&sysTime, 200);	
 		HAL_GPIO_TogglePin(LD8_GPIO_Port, LD8_Pin);
 		HAL_GPIO_TogglePin(LD6_GPIO_Port, LD6_Pin);
-		osDelay(250);
+		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD6_GPIO_Port, LD6_Pin);
 		HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
-		osDelay(250);
+		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
   }
   /* USER CODE END LedBlinkingTask */
@@ -202,7 +202,7 @@ void ShoreCommunicationTask(void const * argument)
 				transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);			
 				break;
 		}
-		osDelayUntil(&sysTime, 25);
+		osDelayUntil(&sysTime, 20);
 	}
   /* USER CODE END ShoreCommunicationTask */
 }
@@ -283,12 +283,13 @@ void VmaDevCommunicationTask(void const * argument)
 void SensorsCommunicationTask(void const * argument)
 {
   /* USER CODE BEGIN SensorsCommunicationTask */
-	
+	uint32_t sysTime = osKernelSysTick();
   /* Infinite loop */
   for(;;)
   {
-		uint8_t error;
-		IMUReceive(&Q100,IMU_Receive,&error);
+//		uint8_t error;
+//		IMUReceive(&Q100,IMU_Receive,&error);
+		osDelayUntil(&sysTime, 20);
   }
   /* USER CODE END SensorsCommunicationTask */
 }
@@ -297,9 +298,10 @@ void SensorsCommunicationTask(void const * argument)
 void StabilizationTask(void const * argument)
 {
   /* USER CODE BEGIN StabilizationTask */
+	uint32_t sysTime = osKernelSysTick();
   /* Infinite loop */
   for(;;){
-    osDelay(1);
+    osDelayUntil(&sysTime, 20);
   }
   /* USER CODE END StabilizationTask */
 }
