@@ -335,7 +335,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F303xC</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;                         ../Drivers/STM32F3xx_HAL_Driver/Inc;                         ../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy;                         ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;                         ../Drivers/CMSIS/Device/ST/STM32F3xx/Include;                         ../Middlewares/Third_Party/FreeRTOS/Source/include;                         ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;                         ../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Inc;                          ../Drivers/STM32F3xx_HAL_Driver/Inc;                          ../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy;                          ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;                          ../Drivers/CMSIS/Device/ST/STM32F3xx/Include;                          ../Middlewares/Third_Party/FreeRTOS/Source/include;                          ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;                          ../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -468,6 +468,11 @@
               <FileName>stm32f3xx_hal_dma.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f3xx_hal_iwdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_iwdg.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -603,6 +608,11 @@
               <FileName>tim.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Src/tim.c</FilePath>
+            </File>
+            <File>
+              <FileName>iwdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Src/iwdg.c</FilePath>
             </File>
           </Files>
         </Group>

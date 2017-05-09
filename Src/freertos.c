@@ -49,6 +49,7 @@
 /* USER CODE BEGIN Includes */     
 #include "main.h"
 #include "usart.h"
+#include "iwdg.h"
 #include "communication.h"
 /* USER CODE END Includes */
 
@@ -61,17 +62,6 @@ osThreadId StabilizationHandle;
 osThreadId DevCommunicationHandle;
 
 /* USER CODE BEGIN Variables */
-bool shore_RX_enable;
-bool shore_TX_enable;
-bool VMA_RX_enable;
-bool VMA_TX_enable;
-bool DEV_RX_enable;
-bool DEV_TX_enable;
-
-bool VMA_RX_enable;
-bool VMA_TX_enable;
-bool DEV_RX_enable;
-bool DEV_TX_enable;
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -82,11 +72,10 @@ void SensorsCommunicationTask(void const * argument);
 void StabilizationTask(void const * argument);
 void StartDevCommunication(void const * argument);
 
-
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* USER CODE BEGIN FunctionPrototypes */
-void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size);
+
 /* USER CODE END FunctionPrototypes */
 
 /* Hook prototypes */
@@ -95,7 +84,7 @@ void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size)
 
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-	IMUReset();
+       
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -120,7 +109,7 @@ void MX_FREERTOS_Init(void) {
   ShoreCommunicationHandle = osThreadCreate(osThread(ShoreCommunication), NULL);
 
   /* definition and creation of VmaDevCommunication */
-  osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityRealtime, 0, 64);
+  osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityAboveNormal, 0, 64);
   VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
 
   /* definition and creation of SensorsCommunication */
@@ -132,7 +121,7 @@ void MX_FREERTOS_Init(void) {
   StabilizationHandle = osThreadCreate(osThread(Stabilization), NULL);
 
   /* definition and creation of DevCommunication */
-  osThreadDef(DevCommunication, StartDevCommunication, osPriorityRealtime, 0, 64);
+  osThreadDef(DevCommunication, StartDevCommunication, osPriorityAboveNormal, 0, 64);
   DevCommunicationHandle = osThreadCreate(osThread(DevCommunication), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -202,7 +191,8 @@ void ShoreCommunicationTask(void const * argument)
 				transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);			
 				break;
 		}
-		osDelayUntil(&sysTime, 20);
+		HAL_IWDG_Refresh(&hiwdg);
+		osDelayUntil(&sysTime, 25);
 	}
   /* USER CODE END ShoreCommunicationTask */
 }
@@ -283,13 +273,10 @@ void VmaDevCommunicationTask(void const * argument)
 void SensorsCommunicationTask(void const * argument)
 {
   /* USER CODE BEGIN SensorsCommunicationTask */
-	uint32_t sysTime = osKernelSysTick();
+	
   /* Infinite loop */
-  for(;;)
-  {
-//		uint8_t error;
-//		IMUReceive(&Q100,IMU_Receive,&error);
-		osDelayUntil(&sysTime, 20);
+  for(;;){
+    osDelay(1);
   }
   /* USER CODE END SensorsCommunicationTask */
 }
@@ -298,10 +285,9 @@ void SensorsCommunicationTask(void const * argument)
 void StabilizationTask(void const * argument)
 {
   /* USER CODE BEGIN StabilizationTask */
-	uint32_t sysTime = osKernelSysTick();
   /* Infinite loop */
   for(;;){
-    osDelayUntil(&sysTime, 20);
+    osDelay(1);
   }
   /* USER CODE END StabilizationTask */
 }
@@ -350,7 +336,6 @@ void StartDevCommunication(void const * argument)
 }
 
 /* USER CODE BEGIN Application */
-
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

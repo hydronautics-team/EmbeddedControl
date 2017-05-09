@@ -26,8 +26,8 @@ enum VMA{
 
 enum DEV{
 	AGAR = 0,
-	GRAB,
-	GRAB_ROTATION,
+	GRAB,//GRAB,
+	GRAB_ROTATION,//GRAB_ROTATION,
 	TILT,
 	LIGHT,
 	BOTTOM_LIGHT
@@ -60,16 +60,6 @@ struct Robot{
     int16_t rollSpeed;
     int16_t pitchSpeed;
     int16_t yawSpeed;
-		int16_t accelX;
-		int16_t accelY;
-		int16_t accelZ;
-		int16_t magX;
-		int16_t magY;
-		int16_t magZ;
-		int16_t quatA;
-		int16_t quatB;
-		int16_t quatC;
-		int16_t quatD;
 		bool resetIMU;
     
     uint16_t pressure;

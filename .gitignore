@@ -2,7 +2,9 @@ MDK-ARM/EmbeddedControl
 MDK-ARM/RTE
 MDK-ARM/*.lst
 *.Ilya
-*.ярослав
 *.scvd
 *.mxproject
 *.Hydronautics
+*(2).*
+*.fix_comp_win10
+*.cpdsc
