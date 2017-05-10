@@ -50,7 +50,8 @@
 
 /* USER CODE BEGIN 0 */
 #include "tim.h"
-#define TASK_WAITING	15
+#define TASK_WAITING	5
+#define SHORE_WAITING 15
 #define DELAY	1
 
 bool uart1PackageTransmit = false;
@@ -70,7 +71,7 @@ void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 		case SHORE_UART:
 			HAL_HalfDuplex_EnableTransmitter(&huart1);
 			HAL_UART_Transmit_DMA(&huart1, buf, length);
-			while (!uart1PackageTransmit && xTaskGetTickCount() - timeBegin < TASK_WAITING){
+			while (!uart1PackageTransmit && xTaskGetTickCount() - timeBegin < SHORE_WAITING){
 				osDelay(DELAY);
 			}
 			uart1PackageTransmit = false;
@@ -163,7 +164,7 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 		case SHORE_UART:
 			HAL_HalfDuplex_EnableReceiver(&huart1);
 			HAL_UART_Receive_DMA(&huart1, buf, length);
-			while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < TASK_WAITING){
+			while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < SHORE_WAITING){
 				osDelay(DELAY);
 			}
 			uart1PackageReceived = false;
