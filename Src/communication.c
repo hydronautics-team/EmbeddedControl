@@ -1,5 +1,5 @@
 #include "communication.h"
-
+#define PACKAGE_TOLLERANCE 20
 
 void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV)
 {
@@ -210,65 +210,67 @@ float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos)
 
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 {
-  robot->depthStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_DEPTH];
-  robot->depthStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_DEPTH);
-  robot->depthStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_DEPTH);
-  robot->depthStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_DEPTH);
-  robot->depthStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_DEPTH);
-  
-  robot->rollStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_ROLL];
-  robot->rollStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_ROLL);
-  robot->rollStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_ROLL);
-  robot->rollStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_ROLL);
-  robot->rollStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_ROLL);
-  
-  robot->pitchStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_PITCH];
-  robot->pitchStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_PITCH);
-  robot->pitchStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_PITCH);
-  robot->pitchStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_PITCH);
-  robot->pitchStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_PITCH);
-  
-  robot->yawStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_YAW];
-  robot->yawStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_YAW);
-  robot->yawStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_YAW);
-  robot->yawStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_YAW);
-  robot->yawStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_YAW);
-  
-  robot->VMA[HLB].address = requestBuf[REQUEST_CONFIG_POSITION_HLB];
-  robot->VMA[HLF].address = requestBuf[REQUEST_CONFIG_POSITION_HLF];
-  robot->VMA[HRB].address = requestBuf[REQUEST_CONFIG_POSITION_HRB];
-  robot->VMA[HRF].address = requestBuf[REQUEST_CONFIG_POSITION_HRF];
-  robot->VMA[VB].address = requestBuf[REQUEST_CONFIG_POSITION_VB];
-  robot->VMA[VF].address = requestBuf[REQUEST_CONFIG_POSITION_VF];
-  robot->VMA[VL].address  = requestBuf[REQUEST_CONFIG_POSITION_VL];
-  robot->VMA[VR].address = requestBuf[REQUEST_CONFIG_POSITION_VR];
-  
-  robot->VMA[HLB].settings = requestBuf[REQUEST_CONFIG_SETTING_HLB];
-  robot->VMA[HLF].settings = requestBuf[REQUEST_CONFIG_SETTING_HLF];
-  robot->VMA[HRB].settings = requestBuf[REQUEST_CONFIG_SETTING_HRB];
-  robot->VMA[HRF].settings = requestBuf[REQUEST_CONFIG_SETTING_HRF];
-  robot->VMA[VB].settings = requestBuf[REQUEST_CONFIG_SETTING_VB];
-  robot->VMA[VF].settings = requestBuf[REQUEST_CONFIG_SETTING_VF];
-  robot->VMA[VL].settings = requestBuf[REQUEST_CONFIG_SETTING_VL];
-  robot->VMA[VR].settings = requestBuf[REQUEST_CONFIG_SETTING_VR];
-  
-  robot->VMA[HLB].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLB);
-  robot->VMA[HLF].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLF);
-  robot->VMA[HRB].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRB);
-  robot->VMA[HRF].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRF);
-  robot->VMA[VB].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VB);
-  robot->VMA[VF].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VF);
-  robot->VMA[VL].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VL);
-  robot->VMA[VR].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VR);
-  
-  robot->VMA[HLB].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLB);
-  robot->VMA[HLF].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLF);
-  robot->VMA[HRB].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRB);
-  robot->VMA[HRF].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRF);
-  robot->VMA[VB].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VB);
-  robot->VMA[VF].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VF);
-  robot->VMA[VL].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VL);
-  robot->VMA[VR].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VR);
+	if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)){
+		robot->depthStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_DEPTH];
+		robot->depthStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_DEPTH);
+		robot->depthStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_DEPTH);
+		robot->depthStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_DEPTH);
+		robot->depthStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_DEPTH);
+		
+		robot->rollStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_ROLL];
+		robot->rollStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_ROLL);
+		robot->rollStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_ROLL);
+		robot->rollStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_ROLL);
+		robot->rollStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_ROLL);
+		
+		robot->pitchStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_PITCH];
+		robot->pitchStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_PITCH);
+		robot->pitchStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_PITCH);
+		robot->pitchStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_PITCH);
+		robot->pitchStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_PITCH);
+		
+		robot->yawStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_YAW];
+		robot->yawStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_YAW);
+		robot->yawStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_YAW);
+		robot->yawStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_YAW);
+		robot->yawStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_YAW);
+		
+		robot->VMA[HLB].address = requestBuf[REQUEST_CONFIG_POSITION_HLB];
+		robot->VMA[HLF].address = requestBuf[REQUEST_CONFIG_POSITION_HLF];
+		robot->VMA[HRB].address = requestBuf[REQUEST_CONFIG_POSITION_HRB];
+		robot->VMA[HRF].address = requestBuf[REQUEST_CONFIG_POSITION_HRF];
+		robot->VMA[VB].address = requestBuf[REQUEST_CONFIG_POSITION_VB];
+		robot->VMA[VF].address = requestBuf[REQUEST_CONFIG_POSITION_VF];
+		robot->VMA[VL].address  = requestBuf[REQUEST_CONFIG_POSITION_VL];
+		robot->VMA[VR].address = requestBuf[REQUEST_CONFIG_POSITION_VR];
+		
+		robot->VMA[HLB].settings = requestBuf[REQUEST_CONFIG_SETTING_HLB];
+		robot->VMA[HLF].settings = requestBuf[REQUEST_CONFIG_SETTING_HLF];
+		robot->VMA[HRB].settings = requestBuf[REQUEST_CONFIG_SETTING_HRB];
+		robot->VMA[HRF].settings = requestBuf[REQUEST_CONFIG_SETTING_HRF];
+		robot->VMA[VB].settings = requestBuf[REQUEST_CONFIG_SETTING_VB];
+		robot->VMA[VF].settings = requestBuf[REQUEST_CONFIG_SETTING_VF];
+		robot->VMA[VL].settings = requestBuf[REQUEST_CONFIG_SETTING_VL];
+		robot->VMA[VR].settings = requestBuf[REQUEST_CONFIG_SETTING_VR];
+		
+		robot->VMA[HLB].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLB);
+		robot->VMA[HLF].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLF);
+		robot->VMA[HRB].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRB);
+		robot->VMA[HRF].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRF);
+		robot->VMA[VB].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VB);
+		robot->VMA[VF].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VF);
+		robot->VMA[VL].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VL);
+		robot->VMA[VR].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VR);
+		
+		robot->VMA[HLB].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLB);
+		robot->VMA[HLF].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLF);
+		robot->VMA[HRB].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRB);
+		robot->VMA[HRF].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRF);
+		robot->VMA[VB].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VB);
+		robot->VMA[VF].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VF);
+		robot->VMA[VL].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VL);
+		robot->VMA[VR].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VR);
+	}
 }
 
 
@@ -276,6 +278,7 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 {
 	if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)){
+		shorePackageError = 0;
 		robot->movement.march = (int16_t)((requestBuf[SHORE_REQUEST_MARCH] << 8) + requestBuf[SHORE_REQUEST_MARCH + 1]);
 		robot->movement.lag = (int16_t)((requestBuf[SHORE_REQUEST_LAG] << 8) + requestBuf[SHORE_REQUEST_LAG + 1]);
 		robot->movement.depth = (int16_t)((requestBuf[SHORE_REQUEST_DEPTH] << 8) + requestBuf[SHORE_REQUEST_DEPTH + 1]);
@@ -286,9 +289,19 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 		robot->device.light.brightness = requestBuf[SHORE_REQUEST_LIGHT];
 		robot->device.agar.opening = requestBuf[SHORE_REQUEST_AGAR];
 		robot->device.bottomLight.brightness = requestBuf[SHORE_REQUEST_BOTTOM_LIGHT];
+		
 		robot->device.grab.squeeze = requestBuf[SHORE_REQUEST_GRAB];
+		if (robot->device.grab.squeeze < -127){
+			robot->device.grab.squeeze = -127;
+		}
 		robot->device.grab.rotation  = requestBuf[SHORE_REQUEST_GRAB_ROTATE]; 
+		if (robot->device.grab.rotation < -127){
+			robot->device.grab.rotation = -127;
+		}
 		robot->device.tilt.rotation = requestBuf[SHORE_REQUEST_TILT];
+		if (robot->device.tilt.rotation < -127){
+			robot->device.tilt.rotation = -127;
+		}
 
 		robot->depthStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_DEPTH];
 		robot->rollStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_ROLL];
@@ -297,7 +310,6 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 
 		robot->sensors.resetIMU = (bool) requestBuf[SHORE_REQUEST_RESET_IMU];
 		
-	//TODO
 		int16_t velocity[VMA_DRIVER_NUMBER];
 		velocity[HLB] = (int16_t)((+  robot->movement.march + robot->movement.lag  + robot->movement.yaw) >> 1); 
 		velocity[HLF] = (int16_t)((-  robot->movement.march + robot->movement.lag  - robot->movement.yaw) >> 1);
@@ -319,6 +331,29 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 			else{
 				robot->VMA[i].desiredSpeed = -127;				
 			}
+		}
+	}
+	else{
+		++shorePackageError;
+	}
+	
+	if (shorePackageError == PACKAGE_TOLLERANCE){
+		robot->movement.march = 0;
+		robot->movement.lag = 0;
+		robot->movement.depth = 0;
+		robot->movement.pitch = 0;
+		robot->movement.roll = 0;
+		robot->movement.yaw = 0;
+
+		robot->device.light.brightness = 0;
+		robot->device.agar.opening = 0;
+		robot->device.bottomLight.brightness = 0;
+		robot->device.grab.squeeze = 0;
+		robot->device.grab.rotation  = 0;
+		robot->device.tilt.rotation = 0;
+		
+		for (uint8_t i = 0; i < VMA_DRIVER_NUMBER; ++i){
+			robot->VMA[i].desiredSpeed = 0;
 		}
 	}
 }

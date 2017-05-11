@@ -49,10 +49,18 @@
 #include "dma.h"
 
 /* USER CODE BEGIN 0 */
+#include "cmsis_os.h"
+extern TimerHandle_t UARTTimer;
+
+
 #include "tim.h"
 #define TASK_WAITING	5
 #define SHORE_WAITING 15
 #define DELAY	1
+
+uint8_t RxBuffer[1] = {0};
+uint16_t numberRx = SHORE_REQUEST_LENGTH;
+uint16_t counterRx = 0;
 
 bool uart1PackageTransmit = false;
 bool uart2PackageTransmit = false;
@@ -63,6 +71,21 @@ bool uart1PackageReceived = false;
 bool uart2PackageReceived = false;
 bool uart3PackageReceived = false;
 bool uart4PackageReceived = false;
+
+
+
+void receive(uint16_t count, uint8_t timeout_sec)
+{
+	for (uint16_t i = 0; i < numberRx; i++)
+	{
+		ShoreRequestBuf[i] = 0x00;
+	}
+	numberRx = count;
+	//HAL_UART_Receive_DMA(&huart, (uint8_t *)ShoreRequestBuf, numberRx);
+	/**/
+	counterRx = 0;
+	HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);
+}
 
 void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 {
@@ -196,10 +219,38 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 	}
 }
 
+
+void ShoreReceive()
+{
+		//HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);
+		static portBASE_TYPE xHigherPriorityTaskWoken;
+		xHigherPriorityTaskWoken = pdFALSE;
+	
+		ShoreRequestBuf[counterRx] = RxBuffer[0];
+		if (counterRx == 0){
+			xTimerResetFromISR(UARTTimer, &xHigherPriorityTaskWoken);
+		}
+		counterRx++;
+		if (counterRx == numberRx) {
+			uart1PackageReceived = true;
+			counterRx = 0;
+		}
+		else{
+			HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);
+		}
+
+		if (xHigherPriorityTaskWoken == pdTRUE){
+			xHigherPriorityTaskWoken = pdFALSE;
+			taskYIELD();
+		}
+}
+
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart1){
-		uart1PackageReceived = true;
+		//uart1PackageReceived = true;
+		ShoreReceive();
 	}
 	else if(huart == &huart2){
 		uart2PackageReceived = true;
@@ -211,6 +262,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		uart4PackageReceived = true;
 	}
 }
+
 
 //void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 //{
@@ -256,9 +308,8 @@ void MX_UART4_Init(void)
 
 void MX_USART1_UART_Init(void)
 {
-
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 57600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;

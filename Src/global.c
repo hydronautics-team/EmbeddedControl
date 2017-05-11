@@ -2,6 +2,7 @@
 
 struct Robot Q100;
 
+uint8_t shorePackageError = 0;
 
 uint8_t ShoreRequestBuf[SHORE_REQUEST_LENGTH];
 uint8_t ShoreRequestConfigBuf[REQUEST_CONFIG_LENGTH];

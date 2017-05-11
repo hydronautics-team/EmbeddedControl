@@ -21,6 +21,7 @@ extern bool VMA_TX_enable;
 extern bool DEV_RX_enable;
 extern bool DEV_TX_enable;
 
+extern uint8_t shorePackageError;
 
 extern uint8_t ShoreRequestBuf[SHORE_REQUEST_LENGTH];
 extern uint8_t ShoreRequestConfigBuf[REQUEST_CONFIG_LENGTH];

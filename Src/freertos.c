@@ -62,6 +62,13 @@ osThreadId StabilizationHandle;
 osThreadId DevCommunicationHandle;
 
 /* USER CODE BEGIN Variables */
+#define SHORE_DELAY	   15
+
+TimerHandle_t UARTTimer;
+extern bool uart1PackageReceived;
+extern uint8_t RxBuffer[1];
+extern uint16_t numberRx;
+extern uint16_t counterRx;
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -75,7 +82,7 @@ void StartDevCommunication(void const * argument);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* USER CODE BEGIN FunctionPrototypes */
-
+void uartTimerCallback(xTimerHandle xTimer);
 /* USER CODE END FunctionPrototypes */
 
 /* Hook prototypes */
@@ -97,6 +104,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
+	UARTTimer = xTimerCreate("timer", SHORE_DELAY/portTICK_RATE_MS, pdFALSE, 0, uartTimerCallback);
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the thread(s) */
@@ -105,8 +113,8 @@ void MX_FREERTOS_Init(void) {
   LedBlinkingHandle = osThreadCreate(osThread(LedBlinking), NULL);
 
   /* definition and creation of ShoreCommunication */
-  osThreadDef(ShoreCommunication, ShoreCommunicationTask, osPriorityNormal, 0, 64);
-  ShoreCommunicationHandle = osThreadCreate(osThread(ShoreCommunication), NULL);
+//  osThreadDef(ShoreCommunication, ShoreCommunicationTask, osPriorityNormal, 0, 64);
+//  ShoreCommunicationHandle = osThreadCreate(osThread(ShoreCommunication), NULL);
 
   /* definition and creation of VmaDevCommunication */
   osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityAboveNormal, 0, 64);
@@ -172,14 +180,15 @@ void LedBlinkingTask(void const * argument)
 void ShoreCommunicationTask(void const * argument)
 {
   /* USER CODE BEGIN ShoreCommunicationTask */
-	uint8_t packageType;
+	uint8_t packageType = 0;
 	uint32_t sysTime = osKernelSysTick();
+	
   /* Infinite loop */
   for(;;){
-		receiveByte(SHORE_UART, &packageType);
-		switch(packageType){
+		receiveByte(SHORE_UART, ShoreRequestBuf);
+		switch(ShoreRequestBuf[0]){
 			case SHORE_REQUEST_CODE:
-				receivePackageDMA(SHORE_UART, ShoreRequestBuf, SHORE_REQUEST_LENGTH);
+				receivePackageDMA(SHORE_UART, ShoreRequestBuf + 1 , SHORE_REQUEST_LENGTH - 1);
 				ShoreRequest(&Q100, ShoreRequestBuf);
 				ShoreResponse(&Q100, ShoreResponseBuf);
 				transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
@@ -191,6 +200,7 @@ void ShoreCommunicationTask(void const * argument)
 				transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);			
 				break;
 		}
+		packageType = 0;
 		HAL_IWDG_Refresh(&hiwdg);
 		osDelayUntil(&sysTime, 25);
 	}
@@ -336,6 +346,25 @@ void StartDevCommunication(void const * argument)
 }
 
 /* USER CODE BEGIN Application */
+void uartTimerCallback(xTimerHandle xTimer)
+{
+		if (uart1PackageReceived){
+			//HAL_IWDG_Refresh(&hiwdg);
+			uart1PackageReceived = false;
+			ShoreRequest(&Q100, ShoreRequestBuf);
+			ShoreResponse(&Q100, ShoreResponseBuf);
+			transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
+			HAL_HalfDuplex_EnableReceiver(&huart1);
+			HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);
+		}
+		else
+			{
+			counterRx = 0;
+			for (uint16_t i = 0; i < numberRx; i++){
+				ShoreRequestBuf[i] = 0x00;
+			}
+		}		
+}
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

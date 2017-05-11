@@ -59,6 +59,9 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+extern uint8_t RxBuffer[1];
+extern uint16_t numberRx;
+extern uint16_t counterRx;
 
 /* USER CODE END PV */
 
@@ -118,10 +121,12 @@ int main(void)
   MX_USART3_UART_Init();
   MX_I2C1_Init();
   MX_TIM7_Init();
-  MX_IWDG_Init();
+  //MX_IWDG_Init();
 
   /* USER CODE BEGIN 2 */
 	variableInit();
+	HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);		
+
 
   /* USER CODE END 2 */
 

@@ -82,7 +82,7 @@ struct Robot{
 		struct RobotLight{
 			uint8_t address;
 			uint8_t settings;
-			uint8_t brightness;
+			int8_t brightness;
 			uint16_t current;
 		} light, bottomLight;
 		
@@ -90,7 +90,7 @@ struct Robot{
 			uint8_t squeezeAddress;
 			uint8_t rotationAddress;
 			uint8_t settings;
-			uint8_t squeeze;
+			int8_t squeeze;
 			int8_t rotation;
 			uint16_t squeezeCurrent;
 			uint16_t rotationCurrent;
