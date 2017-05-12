@@ -312,10 +312,10 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 		
 		int16_t velocity[VMA_DRIVER_NUMBER];
 		velocity[HLB] = (int16_t)((+  robot->movement.march + robot->movement.lag  + robot->movement.yaw) >> 1); 
-		velocity[HLF] = (int16_t)((-  robot->movement.march + robot->movement.lag  - robot->movement.yaw) >> 1);
-		velocity[HRB] = (int16_t)((-  robot->movement.march - robot->movement.lag  + robot->movement.yaw) >> 1);
+		velocity[HLF] = (int16_t)-((+  robot->movement.march - robot->movement.lag  + robot->movement.yaw) >> 1);
+		velocity[HRB] = (int16_t)((+  robot->movement.march + robot->movement.lag  - robot->movement.yaw) >> 1);
 		velocity[HRF] = (int16_t)((+  robot->movement.march - robot->movement.lag  - robot->movement.yaw) >> 1);
-		velocity[VB]  = (int16_t)((-  robot->movement.depth + robot->movement.pitch) >> 1); 
+		velocity[VB]  = (int16_t)((+  robot->movement.depth - robot->movement.pitch) >> 1); 
 		velocity[VF]  = (int16_t)((+  robot->movement.depth + robot->movement.pitch) >> 1); 
 		velocity[VL]  = (int16_t)((- robot->movement.depth + robot->movement.roll) >> 1);
 		velocity[VR]  = (int16_t)((- robot->movement.depth - robot->movement.roll) >> 1);

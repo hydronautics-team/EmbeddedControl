@@ -357,8 +357,7 @@ void uartTimerCallback(xTimerHandle xTimer)
 			HAL_HalfDuplex_EnableReceiver(&huart1);
 			HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);
 		}
-		else
-			{
+		else{
 			counterRx = 0;
 			for (uint16_t i = 0; i < numberRx; i++){
 				ShoreRequestBuf[i] = 0x00;
