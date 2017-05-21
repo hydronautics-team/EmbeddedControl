@@ -69,6 +69,8 @@ extern bool uart1PackageReceived;
 extern uint8_t RxBuffer[1];
 extern uint16_t numberRx;
 extern uint16_t counterRx;
+
+bool shoreCommunicationUpdated = false;
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -216,64 +218,66 @@ void VmaDevCommunicationTask(void const * argument)
 
   /* Infinite loop */
   for(;;){
-		switch(VMATransaction){
-			case HLB:
-				VMARequestUpdate(&Q100, VMARequestBuf, HLB);
-				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				VMAResponseUpdate(&Q100, VMAResponseBuf, HLB);
-			break;
-			
-			case HLF:
-				VMARequestUpdate(&Q100, VMARequestBuf, HLF);
-				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				VMAResponseUpdate(&Q100, VMAResponseBuf, HLF);
-			break;
-			
-			case HRB:
-				VMARequestUpdate(&Q100, VMARequestBuf, HRB);
-				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				VMAResponseUpdate(&Q100, VMAResponseBuf, HRB);
-			break;
-			
-			case HRF:
-				VMARequestUpdate(&Q100, VMARequestBuf, HRF);
-				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				VMAResponseUpdate(&Q100, VMAResponseBuf, HRF);
-			break;
-			
-			case VB:
-				VMARequestUpdate(&Q100, VMARequestBuf, VB);
-				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				VMAResponseUpdate(&Q100, VMAResponseBuf, VB);
-			break;
-			
-			case VF:		
-				VMARequestUpdate(&Q100, VMARequestBuf, VF);
-				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				VMAResponseUpdate(&Q100, VMAResponseBuf, VF);
-			break;
-			
-			case VL:
-				VMARequestUpdate(&Q100, VMARequestBuf, VL);
-				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				VMAResponseUpdate(&Q100, VMAResponseBuf, VL);
-			break;
-			
-			case VR:
-				VMARequestUpdate(&Q100, VMARequestBuf, VR);
-				transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				VMAResponseUpdate(&Q100, VMAResponseBuf, VR);
-			break;
+		if (shoreCommunicationUpdated){
+			switch(VMATransaction){
+				case HLB:
+					VMARequestUpdate(&Q100, VMARequestBuf, HLB);
+					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMAResponseUpdate(&Q100, VMAResponseBuf, HLB);
+				break;
+				
+				case HLF:
+					VMARequestUpdate(&Q100, VMARequestBuf, HLF);
+					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMAResponseUpdate(&Q100, VMAResponseBuf, HLF);
+				break;
+				
+				case HRB:
+					VMARequestUpdate(&Q100, VMARequestBuf, HRB);
+					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMAResponseUpdate(&Q100, VMAResponseBuf, HRB);
+				break;
+				
+				case HRF:
+					VMARequestUpdate(&Q100, VMARequestBuf, HRF);
+					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMAResponseUpdate(&Q100, VMAResponseBuf, HRF);
+				break;
+				
+				case VB:
+					VMARequestUpdate(&Q100, VMARequestBuf, VB);
+					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMAResponseUpdate(&Q100, VMAResponseBuf, VB);
+				break;
+				
+				case VF:		
+					VMARequestUpdate(&Q100, VMARequestBuf, VF);
+					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMAResponseUpdate(&Q100, VMAResponseBuf, VF);
+				break;
+				
+				case VL:
+					VMARequestUpdate(&Q100, VMARequestBuf, VL);
+					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMAResponseUpdate(&Q100, VMAResponseBuf, VL);
+				break;
+				
+				case VR:
+					VMARequestUpdate(&Q100, VMARequestBuf, VR);
+					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					VMAResponseUpdate(&Q100, VMAResponseBuf, VR);
+				break;
+			}
+			VMATransaction = (VMATransaction + 1) % VMA_DRIVER_NUMBER;
 		}
-		VMATransaction = (VMATransaction + 1) % VMA_DRIVER_NUMBER;
 		osDelayUntil(&sysTime, 10);
   }
   /* USER CODE END VmaDevCommunicationTask */
@@ -310,36 +314,38 @@ void StartDevCommunication(void const * argument)
 	uint8_t DevTransaction = 0;
   /* Infinite loop */		
   for(;;){
-		switch(DevTransaction){
-			case AGAR:
-				DevRequestUpdate(&Q100, DevRequestBuf, AGAR);
-				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				DevResponseUpdate(&Q100, DevResponseBuf, AGAR);
-			break;
-			
-			case GRAB:
-				DevRequestUpdate(&Q100, DevRequestBuf, GRAB);
-				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				DevResponseUpdate(&Q100, DevResponseBuf, GRAB);
-			break;
-			
-			case GRAB_ROTATION:
-				DevRequestUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
-				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				DevResponseUpdate(&Q100, DevResponseBuf, GRAB_ROTATION);
-			break;
-			
-			case TILT:
-				DevRequestUpdate(&Q100, DevRequestBuf, TILT);
-				transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-				receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-				DevResponseUpdate(&Q100, DevResponseBuf, TILT);
-			break;
+		if (shoreCommunicationUpdated){
+			switch(DevTransaction){
+				case AGAR:
+					DevRequestUpdate(&Q100, DevRequestBuf, AGAR);
+					transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					DevResponseUpdate(&Q100, DevResponseBuf, AGAR);
+				break;
+				
+				case GRAB:
+					DevRequestUpdate(&Q100, DevRequestBuf, GRAB);
+					transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					DevResponseUpdate(&Q100, DevResponseBuf, GRAB);
+				break;
+				
+				case GRAB_ROTATION:
+					DevRequestUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
+					transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					DevResponseUpdate(&Q100, DevResponseBuf, GRAB_ROTATION);
+				break;
+				
+				case TILT:
+					DevRequestUpdate(&Q100, DevRequestBuf, TILT);
+					transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
+					receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
+					DevResponseUpdate(&Q100, DevResponseBuf, TILT);
+				break;
+			}
+			DevTransaction = (DevTransaction + 1) % DEV_DRIVER_NUMBER;
 		}
-		DevTransaction = (DevTransaction + 1) % DEV_DRIVER_NUMBER;
 		osDelayUntil(&sysTime, 20);
   }
   /* USER CODE END StartDevCommunication */
@@ -350,14 +356,16 @@ void uartTimerCallback(xTimerHandle xTimer)
 {
 		if (uart1PackageReceived){
 			//HAL_IWDG_Refresh(&hiwdg);
+			shoreCommunicationUpdated = true;
 			uart1PackageReceived = false;
 			ShoreRequest(&Q100, ShoreRequestBuf);
 			ShoreResponse(&Q100, ShoreResponseBuf);
 			transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
 			HAL_HalfDuplex_EnableReceiver(&huart1);
-			HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);
+			HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
 		}
 		else{
+			shoreCommunicationUpdated = false;
 			counterRx = 0;
 			for (uint16_t i = 0; i < numberRx; i++){
 				ShoreRequestBuf[i] = 0x00;

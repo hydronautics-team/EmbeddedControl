@@ -82,10 +82,10 @@ void variableInit()
 	Q100.VMA[HLF].address = 0x06;
 	Q100.VMA[HRB].address = 0x02;
 	Q100.VMA[HRF].address = 0x01;
-	Q100.VMA[VB].address = 0x04;
-	Q100.VMA[VF].address = 0x05;
-	Q100.VMA[VL].address = 0x03;
-	Q100.VMA[VR].address = 0x08;
+	Q100.VMA[VB].address = 0x03;
+	Q100.VMA[VF].address = 0x08;
+	Q100.VMA[VL].address = 0x04;
+	Q100.VMA[VR].address = 0x05;
 	
 	
 	Q100.device.agar.address = 0x03;
@@ -125,7 +125,7 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
 	variableInit();
-	HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);		
+	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);		
 
 
   /* USER CODE END 2 */

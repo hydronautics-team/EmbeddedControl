@@ -74,19 +74,6 @@ bool uart4PackageReceived = false;
 
 
 
-void receive(uint16_t count, uint8_t timeout_sec)
-{
-	for (uint16_t i = 0; i < numberRx; i++)
-	{
-		ShoreRequestBuf[i] = 0x00;
-	}
-	numberRx = count;
-	//HAL_UART_Receive_DMA(&huart, (uint8_t *)ShoreRequestBuf, numberRx);
-	/**/
-	counterRx = 0;
-	HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);
-}
-
 void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 {
 	TickType_t timeBegin = xTaskGetTickCount();
@@ -222,27 +209,28 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 
 void ShoreReceive()
 {
-		//HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);
-		static portBASE_TYPE xHigherPriorityTaskWoken;
-		xHigherPriorityTaskWoken = pdFALSE;
+	static portBASE_TYPE xHigherPriorityTaskWoken;
+	xHigherPriorityTaskWoken = pdFALSE;
 	
-		ShoreRequestBuf[counterRx] = RxBuffer[0];
-		if (counterRx == 0){
-			xTimerResetFromISR(UARTTimer, &xHigherPriorityTaskWoken);
-		}
-		counterRx++;
-		if (counterRx == numberRx) {
-			uart1PackageReceived = true;
-			counterRx = 0;
-		}
-		else{
-			HAL_UART_Receive_DMA(&huart1, (uint8_t *)RxBuffer, 1);
-		}
+	if (counterRx == 0){
+		xTimerResetFromISR(UARTTimer, &xHigherPriorityTaskWoken);
+	}
 
-		if (xHigherPriorityTaskWoken == pdTRUE){
-			xHigherPriorityTaskWoken = pdFALSE;
-			taskYIELD();
-		}
+	ShoreRequestBuf[counterRx] = RxBuffer[0];
+	++counterRx;
+	
+	if (counterRx == numberRx) {
+		uart1PackageReceived = true;
+		counterRx = 0;
+	}
+	else{
+		HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
+	}
+
+	if (xHigherPriorityTaskWoken == pdTRUE){
+		xHigherPriorityTaskWoken = pdFALSE;
+		taskYIELD();
+	}
 }
 
 
