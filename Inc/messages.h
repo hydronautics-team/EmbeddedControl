@@ -216,13 +216,30 @@
 
 
 
-/* --- IMU input message --- */
-#define IMU_REQUEST_LENGTH                  22
-#define IMU_RESPONSE_LENGTH                 22
+/* --- IMU parsing info  --- */
+#define GYRO_PROC_X 5 // 0x5C
+#define GYRO_PROC_Y 7 // 0x5C
+#define GYRO_PROC_Z 9 // 0x5D
+#define ACCEL_PROC_X 20 // 0x5E
+#define ACCEL_PROC_Y 22 // 0x5E
+#define ACCEL_PROC_Z 24 // 0x5F
+#define MAG_PROC_X 35 // 0x60
+#define MAG_PROC_Y 37 // 0x60
+#define MAG_PROC_Z 39 // 0x61
+#define EULER_PHI 50 // 0x62
+#define EULER_TETA 52 // 0x62
+#define EULER_PSI 54 // 0x63
+#define QUAT_A 65 // 0x64
+#define QUAT_B 67 // 0x64
+#define QUAT_C 69 // 0x65
+#define QUAT_D 71 // 0x65
+#define IMU_CHECKSUMS 5 // amount of packages
 
+/* --- IMU & BT info --- */
+#define IMU_TRANSMIT_PACKET_SIZE 11 // size of transmit package
+#define IMU_RECEIVE_PACKET_SIZE 15 // size of receive package
 
-/* --- IMU command --- */
-
-
+#define BT_SLAVE_ID 1 // I2C slave ID of BT module
+#define BT_SIZE 16 // size of BT I2C buffer
 
 #endif

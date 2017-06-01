@@ -93,7 +93,10 @@ void uartTimerCallback(xTimerHandle xTimer);
 
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-       
+  while(HAL_I2C_GetState(&hi2c1)!= HAL_I2C_STATE_READY) { }
+	while(HAL_UART_GetState(&huart4)!= HAL_UART_STATE_READY) { }
+	
+  IMUReset();
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -123,7 +126,7 @@ void MX_FREERTOS_Init(void) {
   VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
 
   /* definition and creation of SensorsCommunication */
-  osThreadDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 64);
+  osThreadDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 128);
   SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
 
   /* definition and creation of Stabilization */
@@ -290,6 +293,16 @@ void SensorsCommunicationTask(void const * argument)
 	
   /* Infinite loop */
   for(;;){
+		uint8_t ErrorCode=0;
+		IMUReceive(&Q100,IMUReceiveBuf,&ErrorCode);
+		
+		do
+		{			
+			ErrorCode = 0;
+			BTReceive(&Q100,BTReceiveBuf,&ErrorCode);
+		}
+		while(ErrorCode == 0);
+		
     osDelay(1);
   }
   /* USER CODE END SensorsCommunicationTask */
