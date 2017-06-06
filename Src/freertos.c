@@ -55,11 +55,20 @@
 
 /* Variables -----------------------------------------------------------------*/
 osThreadId LedBlinkingHandle;
-osThreadId ShoreCommunicationHandle;
+uint32_t LedBlinkingBuffer[ 64 ];
+osStaticThreadDef_t LedBlinkingControlBlock;
 osThreadId VmaDevCommunicationHandle;
+uint32_t VmaDevCommunicationBuffer[ 64 ];
+osStaticThreadDef_t VmaDevCommunicationControlBlock;
 osThreadId SensorsCommunicationHandle;
+uint32_t SensorsCommunicationBuffer[ 128 ];
+osStaticThreadDef_t SensorsCommunicationControlBlock;
 osThreadId StabilizationHandle;
+uint32_t StabilizationBuffer[ 64 ];
+osStaticThreadDef_t StabilizationControlBlock;
 osThreadId DevCommunicationHandle;
+uint32_t DevCommunicationBuffer[ 64 ];
+osStaticThreadDef_t DevCommunicationControlBlock;
 
 /* USER CODE BEGIN Variables */
 #define SHORE_DELAY	   15
@@ -75,7 +84,6 @@ bool shoreCommunicationUpdated = false;
 
 /* Function prototypes -------------------------------------------------------*/
 void LedBlinkingTask(void const * argument);
-void ShoreCommunicationTask(void const * argument);
 void VmaDevCommunicationTask(void const * argument);
 void SensorsCommunicationTask(void const * argument);
 void StabilizationTask(void const * argument);
@@ -87,7 +95,39 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 void uartTimerCallback(xTimerHandle xTimer);
 /* USER CODE END FunctionPrototypes */
 
+/* GetIdleTaskMemory prototype (linked to static allocation support) */
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
+
+/* GetTimerTaskMemory prototype (linked to static allocation support) */
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize );
+
 /* Hook prototypes */
+
+/* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
+static StaticTask_t xIdleTaskTCBBuffer;
+static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
+  
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
+{
+  *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
+  *ppxIdleTaskStackBuffer = &xIdleStack[0];
+  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+  /* place for user code */
+}                   
+/* USER CODE END GET_IDLE_TASK_MEMORY */
+
+/* USER CODE BEGIN GET_TIMER_TASK_MEMORY */
+static StaticTask_t xTimerTaskTCBBuffer;
+static StackType_t xTimerStack[configTIMER_TASK_STACK_DEPTH];
+  
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize )  
+{
+  *ppxTimerTaskTCBBuffer = &xTimerTaskTCBBuffer;
+  *ppxTimerTaskStackBuffer = &xTimerStack[0];
+  *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
+  /* place for user code */
+}                   
+/* USER CODE END GET_TIMER_TASK_MEMORY */
 
 /* Init FreeRTOS */
 
@@ -114,27 +154,23 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of LedBlinking */
-  osThreadDef(LedBlinking, LedBlinkingTask, osPriorityNormal, 0, 64);
+  osThreadStaticDef(LedBlinking, LedBlinkingTask, osPriorityNormal, 0, 64, LedBlinkingBuffer, &LedBlinkingControlBlock);
   LedBlinkingHandle = osThreadCreate(osThread(LedBlinking), NULL);
 
-  /* definition and creation of ShoreCommunication */
-//  osThreadDef(ShoreCommunication, ShoreCommunicationTask, osPriorityNormal, 0, 64);
-//  ShoreCommunicationHandle = osThreadCreate(osThread(ShoreCommunication), NULL);
-
   /* definition and creation of VmaDevCommunication */
-  osThreadDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityAboveNormal, 0, 64);
+  osThreadStaticDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityAboveNormal, 0, 64, VmaDevCommunicationBuffer, &VmaDevCommunicationControlBlock);
   VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
 
   /* definition and creation of SensorsCommunication */
-  osThreadDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 128);
+  osThreadStaticDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 128, SensorsCommunicationBuffer, &SensorsCommunicationControlBlock);
   SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
 
   /* definition and creation of Stabilization */
-  osThreadDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64);
+  osThreadStaticDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64, StabilizationBuffer, &StabilizationControlBlock);
   StabilizationHandle = osThreadCreate(osThread(Stabilization), NULL);
 
   /* definition and creation of DevCommunication */
-  osThreadDef(DevCommunication, StartDevCommunication, osPriorityAboveNormal, 0, 64);
+  osThreadStaticDef(DevCommunication, StartDevCommunication, osPriorityAboveNormal, 0, 64, DevCommunicationBuffer, &DevCommunicationControlBlock);
   DevCommunicationHandle = osThreadCreate(osThread(DevCommunication), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -149,8 +185,10 @@ void MX_FREERTOS_Init(void) {
 /* LedBlinkingTask function */
 void LedBlinkingTask(void const * argument)
 {
-	uint32_t sysTime = osKernelSysTick();
+
   /* USER CODE BEGIN LedBlinkingTask */
+	uint32_t sysTime = osKernelSysTick();
+	
   /* Infinite loop */
   for(;;){
 		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
@@ -179,37 +217,6 @@ void LedBlinkingTask(void const * argument)
 		HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
   }
   /* USER CODE END LedBlinkingTask */
-}
-
-/* ShoreCommunicationTask function */
-void ShoreCommunicationTask(void const * argument)
-{
-  /* USER CODE BEGIN ShoreCommunicationTask */
-	uint8_t packageType = 0;
-	uint32_t sysTime = osKernelSysTick();
-	
-  /* Infinite loop */
-  for(;;){
-		receiveByte(SHORE_UART, ShoreRequestBuf);
-		switch(ShoreRequestBuf[0]){
-			case SHORE_REQUEST_CODE:
-				receivePackageDMA(SHORE_UART, ShoreRequestBuf + 1 , SHORE_REQUEST_LENGTH - 1);
-				ShoreRequest(&Q100, ShoreRequestBuf);
-				ShoreResponse(&Q100, ShoreResponseBuf);
-				transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
-				break;
-			case REQUEST_CONFIG_CODE:
-				receivePackageDMA(SHORE_UART, ShoreRequestConfigBuf, REQUEST_CONFIG_LENGTH);
-				ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);
-				ShoreResponse(&Q100, ShoreResponseBuf);
-				transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);			
-				break;
-		}
-		packageType = 0;
-		HAL_IWDG_Refresh(&hiwdg);
-		osDelayUntil(&sysTime, 25);
-	}
-  /* USER CODE END ShoreCommunicationTask */
 }
 
 /* VmaDevCommunicationTask function */
@@ -290,20 +297,19 @@ void VmaDevCommunicationTask(void const * argument)
 void SensorsCommunicationTask(void const * argument)
 {
   /* USER CODE BEGIN SensorsCommunicationTask */
-	
+	uint32_t sysTime = osKernelSysTick();
   /* Infinite loop */
   for(;;){
-		uint8_t ErrorCode=0;
-		IMUReceive(&Q100,IMUReceiveBuf,&ErrorCode);
+		uint8_t ErrorCode = 0;
+		IMUReceive(&Q100, IMUReceiveBuf, &ErrorCode);
 		
-		do
-		{			
+		do{			
 			ErrorCode = 0;
-			BTReceive(&Q100,BTReceiveBuf,&ErrorCode);
+			BTReceive(&Q100, BTReceiveBuf, &ErrorCode);
 		}
 		while(ErrorCode == 0);
 		
-    osDelay(1);
+    osDelayUntil(&sysTime, 100);
   }
   /* USER CODE END SensorsCommunicationTask */
 }

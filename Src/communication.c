@@ -437,7 +437,9 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 
 void IMUReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 {
-	uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*4], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];
+	uint16_t outputSize = IMU_RECEIVE_PACKET_SIZE*5*4;
+	uint16_t parsedSize = IMU_RECEIVE_PACKET_SIZE*5;
+uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*4], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];
 	for(uint16_t i=0; i<sizeof(IMU_Output); i++)
 		IMU_Output[i] = ReceiveBuf[i];
 	
@@ -509,8 +511,8 @@ void IMUReset()
 {
   HAL_UART_Receive_DMA(&huart4,IMUReceiveBuf,sizeof(IMUReceiveBuf));		
 	uint8_t msg[IMU_TRANSMIT_PACKET_SIZE] = { 's','n','p',0x80,0x00,0x47,0xC0,0x2D,0x1E,0x00,0x00 }; // 5th byte - register adress byte
-	CompChecksum(&msg[IMU_TRANSMIT_PACKET_SIZE-1],&msg[IMU_TRANSMIT_PACKET_SIZE-2],msg,IMU_TRANSMIT_PACKET_SIZE);
-	HAL_UART_Transmit(&huart4,msg,IMU_TRANSMIT_PACKET_SIZE,1000);
+	CompChecksum(&msg[IMU_TRANSMIT_PACKET_SIZE - 1],&msg[IMU_TRANSMIT_PACKET_SIZE - 2], msg, IMU_TRANSMIT_PACKET_SIZE);
+	HAL_UART_Transmit(&huart4, msg, IMU_TRANSMIT_PACKET_SIZE, 1000);
 }
 
 void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size)
