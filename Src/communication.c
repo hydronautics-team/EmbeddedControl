@@ -220,7 +220,7 @@ float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos)
 
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 {
-	if (IsChecksumm16bCorrect(requestBuf + 1, SHORE_REQUEST_LENGTH - 1)){
+	if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)){
 		robot->depthStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_DEPTH];
 		robot->depthStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_DEPTH);
 		robot->depthStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_DEPTH);
@@ -287,7 +287,7 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 
 void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 {
-	if (IsChecksumm16bCorrect(requestBuf + 1, SHORE_REQUEST_LENGTH - 1)){
+	if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)){
 		shorePackageError = 0;
 		robot->movement.march = (int16_t)((requestBuf[SHORE_REQUEST_MARCH] << 8) + requestBuf[SHORE_REQUEST_MARCH + 1]);
 		robot->movement.lag = (int16_t)((requestBuf[SHORE_REQUEST_LAG] << 8) + requestBuf[SHORE_REQUEST_LAG + 1]);
@@ -439,7 +439,7 @@ void IMUReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 {
 	uint16_t outputSize = IMU_RECEIVE_PACKET_SIZE*5*4;
 	uint16_t parsedSize = IMU_RECEIVE_PACKET_SIZE*5;
-uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*4], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];
+	uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*4], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];
 	for(uint16_t i=0; i<sizeof(IMU_Output); i++)
 		IMU_Output[i] = ReceiveBuf[i];
 	

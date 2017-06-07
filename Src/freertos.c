@@ -161,9 +161,9 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityAboveNormal, 0, 64, VmaDevCommunicationBuffer, &VmaDevCommunicationControlBlock);
   VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
 
-  /* definition and creation of SensorsCommunication */
-  osThreadStaticDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 128, SensorsCommunicationBuffer, &SensorsCommunicationControlBlock);
-  SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
+//  /* definition and creation of SensorsCommunication */
+//  osThreadStaticDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 128, SensorsCommunicationBuffer, &SensorsCommunicationControlBlock);
+//  SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
 
   /* definition and creation of Stabilization */
   osThreadStaticDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64, StabilizationBuffer, &StabilizationControlBlock);
@@ -386,7 +386,7 @@ void uartTimerCallback(xTimerHandle xTimer)
 		else{
 			shoreCommunicationUpdated = false;
 			counterRx = 0;
-			for (uint16_t i = 0; i < numberRx; i++){
+			for (uint16_t i = 0; i < numberRx; ++i){
 				ShoreRequestBuf[i] = 0x00;
 			}
 		}		

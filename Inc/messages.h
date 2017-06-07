@@ -28,40 +28,41 @@
 
 ///* Shore send requests and STM send responses */
 ///* --- SHORE REQUEST NORMAL MODE --- */
-//#define SHORE_REQUEST_CODE             0xA5
+#define SHORE_REQUEST_CODE             0xA5
 
 #define SHORE_REQUEST_LENGTH           27
 
-#define SHORE_REQUEST_TYPE             1
-#define SHORE_REQUEST_FLAGS            2
-#define SHORE_REQUEST_MARCH            3
-#define SHORE_REQUEST_LAG              5
-#define SHORE_REQUEST_DEPTH            7
-#define SHORE_REQUEST_ROLL             9
-#define SHORE_REQUEST_PITCH            11
-#define SHORE_REQUEST_YAW              13
+#define SHORE_REQUEST_TYPE             0
+#define SHORE_REQUEST_FLAGS            1//0
+#define SHORE_REQUEST_MARCH            2//1
+#define SHORE_REQUEST_LAG              4//3
+#define SHORE_REQUEST_DEPTH            6//5
+#define SHORE_REQUEST_ROLL             8//7
+#define SHORE_REQUEST_PITCH            10//9
+#define SHORE_REQUEST_YAW              12//11
 
-#define SHORE_REQUEST_LIGHT            15
-#define SHORE_REQUEST_GRAB             16
-#define SHORE_REQUEST_TILT             17
-#define SHORE_REQUEST_GRAB_ROTATE      18
-#define SHORE_REQUEST_AGAR             19
-#define SHORE_REQUEST_BOTTOM_LIGHT     20
+#define SHORE_REQUEST_LIGHT            14//13
+#define SHORE_REQUEST_GRAB             15//14
+#define SHORE_REQUEST_TILT             16//15
+#define SHORE_REQUEST_GRAB_ROTATE      17//16
+#define SHORE_REQUEST_AGAR             18//17
+#define SHORE_REQUEST_BOTTOM_LIGHT     19//18
 
-#define SHORE_REQUEST_STABILIZE_DEPTH  21
-#define SHORE_REQUEST_STABILIZE_ROLL   22
-#define SHORE_REQUEST_STABILIZE_PITCH  23
-#define SHORE_REQUEST_STABILIZE_YAW    24
-#define SHORE_REQUEST_RESET_IMU        25
+#define SHORE_REQUEST_STABILIZE_DEPTH  20//19
+#define SHORE_REQUEST_STABILIZE_ROLL   21//20
+#define SHORE_REQUEST_STABILIZE_PITCH  22//21
+#define SHORE_REQUEST_STABILIZE_YAW    23//22
+#define SHORE_REQUEST_RESET_IMU        24//23
 
-#define SHORE_REQUEST_CHECKSUM         26
+#define SHORE_REQUEST_CHECKSUM         25//24
+
 
 
 
 /* Shore send requests and STM send responses */
 /* --- SHORE REQUEST NORMAL MODE --- */
 
-#define SHORE_REQUEST_CODE             0xA5
+//#define SHORE_REQUEST_CODE             0xA5
 
 //#define SHORE_REQUEST_LENGTH           28
 
