@@ -51,7 +51,7 @@
           <OutputName>EmbeddedControl</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
-          <CreateHexFile>0</CreateHexFile>
+          <CreateHexFile>1</CreateHexFile>
           <DebugInformation>1</DebugInformation>
           <BrowseInformation>1</BrowseInformation>
           <ListingPath></ListingPath>
@@ -335,7 +335,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F303xC</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;                          ../Drivers/STM32F3xx_HAL_Driver/Inc;                          ../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy;                          ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;                          ../Drivers/CMSIS/Device/ST/STM32F3xx/Include;                          ../Middlewares/Third_Party/FreeRTOS/Source/include;                          ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;                          ../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Inc;                              ../Drivers/STM32F3xx_HAL_Driver/Inc;                              ../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy;                              ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;                              ../Drivers/CMSIS/Device/ST/STM32F3xx/Include;                              ../Middlewares/Third_Party/FreeRTOS/Source/include;                              ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;                              ../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -510,11 +510,6 @@
               <FilePath>../Middlewares/Third_Party/FreeRTOS/Source/tasks.c</FilePath>
             </File>
             <File>
-              <FileName>heap_4.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c</FilePath>
-            </File>
-            <File>
               <FileName>timers.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Middlewares/Third_Party/FreeRTOS/Source/timers.c</FilePath>
@@ -523,6 +518,11 @@
               <FileName>croutine.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Middlewares/Third_Party/FreeRTOS/Source/croutine.c</FilePath>
+            </File>
+            <File>
+              <FileName>heap_2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_2.c</FilePath>
             </File>
           </Files>
         </Group>

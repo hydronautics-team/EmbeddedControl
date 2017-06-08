@@ -49,10 +49,18 @@
 #include "dma.h"
 
 /* USER CODE BEGIN 0 */
+#include "cmsis_os.h"
+extern TimerHandle_t UARTTimer;
+
+
 #include "tim.h"
 #define TASK_WAITING	5
 #define SHORE_WAITING 15
 #define DELAY	1
+
+uint8_t RxBuffer[1] = {0};
+uint16_t numberRx = SHORE_REQUEST_LENGTH;
+uint16_t counterRx = 0;
 
 bool uart1PackageTransmit = false;
 bool uart2PackageTransmit = false;
@@ -63,6 +71,8 @@ bool uart1PackageReceived = false;
 bool uart2PackageReceived = false;
 bool uart3PackageReceived = false;
 bool uart4PackageReceived = false;
+
+
 
 void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 {
@@ -196,10 +206,39 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
 	}
 }
 
+
+void ShoreReceive()
+{
+	static portBASE_TYPE xHigherPriorityTaskWoken;
+	xHigherPriorityTaskWoken = pdFALSE;
+	
+	if (counterRx == 0){
+		xTimerResetFromISR(UARTTimer, &xHigherPriorityTaskWoken);
+	}
+
+	ShoreRequestBuf[counterRx] = RxBuffer[0];
+	++counterRx;
+	
+	if (counterRx == numberRx) {
+		uart1PackageReceived = true;
+		counterRx = 0;
+	}
+	else{
+		HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
+	}
+
+	if (xHigherPriorityTaskWoken == pdTRUE){
+		xHigherPriorityTaskWoken = pdFALSE;
+		taskYIELD();
+	}
+}
+
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart1){
-		uart1PackageReceived = true;
+		//uart1PackageReceived = true;
+		ShoreReceive();
 	}
 	else if(huart == &huart2){
 		uart2PackageReceived = true;
@@ -211,6 +250,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		uart4PackageReceived = true;
 	}
 }
+
 
 //void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 //{
@@ -237,7 +277,7 @@ void MX_UART4_Init(void)
 {
 
   huart4.Instance = UART4;
-  huart4.Init.BaudRate = 57600;
+  huart4.Init.BaudRate = 115200;
   huart4.Init.WordLength = UART_WORDLENGTH_8B;
   huart4.Init.StopBits = UART_STOPBITS_1;
   huart4.Init.Parity = UART_PARITY_NONE;
@@ -258,7 +298,7 @@ void MX_USART1_UART_Init(void)
 {
 
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 57600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -349,7 +389,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     hdma_uart4_rx.Init.MemInc = DMA_MINC_ENABLE;
     hdma_uart4_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
     hdma_uart4_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-    hdma_uart4_rx.Init.Mode = DMA_NORMAL;
+    hdma_uart4_rx.Init.Mode = DMA_CIRCULAR;
     hdma_uart4_rx.Init.Priority = DMA_PRIORITY_LOW;
     if (HAL_DMA_Init(&hdma_uart4_rx) != HAL_OK)
     {
