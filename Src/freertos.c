@@ -51,6 +51,7 @@
 #include "usart.h"
 #include "iwdg.h"
 #include "communication.h"
+#include "global.h"
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
@@ -161,9 +162,9 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityAboveNormal, 0, 64, VmaDevCommunicationBuffer, &VmaDevCommunicationControlBlock);
   VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
 
-//  /* definition and creation of SensorsCommunication */
-//  osThreadStaticDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 128, SensorsCommunicationBuffer, &SensorsCommunicationControlBlock);
-//  SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
+  /* definition and creation of SensorsCommunication */
+  osThreadStaticDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 128, SensorsCommunicationBuffer, &SensorsCommunicationControlBlock);
+  SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
 
   /* definition and creation of Stabilization */
   osThreadStaticDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64, StabilizationBuffer, &StabilizationControlBlock);
@@ -302,6 +303,8 @@ void SensorsCommunicationTask(void const * argument)
   for(;;){
 		uint8_t ErrorCode = 0;
 		IMUReceive(&Q100, IMUReceiveBuf, &ErrorCode);
+		
+		BTRequest(BTReceiveBuf);
 		
 		do{			
 			ErrorCode = 0;
