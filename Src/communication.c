@@ -321,14 +321,14 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 		robot->sensors.resetIMU = (bool) requestBuf[SHORE_REQUEST_RESET_IMU];
 		
 		int16_t velocity[VMA_DRIVER_NUMBER];
-		velocity[HLB] = (int16_t)-(( - robot->movement.march + robot->movement.lag  - robot->movement.yaw) >> 1); 
-		velocity[HLF] = (int16_t)((+ robot->movement.march + robot->movement.lag  + robot->movement.yaw) >> 1);
-		velocity[HRB] = (int16_t)-(( - robot->movement.march - robot->movement.lag  + robot->movement.yaw) >> 1);
-		velocity[HRF] = (int16_t)((+ robot->movement.march - robot->movement.lag  - robot->movement.yaw) >> 1);
-		velocity[VB]  = (int16_t)((- robot->movement.depth + robot->movement.pitch) >> 1); 
-		velocity[VF]  = (int16_t)((+ robot->movement.depth + robot->movement.pitch) >> 1); 
-		velocity[VL]  = (int16_t)((- robot->movement.depth + robot->movement.roll) >> 1);
-		velocity[VR]  = (int16_t)((- robot->movement.depth - robot->movement.roll) >> 1);
+		velocity[HLB] = (int16_t)(( - robot->movement.march + robot->movement.lag - robot->movement.yaw) >> 1); 
+		velocity[HLF] = (int16_t)((+ robot->movement.march + robot->movement.lag + robot->movement.yaw) >> 1);
+		velocity[HRB] = (int16_t)-(( - robot->movement.march - robot->movement.lag + robot->movement.yaw) >> 1);
+		velocity[HRF] = (int16_t)-((+ robot->movement.march - robot->movement.lag - robot->movement.yaw) >> 1);
+		velocity[VB] = (int16_t)+((- robot->movement.depth + robot->movement.pitch) >> 1); 
+		velocity[VF] = (int16_t)-((+ robot->movement.depth + robot->movement.pitch) >> 1); 
+		velocity[VL] = (int16_t)((- robot->movement.depth + robot->movement.roll) >> 1);
+		velocity[VR] = (int16_t)((- robot->movement.depth - robot->movement.roll) >> 1);
 		
 		for (uint8_t i = 0; i < VMA_DRIVER_NUMBER; ++i){
 			velocity[i] = (int8_t)(velocity[i] / 0xFF);
@@ -437,7 +437,7 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 
 void IMUReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 {
-	uint16_t outputSize = IMU_RECEIVE_PACKET_SIZE*5*4;
+	uint16_t outputSize = IMU_RECEIVE_PACKET_SIZE*5*2;
 	uint16_t parsedSize = IMU_RECEIVE_PACKET_SIZE*5;
 	uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*4], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];
 	for(uint16_t i=0; i<sizeof(IMU_Output); i++)
