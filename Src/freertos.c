@@ -303,14 +303,7 @@ void SensorsCommunicationTask(void const * argument)
   for(;;){
 		uint8_t ErrorCode = 0;
 		IMUReceive(&Q100, IMUReceiveBuf, &ErrorCode);
-		
 		BTRequest(BTReceiveBuf);
-		
-		do{			
-			ErrorCode = 0;
-			BTReceive(&Q100, BTReceiveBuf, &ErrorCode);
-		}
-		while(ErrorCode == 0);
 		
     osDelayUntil(&sysTime, 100);
   }
