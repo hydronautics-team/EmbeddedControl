@@ -20,26 +20,26 @@ void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV)
 		case AGAR:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->device.agar.address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->device.agar.settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = NULL;//robot->device.agar.opening;
-			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.agar.opening;//NULL;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = NULL;
+			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.agar.opening;
 			break;
 		case GRAB:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->device.grab.squeezeAddress;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->device.grab.settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = NULL;//robot->device.grab.squeeze;
-			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.grab.squeeze;//NULL;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = NULL;
+			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.grab.squeeze;
 			break;
 		case GRAB_ROTATION:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->device.grab.rotationAddress;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->device.grab.settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = NULL;//robot->device.grab.rotation;
-			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.grab.rotation;//NULL;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = NULL;
+			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.grab.rotation;
 			break;
 		case TILT:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->device.tilt.address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->device.tilt.settings;
-			buf[VMA_DEV_REQUEST_VELOCITY1] = NULL;//robot->device.tilt.rotation;
-			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.tilt.rotation;//NULL;
+			buf[VMA_DEV_REQUEST_VELOCITY1] = NULL;
+			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.tilt.rotation;
 			break;
 	}
 	AddChecksumm8b(buf, VMA_DEV_REQUEST_LENGTH);
@@ -388,7 +388,7 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 	responseBuf[SHORE_RESPONSE_PRESSURE] = robot->sensors.pressure >> 8;
   responseBuf[SHORE_RESPONSE_PRESSURE + 1] = robot->sensors.pressure;
 	
-	for(uint8_t i; i < BLUETOOTH_MESSAGE_SIZE; ++i){
+	for(uint8_t i = 0; i < BLUETOOTH_MESSAGE_SIZE; ++i){
 		responseBuf[SHORE_RESPONSE_BLUETOOTH + i] = robot->bluetooth.message[i];
 	}
 	
@@ -437,53 +437,48 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 
 void IMUReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 {
-	uint16_t outputSize = IMU_RECEIVE_PACKET_SIZE*5*2;
-	uint16_t parsedSize = IMU_RECEIVE_PACKET_SIZE*5;
-	uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*4], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];
-	for(uint16_t i=0; i<sizeof(IMU_Output); i++)
+	uint8_t IMU_Output[IMU_RECEIVE_PACKET_SIZE*5*2], IMU_Parsed[IMU_RECEIVE_PACKET_SIZE*5];
+	for(uint16_t i = 0; i < sizeof(IMU_Output); ++i){
 		IMU_Output[i] = ReceiveBuf[i];
+	}
+	uint16_t pos = 0;
+	uint8_t NewChecksum[2];
+	bool BadChecksum = false;
+	bool found = false;
 	
-	uint16_t pos=0;
-	uint8_t found=0, NewChecksum[2], BadChecksum=0;
-	for(uint16_t i=0; i<sizeof(IMU_Output); i++)
-	{
-		if(IMU_Output[i] == 's' && IMU_Output[i+1] == 'n' && IMU_Output[i+2] == 'p' && IMU_Output[i+3] == 0xC8 &&  IMU_Output[i+4] == 0x5C)
-		{	
-			for(uint8_t g=0; g<IMU_CHECKSUMS; g++)
-			{
-				CompChecksum(&NewChecksum[1],&NewChecksum[0],&IMU_Output[i+g*IMU_RECEIVE_PACKET_SIZE],IMU_RECEIVE_PACKET_SIZE-2);
-				if(NewChecksum[0] != IMU_Output[i+IMU_RECEIVE_PACKET_SIZE*(g+1)-2] || NewChecksum[1] != IMU_Output[i+IMU_RECEIVE_PACKET_SIZE*(g+1)-1])
-				{
-					BadChecksum=1;
+	for(uint16_t i=0; i<sizeof(IMU_Output); ++i){
+		if(IMU_Output[i] == 's' && IMU_Output[i+1] == 'n' && IMU_Output[i+2] == 'p' && IMU_Output[i+3] == 0xC8 &&  IMU_Output[i+4] == 0x5C){	
+			for(uint8_t g = 0; g < IMU_CHECKSUMS; ++g){
+				CompChecksum(&NewChecksum[1], &NewChecksum[0], &IMU_Output[i + g*IMU_RECEIVE_PACKET_SIZE], IMU_RECEIVE_PACKET_SIZE - 2);
+				if(NewChecksum[0] != IMU_Output[i + IMU_RECEIVE_PACKET_SIZE*(g + 1) - 2] || NewChecksum[1] != IMU_Output[i + IMU_RECEIVE_PACKET_SIZE*(g + 1) - 1]){
+					BadChecksum = true;
 					break;
 				}
 			}
-
-			if(BadChecksum == 0)
-			{
-				found=1;
-				pos=i;
+			if(!BadChecksum){
+				found = true;
+				pos = i;
 				break;
 			}
-			else
+			else{
 				continue;
+			}
 		}
 	}
 	
-	if(found == 0)
-	{
+	if(!found){
 		*ErrCode = IMU_FIND_ERROR;
 		return;
 	}
 	
-	if(BadChecksum == 1)
-	{
+	if(BadChecksum){
 		*ErrCode = IMU_BAD_CHECKSUM_ERROR;
 		return;
 	}
 	
-	for(uint8_t i=0; i<sizeof(IMU_Parsed); i++)
+	for(uint8_t i = 0; i < sizeof(IMU_Parsed); ++i){
 		IMU_Parsed[i] = IMU_Output[pos+i];
+	}
 	
 	robot->sensors.yaw = (((uint16_t) IMU_Parsed[EULER_PHI]) << 8) + IMU_Parsed[EULER_PHI+1];
 	robot->sensors.roll = (((uint16_t) IMU_Parsed[EULER_TETA]) << 8) + IMU_Parsed[EULER_TETA+1];
@@ -509,9 +504,9 @@ void IMUReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 
 void IMUReset()
 {
-  HAL_UART_Receive_DMA(&huart4,IMUReceiveBuf,sizeof(IMUReceiveBuf));		
+  HAL_UART_Receive_DMA(&huart4, IMUReceiveBuf, sizeof(IMUReceiveBuf));		
 	uint8_t msg[IMU_TRANSMIT_PACKET_SIZE] = { 's','n','p',0x80,0x00,0x47,0xC0,0x2D,0x1E,0x00,0x00 }; // 5th byte - register adress byte
-	CompChecksum(&msg[IMU_TRANSMIT_PACKET_SIZE - 1],&msg[IMU_TRANSMIT_PACKET_SIZE - 2], msg, IMU_TRANSMIT_PACKET_SIZE);
+	CompChecksum(&msg[IMU_TRANSMIT_PACKET_SIZE - 1], &msg[IMU_TRANSMIT_PACKET_SIZE - 2], msg, IMU_TRANSMIT_PACKET_SIZE);
 	HAL_UART_Transmit(&huart4, msg, IMU_TRANSMIT_PACKET_SIZE, 1000);
 }
 
