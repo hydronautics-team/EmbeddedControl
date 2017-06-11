@@ -532,19 +532,5 @@ void BTRequest(uint8_t *ReceiveBuf)
 
 void BTReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 {
-	if(BTCalls == 0)
-		*ErrCode = BT_ERROR_RECEIVED_NOTHING;
-	else if(BTCalls < BT_SIZE)
-		*ErrCode = BT_ERROR_RECEIVED_LESS;
-	else
-	{
-		for(uint8_t i; i<BT_SIZE; i++)
-		{
-			if(BTReceiveBuf[i] == 0xFF)	
-				break;
-			else 
-				robot->bluetooth.message[i] = BTReceiveBuf[i];
-		}
-		BTCalls = 0;
-	}
+	
 }
