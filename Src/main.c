@@ -59,6 +59,9 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+extern uint8_t RxBuffer[1];
+extern uint16_t numberRx;
+extern uint16_t counterRx;
 
 /* USER CODE END PV */
 
@@ -76,11 +79,11 @@ void MX_FREERTOS_Init(void);
 void variableInit()
 {
 	Q100.VMA[HLB].address = 0x07;
-	Q100.VMA[HLF].address = 0x06;
-	Q100.VMA[HRB].address = 0x02;
+	Q100.VMA[HLF].address = 0x05;
+	Q100.VMA[HRB].address = 0x04;
 	Q100.VMA[HRF].address = 0x01;
-	Q100.VMA[VB].address = 0x04;
-	Q100.VMA[VF].address = 0x05;
+	Q100.VMA[VB].address = 0x02;
+	Q100.VMA[VF].address = 0x06;
 	Q100.VMA[VL].address = 0x03;
 	Q100.VMA[VR].address = 0x08;
 	
@@ -118,10 +121,12 @@ int main(void)
   MX_USART3_UART_Init();
   MX_I2C1_Init();
   MX_TIM7_Init();
-  MX_IWDG_Init();
+  //MX_IWDG_Init();
 
   /* USER CODE BEGIN 2 */
 	variableInit();
+	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);		
+
 
   /* USER CODE END 2 */
 

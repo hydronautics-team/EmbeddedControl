@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <stdint.h>
+#include "messages.h"
 
 #define VMA_NUMBER              8
 #define VMA_DRIVER_NUMBER       8
@@ -60,13 +61,23 @@ struct Robot{
     int16_t rollSpeed;
     int16_t pitchSpeed;
     int16_t yawSpeed;
+		int16_t accelX;
+		int16_t accelY;
+		int16_t accelZ;
+		int16_t magX;
+		int16_t magY;
+		int16_t magZ;
+		int16_t quatA;
+		int16_t quatB;
+		int16_t quatC;
+		int16_t quatD;
 		bool resetIMU;
     
     uint16_t pressure;
   } sensors;
 	
 	struct robotBluetooth{
-		char message[BLUETOOTH_MESSAGE_SIZE];
+		uint8_t message[BT_SIZE];
 	} bluetooth;
 
 	struct RobotMovement{
@@ -82,7 +93,7 @@ struct Robot{
 		struct RobotLight{
 			uint8_t address;
 			uint8_t settings;
-			uint8_t brightness;
+			int8_t brightness;
 			uint16_t current;
 		} light, bottomLight;
 		
@@ -90,7 +101,7 @@ struct Robot{
 			uint8_t squeezeAddress;
 			uint8_t rotationAddress;
 			uint8_t settings;
-			uint8_t squeeze;
+			int8_t squeeze;
 			int8_t rotation;
 			uint16_t squeezeCurrent;
 			uint16_t rotationCurrent;

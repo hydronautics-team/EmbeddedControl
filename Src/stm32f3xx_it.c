@@ -35,6 +35,7 @@
 #include "stm32f3xx.h"
 #include "stm32f3xx_it.h"
 #include "cmsis_os.h"
+#include "i2c.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -261,6 +262,30 @@ void DMA2_Channel5_IRQHandler(void)
   /* USER CODE BEGIN DMA2_Channel5_IRQn 1 */
 
   /* USER CODE END DMA2_Channel5_IRQn 1 */
+}
+
+void I2C1_EV_IRQHandler(void)
+{
+  /* USER CODE BEGIN I2C1_EV_IRQn 0 */
+	++BTCalls;
+	if(BTCalls == BT_SIZE)
+	{
+		for(uint8_t i=0; i<BT_SIZE; i++)
+		{
+			if(BTReceiveBuf[i] == 0x0D)	
+				Q100.bluetooth.message[i] = 0;
+			else 
+				Q100.bluetooth.message[i] = BTReceiveBuf[i];
+		}
+		BTCalls = 0;
+	}
+	if(BTCalls > BT_SIZE)
+		BTCalls = 0;
+  /* USER CODE END I2C1_EV_IRQn 0 */
+  HAL_I2C_EV_IRQHandler(&hi2c1);
+  /* USER CODE BEGIN I2C1_EV_IRQn 1 */
+	
+  /* USER CODE END I2C1_EV_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
