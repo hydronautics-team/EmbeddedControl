@@ -221,29 +221,29 @@ float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos)
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 {
 	if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)){
-		robot->depthStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_DEPTH];
-		robot->depthStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_DEPTH);
-		robot->depthStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_DEPTH);
-		robot->depthStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_DEPTH);
-		robot->depthStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_DEPTH);
+		robot->depthStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_DEPTH];
+		robot->depthStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_DEPTH);
+		robot->depthStabilization.iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_DEPTH);
+		robot->depthStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_DEPTH);
+		robot->depthStabilization.iMin = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_DEPTH);
 		
-		robot->rollStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_ROLL];
-		robot->rollStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_ROLL);
-		robot->rollStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_ROLL);
-		robot->rollStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_ROLL);
-		robot->rollStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_ROLL);
+		robot->rollStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_ROLL];
+		robot->rollStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_ROLL);
+		robot->rollStabilization.iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_ROLL);
+		robot->rollStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_ROLL);
+		robot->rollStabilization.iMin = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_ROLL);
 		
-		robot->pitchStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_PITCH];
-		robot->pitchStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_PITCH);
-		robot->pitchStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_PITCH);
-		robot->pitchStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_PITCH);
-		robot->pitchStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_PITCH);
+		robot->pitchStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_PITCH];
+		robot->pitchStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_PITCH);
+		robot->pitchStabilization.iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_PITCH);
+		robot->pitchStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_PITCH);
+		robot->pitchStabilization.iMin = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_PITCH);
 		
-		robot->yawStabilization.constTime = requestBuf[REQUEST_CONFIG_CONST_TIME_YAW];
-		robot->yawStabilization.K1 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_YAW);
-		robot->yawStabilization.K2 = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_YAW);
-		robot->yawStabilization.startValue = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_YAW);
-		robot->yawStabilization.gain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_YAW);
+		robot->yawStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_YAW];
+		robot->yawStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_YAW);
+		robot->yawStabilization.iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_YAW);
+		robot->yawStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_YAW);
+		robot->yawStabilization.iMin = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_YAW);
 		
 		robot->VMA[HLB].address = requestBuf[REQUEST_CONFIG_POSITION_HLB];
 		robot->VMA[HLF].address = requestBuf[REQUEST_CONFIG_POSITION_HLF];
@@ -480,26 +480,47 @@ void IMUReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 		IMU_Parsed[i] = IMU_Output[pos+i];
 	}
 	
-	robot->sensors.yaw = (((uint16_t) IMU_Parsed[EULER_PHI]) << 8) + IMU_Parsed[EULER_PHI+1];
-	robot->sensors.roll = (((uint16_t) IMU_Parsed[EULER_TETA]) << 8) + IMU_Parsed[EULER_TETA+1];
-	robot->sensors.pitch = (((uint16_t) IMU_Parsed[EULER_PSI]) << 8) + IMU_Parsed[EULER_PSI+1];
+	robot->sensors.yaw = (((uint16_t) IMU_Parsed[EULER_PSI]) << 8) + IMU_Parsed[EULER_PSI+1];
+	robot->sensors.roll = (((uint16_t) IMU_Parsed[EULER_PHI]) << 8) + IMU_Parsed[EULER_PHI+1];
+	robot->sensors.pitch = (((uint16_t) IMU_Parsed[EULER_TETA]) << 8) + IMU_Parsed[EULER_TETA+1];
+	
+	robot->sensors.yaw *= 0.0109863;
+	robot->sensors.roll *= 0.0109863;
+	robot->sensors.pitch *= 0.0109863;
 		
 	robot->sensors.rollSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_X]) << 8) + IMU_Parsed[GYRO_PROC_X+1];
 	robot->sensors.pitchSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_Y]) << 8) + IMU_Parsed[GYRO_PROC_Y+1];
 	robot->sensors.yawSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_Z]) << 8) + IMU_Parsed[GYRO_PROC_Z+1];
+	
+	robot->sensors.rollSpeed *= 0.0610352; 
+	robot->sensors.pitchSpeed *= 0.0610352; 
+	robot->sensors.yawSpeed *= 0.0610352;
 			
 	robot->sensors.accelX = (((uint16_t) IMU_Parsed[ACCEL_PROC_X]) << 8) + IMU_Parsed[ACCEL_PROC_X+1];
 	robot->sensors.accelY = (((uint16_t) IMU_Parsed[ACCEL_PROC_Y]) << 8) + IMU_Parsed[ACCEL_PROC_Y+1];
 	robot->sensors.accelZ = (((uint16_t) IMU_Parsed[ACCEL_PROC_Z]) << 8) + IMU_Parsed[ACCEL_PROC_Z+1];
+	
+//	robot->sensors.accelX *= 0.000183105;
+//	robot->sensors.accelY *= 0.000183105;
+//	robot->sensors.accelZ *= 0.000183105;
 		
 	robot->sensors.magX = (((uint16_t) IMU_Parsed[MAG_PROC_X]) << 8) + IMU_Parsed[MAG_PROC_X+1];
 	robot->sensors.magY = (((uint16_t) IMU_Parsed[MAG_PROC_Y]) << 8) + IMU_Parsed[MAG_PROC_Y+1];
 	robot->sensors.magZ = (((uint16_t) IMU_Parsed[MAG_PROC_Z]) << 8) + IMU_Parsed[MAG_PROC_Z+1];
+	
+//	robot->sensors.magX *= 0.000305176;
+//	robot->sensors.magY *= 0.000305176;
+//	robot->sensors.magZ *= 0.000305176;
 			
 	robot->sensors.quatA = (((uint16_t) IMU_Parsed[QUAT_A]) << 8) + IMU_Parsed[QUAT_A+1];
 	robot->sensors.quatB = (((uint16_t) IMU_Parsed[QUAT_B]) << 8) + IMU_Parsed[QUAT_B+1];
 	robot->sensors.quatC = (((uint16_t) IMU_Parsed[QUAT_C]) << 8) + IMU_Parsed[QUAT_C+1];
 	robot->sensors.quatD = (((uint16_t) IMU_Parsed[QUAT_D]) << 8) + IMU_Parsed[QUAT_D+1];	
+	
+//	robot->sensors.quatA *= 0.0000335693;
+//	robot->sensors.quatB *= 0.0000335693;
+//	robot->sensors.quatC *= 0.0000335693;
+//	robot->sensors.quatD *= 0.0000335693;
 }
 
 void IMUReset()

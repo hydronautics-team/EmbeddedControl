@@ -52,6 +52,7 @@
 #include "iwdg.h"
 #include "communication.h"
 #include "global.h"
+#include "stabilization.h"
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
@@ -81,6 +82,9 @@ extern uint16_t numberRx;
 extern uint16_t counterRx;
 
 bool shoreCommunicationUpdated = false;
+
+extern struct PIDRegulator rollPID;
+extern struct PIDRegulator pitchPID;
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -314,9 +318,13 @@ void SensorsCommunicationTask(void const * argument)
 void StabilizationTask(void const * argument)
 {
   /* USER CODE BEGIN StabilizationTask */
-  /* Infinite loop */
+	uint32_t sysTime = osKernelSysTick();
+	stabilizationInit(&Q100);
+	/* Infinite loop */
   for(;;){
-    osDelay(1);
+		Q100.pitchStabilization.speedError = stabilizePitch(&Q100);
+		Q100.rollStabilization.speedError = stabilizeRoll(&Q100);
+    osDelayUntil(&sysTime, 100);
   }
   /* USER CODE END StabilizationTask */
 }

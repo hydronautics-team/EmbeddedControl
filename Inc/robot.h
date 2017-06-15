@@ -24,16 +24,14 @@ enum VMA{
 };
 
 
-
 enum DEV{
 	AGAR = 0,
-	GRAB,//GRAB,
-	GRAB_ROTATION,//GRAB_ROTATION,
+	GRAB,
+	GRAB_ROTATION,
 	TILT,
 	LIGHT,
 	BOTTOM_LIGHT
 };
-
 
 
 struct Robot{
@@ -125,11 +123,11 @@ struct Robot{
   
   struct RobotStabilization{
     bool enable;
-    bool constTime;
-    float K1;
-    float K2;
-    float startValue;
-    float gain;
+    bool iPartEnable;
+    float pGain;
+    float iGain;
+    float iMin;
+    float iMax;
     float speedError;
   } depthStabilization, rollStabilization, pitchStabilization, yawStabilization;
 	

@@ -1,8 +1,54 @@
-#include <math.h>
-#include <stdbool.h>
-#define STUBILIZATION_BUFF_SIZE 10
-#define KREN_INDEX 1
-#define DIFF_INDEX 2
+#include "stabilization.h"
+
+struct PIDRegulator rollPID;
+struct PIDRegulator pitchPID;
+
+void stabilizationInit(struct Robot *robot)
+{
+	PIDRegulatorInit(&rollPID,
+			robot->rollStabilization.iGain, 0,
+			robot->rollStabilization.iGain,
+			robot->rollStabilization.iMax, 
+			robot->rollStabilization.iMin);
+	
+	PIDRegulatorInit(&pitchPID,
+			robot->pitchStabilization.iGain, 0,
+			robot->pitchStabilization.iGain,
+			robot->pitchStabilization.iMax, 
+			robot->pitchStabilization.iMin);
+}
+
+float stabilizeRoll(struct Robot *robot)
+{
+	float regValue = 0;
+	float rollError = robot->movement.roll - robot->sensors.roll;
+	
+	regValue = update(&rollPID, rollError, fromTickToMs(xTaskGetTickCount() - rollPID.lastUpdateTick));
+	return regValue;
+}
+
+
+float stabilizePitch(struct Robot *robot)
+{
+	float regValue = 0;
+	float pitchError = robot->movement.pitch - robot->sensors.pitch;
+	
+	regValue = update(&pitchPID, pitchError, fromTickToMs(xTaskGetTickCount() - pitchPID.lastUpdateTick));
+	return regValue;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Show these and change
 bool PI_config = 0;
