@@ -213,7 +213,7 @@ void VMAResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
 float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos)
 {
   float result;
-  result = (float)((buff[high_byte_pos] << 24) + (buff[high_byte_pos + 1] << 16) + (buff[high_byte_pos + 2] << 8) + buff[high_byte_pos + 3]);
+  result = (float)((buff[high_byte_pos] << 24) | (buff[high_byte_pos + 1] << 16) | (buff[high_byte_pos + 2] << 8) | buff[high_byte_pos + 3]);
   return result;
 }
 
@@ -289,12 +289,12 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 {
 	if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)){
 		shorePackageError = 0;
-		robot->movement.march = (int16_t)((requestBuf[SHORE_REQUEST_MARCH] << 8) + requestBuf[SHORE_REQUEST_MARCH + 1]);
-		robot->movement.lag = (int16_t)((requestBuf[SHORE_REQUEST_LAG] << 8) + requestBuf[SHORE_REQUEST_LAG + 1]);
-		robot->movement.depth = (int16_t)((requestBuf[SHORE_REQUEST_DEPTH] << 8) + requestBuf[SHORE_REQUEST_DEPTH + 1]);
-		robot->movement.pitch = (int16_t)((requestBuf[SHORE_REQUEST_ROLL] << 8) + requestBuf[SHORE_REQUEST_ROLL + 1]);
-		robot->movement.roll = (int16_t)((requestBuf[SHORE_REQUEST_PITCH] << 8) + requestBuf[SHORE_REQUEST_PITCH + 1]);
-		robot->movement.yaw = (int16_t)((requestBuf[SHORE_REQUEST_YAW] << 8) + requestBuf[SHORE_REQUEST_YAW + 1]);
+		robot->movement.march = (((int16_t)requestBuf[SHORE_REQUEST_MARCH]) << 8) | requestBuf[SHORE_REQUEST_MARCH + 1];
+		robot->movement.lag = (((int16_t)requestBuf[SHORE_REQUEST_LAG]) << 8) | requestBuf[SHORE_REQUEST_LAG + 1];
+		robot->movement.depth = (((int16_t)requestBuf[SHORE_REQUEST_DEPTH]) << 8) | requestBuf[SHORE_REQUEST_DEPTH + 1];
+		robot->movement.pitch = (((int16_t)requestBuf[SHORE_REQUEST_ROLL]) << 8) | requestBuf[SHORE_REQUEST_ROLL + 1];
+		robot->movement.roll = (((int16_t)requestBuf[SHORE_REQUEST_PITCH]) << 8) | requestBuf[SHORE_REQUEST_PITCH + 1];
+		robot->movement.yaw = (((int16_t)requestBuf[SHORE_REQUEST_YAW]) << 8) | requestBuf[SHORE_REQUEST_YAW + 1];
 
 		robot->device.light.brightness = requestBuf[SHORE_REQUEST_LIGHT];
 		robot->device.agar.opening = requestBuf[SHORE_REQUEST_AGAR];
@@ -480,42 +480,42 @@ void IMUReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 		IMU_Parsed[i] = IMU_Output[pos+i];
 	}
 	
-	robot->sensors.yaw = (((uint16_t) IMU_Parsed[EULER_PSI]) << 8) + IMU_Parsed[EULER_PSI+1];
-	robot->sensors.roll = (((uint16_t) IMU_Parsed[EULER_PHI]) << 8) + IMU_Parsed[EULER_PHI+1];
-	robot->sensors.pitch = (((uint16_t) IMU_Parsed[EULER_TETA]) << 8) + IMU_Parsed[EULER_TETA+1];
+	robot->sensors.yaw = (((int16_t) IMU_Parsed[EULER_PSI]) << 8) | IMU_Parsed[EULER_PSI+1];
+	robot->sensors.roll = (((int16_t) IMU_Parsed[EULER_PHI]) << 8) | IMU_Parsed[EULER_PHI+1];
+	robot->sensors.pitch = (((int16_t) IMU_Parsed[EULER_TETA]) << 8) | IMU_Parsed[EULER_TETA+1];
 	
 	robot->sensors.yaw *= 0.0109863;
 	robot->sensors.roll *= 0.0109863;
 	robot->sensors.pitch *= 0.0109863;
 		
-	robot->sensors.rollSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_X]) << 8) + IMU_Parsed[GYRO_PROC_X+1];
-	robot->sensors.pitchSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_Y]) << 8) + IMU_Parsed[GYRO_PROC_Y+1];
-	robot->sensors.yawSpeed = (((uint16_t) IMU_Parsed[GYRO_PROC_Z]) << 8) + IMU_Parsed[GYRO_PROC_Z+1];
+	robot->sensors.rollSpeed = (((int16_t) IMU_Parsed[GYRO_PROC_X]) << 8) | IMU_Parsed[GYRO_PROC_X+1];
+	robot->sensors.pitchSpeed = (((int16_t) IMU_Parsed[GYRO_PROC_Y]) << 8) | IMU_Parsed[GYRO_PROC_Y+1];
+	robot->sensors.yawSpeed = (((int16_t) IMU_Parsed[GYRO_PROC_Z]) << 8) | IMU_Parsed[GYRO_PROC_Z+1];
 	
 	robot->sensors.rollSpeed *= 0.0610352; 
 	robot->sensors.pitchSpeed *= 0.0610352; 
 	robot->sensors.yawSpeed *= 0.0610352;
 			
-	robot->sensors.accelX = (((uint16_t) IMU_Parsed[ACCEL_PROC_X]) << 8) + IMU_Parsed[ACCEL_PROC_X+1];
-	robot->sensors.accelY = (((uint16_t) IMU_Parsed[ACCEL_PROC_Y]) << 8) + IMU_Parsed[ACCEL_PROC_Y+1];
-	robot->sensors.accelZ = (((uint16_t) IMU_Parsed[ACCEL_PROC_Z]) << 8) + IMU_Parsed[ACCEL_PROC_Z+1];
+	robot->sensors.accelX = (((int16_t) IMU_Parsed[ACCEL_PROC_X]) << 8) | IMU_Parsed[ACCEL_PROC_X+1];
+	robot->sensors.accelY = (((int16_t) IMU_Parsed[ACCEL_PROC_Y]) << 8) | IMU_Parsed[ACCEL_PROC_Y+1];
+	robot->sensors.accelZ = (((int16_t) IMU_Parsed[ACCEL_PROC_Z]) << 8) | IMU_Parsed[ACCEL_PROC_Z+1];
 	
 //	robot->sensors.accelX *= 0.000183105;
 //	robot->sensors.accelY *= 0.000183105;
 //	robot->sensors.accelZ *= 0.000183105;
 		
-	robot->sensors.magX = (((uint16_t) IMU_Parsed[MAG_PROC_X]) << 8) + IMU_Parsed[MAG_PROC_X+1];
-	robot->sensors.magY = (((uint16_t) IMU_Parsed[MAG_PROC_Y]) << 8) + IMU_Parsed[MAG_PROC_Y+1];
-	robot->sensors.magZ = (((uint16_t) IMU_Parsed[MAG_PROC_Z]) << 8) + IMU_Parsed[MAG_PROC_Z+1];
+	robot->sensors.magX = (((int16_t) IMU_Parsed[MAG_PROC_X]) << 8) | IMU_Parsed[MAG_PROC_X+1];
+	robot->sensors.magY = (((int16_t) IMU_Parsed[MAG_PROC_Y]) << 8) | IMU_Parsed[MAG_PROC_Y+1];
+	robot->sensors.magZ = (((int16_t) IMU_Parsed[MAG_PROC_Z]) << 8) | IMU_Parsed[MAG_PROC_Z+1];
 	
 //	robot->sensors.magX *= 0.000305176;
 //	robot->sensors.magY *= 0.000305176;
 //	robot->sensors.magZ *= 0.000305176;
 			
-	robot->sensors.quatA = (((uint16_t) IMU_Parsed[QUAT_A]) << 8) + IMU_Parsed[QUAT_A+1];
-	robot->sensors.quatB = (((uint16_t) IMU_Parsed[QUAT_B]) << 8) + IMU_Parsed[QUAT_B+1];
-	robot->sensors.quatC = (((uint16_t) IMU_Parsed[QUAT_C]) << 8) + IMU_Parsed[QUAT_C+1];
-	robot->sensors.quatD = (((uint16_t) IMU_Parsed[QUAT_D]) << 8) + IMU_Parsed[QUAT_D+1];	
+	robot->sensors.quatA = (((int16_t) IMU_Parsed[QUAT_A]) << 8) | IMU_Parsed[QUAT_A+1];
+	robot->sensors.quatB = (((int16_t) IMU_Parsed[QUAT_B]) << 8) | IMU_Parsed[QUAT_B+1];
+	robot->sensors.quatC = (((int16_t) IMU_Parsed[QUAT_C]) << 8) | IMU_Parsed[QUAT_C+1];
+	robot->sensors.quatD = (((int16_t) IMU_Parsed[QUAT_D]) << 8) | IMU_Parsed[QUAT_D+1];	
 	
 //	robot->sensors.quatA *= 0.0000335693;
 //	robot->sensors.quatB *= 0.0000335693;

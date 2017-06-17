@@ -381,7 +381,16 @@ void uartTimerCallback(xTimerHandle xTimer)
 			//HAL_IWDG_Refresh(&hiwdg);
 			shoreCommunicationUpdated = true;
 			uart1PackageReceived = false;
-			ShoreRequest(&Q100, ShoreRequestBuf);
+			
+			switch(numberRx){
+				case SHORE_REQUEST_LENGTH:
+					ShoreRequest(&Q100, ShoreRequestBuf);
+					break;
+				case REQUEST_CONFIG_LENGTH:
+					ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);
+					break;
+			}		
+			
 			ShoreResponse(&Q100, ShoreResponseBuf);
 			transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
 			HAL_HalfDuplex_EnableReceiver(&huart1);
@@ -390,8 +399,17 @@ void uartTimerCallback(xTimerHandle xTimer)
 		else{
 			shoreCommunicationUpdated = false;
 			counterRx = 0;
-			for (uint16_t i = 0; i < numberRx; ++i){
-				ShoreRequestBuf[i] = 0x00;
+			switch(numberRx){
+				case SHORE_REQUEST_CODE:
+					for (uint16_t i = 0; i < numberRx; ++i){
+						ShoreRequestBuf[i] = 0x00;
+					}
+					break;
+				case REQUEST_CONFIG_CODE:
+					for (uint16_t i = 0; i < numberRx; ++i){
+						ShoreRequestConfigBuf[i] = 0x00;
+					}
+					break;
 			}
 		}		
 }

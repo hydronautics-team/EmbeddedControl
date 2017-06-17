@@ -59,7 +59,7 @@ extern TimerHandle_t UARTTimer;
 #define DELAY	1
 
 uint8_t RxBuffer[1] = {0};
-uint16_t numberRx = SHORE_REQUEST_LENGTH;
+uint16_t numberRx = 0;
 uint16_t counterRx = 0;
 
 bool uart1PackageTransmit = false;
@@ -214,9 +214,24 @@ void ShoreReceive()
 	
 	if (counterRx == 0){
 		xTimerResetFromISR(UARTTimer, &xHigherPriorityTaskWoken);
+		switch(RxBuffer[0]){
+			case SHORE_REQUEST_CODE:
+				numberRx = SHORE_REQUEST_LENGTH;
+				break;
+			case REQUEST_CONFIG_CODE:
+				numberRx = REQUEST_CONFIG_LENGTH;
+				break;
+		}
 	}
-
-	ShoreRequestBuf[counterRx] = RxBuffer[0];
+	
+	switch(numberRx){
+		case SHORE_REQUEST_LENGTH:
+			ShoreRequestBuf[counterRx] = RxBuffer[0];
+			break;
+		case REQUEST_CONFIG_LENGTH:
+			ShoreRequestConfigBuf[counterRx] = RxBuffer[0];
+			break;
+	}	
 	++counterRx;
 	
 	if (counterRx == numberRx) {
@@ -237,7 +252,6 @@ void ShoreReceive()
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart1){
-		//uart1PackageReceived = true;
 		ShoreReceive();
 	}
 	else if(huart == &huart2){
