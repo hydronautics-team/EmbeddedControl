@@ -222,28 +222,32 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 {
 	if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)){
 		robot->depthStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_DEPTH];
-		robot->depthStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_DEPTH);
-		robot->depthStabilization.iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_DEPTH);
+		robot->depthStabilization.positionFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_DEPTH);
+		robot->depthStabilization.speedFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_DEPTH);
 		robot->depthStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_DEPTH);
-		robot->depthStabilization.iMin = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_DEPTH);
+		robot->depthStabilization.iMin = -robot->depthStabilization.iMax;
+		robot->depthStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_DEPTH);
 		
 		robot->rollStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_ROLL];
-		robot->rollStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_ROLL);
-		robot->rollStabilization.iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_ROLL);
+		robot->rollStabilization.positionFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_ROLL);
+		robot->rollStabilization.speedFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_ROLL);
 		robot->rollStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_ROLL);
-		robot->rollStabilization.iMin = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_ROLL);
+		robot->rollStabilization.iMin = -robot->rollStabilization.iMax;
+		robot->rollStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_ROLL);
 		
 		robot->pitchStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_PITCH];
-		robot->pitchStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_PITCH);
-		robot->pitchStabilization.iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_PITCH);
+		robot->pitchStabilization.positionFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_PITCH);
+		robot->pitchStabilization.speedFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_PITCH);
 		robot->pitchStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_PITCH);
-		robot->pitchStabilization.iMin = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_PITCH);
+		robot->pitchStabilization.iMin = -robot->pitchStabilization.iMax;
+		robot->pitchStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_PITCH);
 		
 		robot->yawStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_YAW];
-		robot->yawStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_YAW);
-		robot->yawStabilization.iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_YAW);
+		robot->yawStabilization.positionFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_YAW);
+		robot->yawStabilization.speedFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_YAW);
 		robot->yawStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_YAW);
-		robot->yawStabilization.iMin = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_YAW);
+		robot->yawStabilization.iMin = -robot->yawStabilization.iMax;
+		robot->yawStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_YAW);
 		
 		robot->VMA[HLB].address = requestBuf[REQUEST_CONFIG_POSITION_HLB];
 		robot->VMA[HLF].address = requestBuf[REQUEST_CONFIG_POSITION_HLF];
@@ -319,6 +323,7 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 		robot->yawStabilization.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_YAW ];
 
 		robot->sensors.resetIMU = (bool) requestBuf[SHORE_REQUEST_RESET_IMU];
+		
 		
 		int16_t velocity[VMA_DRIVER_NUMBER];
 		velocity[HLB] = (int16_t)(( - robot->movement.march + robot->movement.lag - robot->movement.yaw) >> 1); 
@@ -526,7 +531,7 @@ void IMUReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 void IMUReset()
 {
   HAL_UART_Receive_DMA(&huart4, IMUReceiveBuf, sizeof(IMUReceiveBuf));		
-	uint8_t msg[IMU_TRANSMIT_PACKET_SIZE] = { 's','n','p',0x80,0x00,0x47,0xC0,0x2D,0x1E,0x00,0x00 }; // 5th byte - register adress byte
+	uint8_t msg[IMU_TRANSMIT_PACKET_SIZE] = { 's','n','p',0x80,0x00,0x47,0xC0,0x2D,0xFF,0x00,0x00 }; // 5th byte - register adress byte
 	CompChecksum(&msg[IMU_TRANSMIT_PACKET_SIZE - 1], &msg[IMU_TRANSMIT_PACKET_SIZE - 2], msg, IMU_TRANSMIT_PACKET_SIZE);
 	HAL_UART_Transmit(&huart4, msg, IMU_TRANSMIT_PACKET_SIZE, 1000);
 }

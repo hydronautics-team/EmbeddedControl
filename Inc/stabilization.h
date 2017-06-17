@@ -16,7 +16,7 @@ extern struct PIDRegulator rollPID;
 extern struct PIDRegulator pitchPID;
 
 void stabilizationInit(struct Robot *robot);
-float stabilizeRoll(struct Robot *robot);
-float stabilizePitch(struct Robot *robot);
+void stabilizeRoll(struct Robot *robot);
+void stabilizePitch(struct Robot *robot);
 
 #endif

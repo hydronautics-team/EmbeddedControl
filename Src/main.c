@@ -93,19 +93,23 @@ void variableInit()
 	Q100.device.grab.rotationAddress = 0x02;
 	Q100.device.tilt.address = 0x04;
 	
-	Q100.pitchStabilization.enable = true;
+	Q100.pitchStabilization.enable = false;
 	Q100.pitchStabilization.iPartEnable = false;
 	Q100.pitchStabilization.pGain = 1;
 	Q100.pitchStabilization.iGain = 0;
 	Q100.pitchStabilization.iMin = 0;
 	Q100.pitchStabilization.iMax = 0;
+	Q100.pitchStabilization.positionFeedbackCoef = 10000;
+	Q100.pitchStabilization.speedFeedbackCoef = 10000;
 	
-	Q100.rollStabilization.enable = true;
+	Q100.rollStabilization.enable = false;
 	Q100.rollStabilization.iPartEnable = false;
 	Q100.rollStabilization.pGain = 1;
 	Q100.rollStabilization.iGain = 0;
 	Q100.rollStabilization.iMin = 0;
 	Q100.rollStabilization.iMax = 0;
+	Q100.rollStabilization.positionFeedbackCoef = 10000;
+	Q100.rollStabilization.speedFeedbackCoef = 10000;
 	
 }
 

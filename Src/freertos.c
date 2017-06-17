@@ -73,7 +73,7 @@ uint32_t DevCommunicationBuffer[ 64 ];
 osStaticThreadDef_t DevCommunicationControlBlock;
 
 /* USER CODE BEGIN Variables */
-#define SHORE_DELAY	   15
+#define SHORE_DELAY	  45
 
 TimerHandle_t UARTTimer;
 extern bool uart1PackageReceived;
@@ -322,9 +322,22 @@ void StabilizationTask(void const * argument)
 	stabilizationInit(&Q100);
 	/* Infinite loop */
   for(;;){
-		Q100.pitchStabilization.speedError = stabilizePitch(&Q100);
-		Q100.rollStabilization.speedError = stabilizeRoll(&Q100);
-    osDelayUntil(&sysTime, 100);
+		if (Q100.pitchStabilization.enable){
+			stabilizePitch(&Q100);
+			Q100.movement.pitch -= (int16_t)Q100.pitchStabilization.speedError;
+		}
+		else {
+			Q100.pitchStabilization.speedError = 0;
+		}
+		
+		if (Q100.rollStabilization.enable){
+			stabilizeRoll(&Q100);
+			Q100.movement.roll -= (int16_t)Q100.rollStabilization.speedError;
+		}
+		else {
+			Q100.rollStabilization.speedError = 0;
+		}
+    osDelayUntil(&sysTime, 50);
   }
   /* USER CODE END StabilizationTask */
 }

@@ -6,35 +6,43 @@ struct PIDRegulator pitchPID;
 void stabilizationInit(struct Robot *robot)
 {
 	PIDRegulatorInit(&rollPID,
-			robot->rollStabilization.iGain, 0,
+			robot->rollStabilization.pGain, 0,
 			robot->rollStabilization.iGain,
 			robot->rollStabilization.iMax, 
 			robot->rollStabilization.iMin);
 	
 	PIDRegulatorInit(&pitchPID,
-			robot->pitchStabilization.iGain, 0,
+			robot->pitchStabilization.pGain, 0,
 			robot->pitchStabilization.iGain,
 			robot->pitchStabilization.iMax, 
 			robot->pitchStabilization.iMin);
 }
 
-float stabilizeRoll(struct Robot *robot)
+void stabilizeRoll(struct Robot *robot)
 {
-	float regValue = 0;
-	float rollError = robot->movement.roll - robot->sensors.roll;
+	float newValue = 0;
+	float rollError = robot->movement.roll - robot->sensors.roll * robot->rollStabilization.positionFeedbackCoef;
 	
-	regValue = update(&rollPID, rollError, fromTickToMs(xTaskGetTickCount() - rollPID.lastUpdateTick));
-	return regValue;
+	// PID regulation
+	newValue = update(&rollPID, rollError, fromTickToMs(xTaskGetTickCount() - rollPID.lastUpdateTick));
+
+	// speed regulation
+	newValue += robot->sensors.rollSpeed * robot->rollStabilization.speedFeedbackCoef;
+	robot->rollStabilization.speedError = newValue;
 }
 
 
-float stabilizePitch(struct Robot *robot)
+void stabilizePitch(struct Robot *robot)
 {
-	float regValue = 0;
-	float pitchError = robot->movement.pitch - robot->sensors.pitch;
+	float newValue = 0;
+	float pitchError = robot->movement.pitch - robot->sensors.pitch * robot->pitchStabilization.positionFeedbackCoef;
 	
-	regValue = update(&pitchPID, pitchError, fromTickToMs(xTaskGetTickCount() - pitchPID.lastUpdateTick));
-	return regValue;
+	// PID regulation
+	newValue = update(&pitchPID, pitchError, fromTickToMs(xTaskGetTickCount() - pitchPID.lastUpdateTick));
+	
+	// speed regulation
+	newValue += robot->sensors.pitchSpeed * robot->pitchStabilization.speedFeedbackCoef;
+	robot->pitchStabilization.speedError = newValue;
 }
 
 

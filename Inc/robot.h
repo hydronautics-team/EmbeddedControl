@@ -126,8 +126,10 @@ struct Robot{
     bool iPartEnable;
     float pGain;
     float iGain;
-    float iMin;
-    float iMax;
+		float iMax;
+		float iMin;
+    float positionFeedbackCoef;
+    float speedFeedbackCoef;
     float speedError;
   } depthStabilization, rollStabilization, pitchStabilization, yawStabilization;
 	
