@@ -19,7 +19,7 @@ void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev);
 void VMARequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma);
 void VMAResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma);
 
-void ShoreRequest(struct Robot *robot, uint8_t *requestBuf);
+void ShoreRequest(struct Robot *robot, uint8_t *requestBuf, int16_t *pitchError, int16_t *rollError);
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf);
 void ShoreResponse(struct Robot *robot, uint8_t *responseBuf);
 

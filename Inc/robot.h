@@ -130,7 +130,7 @@ struct Robot{
 		float iMin;
     float positionFeedbackCoef;
     float speedFeedbackCoef;
-    float speedError;
+    int16_t speedError;
   } depthStabilization, rollStabilization, pitchStabilization, yawStabilization;
 	
 }; 

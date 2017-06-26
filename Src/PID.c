@@ -52,7 +52,7 @@ float update(struct PIDRegulator *PID, float error, float deltaTime_ms) {
 	PID->dTermLast = dTerm;
 	PID->iTermLast = iTerm;
 
-	PID->lastUpdateTick = xTaskGetTickCount();//osKernelSysTick();
+	PID->lastUpdateTick = xTaskGetTickCount();
 
 	return pTerm + dTerm + iTerm;
 }

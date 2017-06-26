@@ -101,14 +101,14 @@ void VMARequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[HLF].address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[HLF].settings;
 			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[HLF].desiredSpeed;
-			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.bottomLight.brightness;
+			buf[VMA_DEV_REQUEST_VELOCITY2] = 0;
 			break;
 		
 		case HRB:
 			buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[HRB].address;
 			buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[HRB].settings;
 			buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[HRB].desiredSpeed;
-			buf[VMA_DEV_REQUEST_VELOCITY2] = NULL;
+			buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.bottomLight.brightness;
 			break;
 		
 		case HRF:
@@ -288,8 +288,7 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 }
 
 
-
-void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
+void ShoreRequest(struct Robot *robot, uint8_t *requestBuf, int16_t *pitchError, int16_t *rollError)
 {
 	if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)){
 		shorePackageError = 0;
@@ -299,6 +298,9 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 		robot->movement.pitch = (((int16_t)requestBuf[SHORE_REQUEST_ROLL]) << 8) | requestBuf[SHORE_REQUEST_ROLL + 1];
 		robot->movement.roll = (((int16_t)requestBuf[SHORE_REQUEST_PITCH]) << 8) | requestBuf[SHORE_REQUEST_PITCH + 1];
 		robot->movement.yaw = (((int16_t)requestBuf[SHORE_REQUEST_YAW]) << 8) | requestBuf[SHORE_REQUEST_YAW + 1];
+		
+		robot->movement.pitch -= *pitchError;
+		robot->movement.roll -= *rollError;;
 
 		robot->device.light.brightness = requestBuf[SHORE_REQUEST_LIGHT];
 		robot->device.agar.opening = requestBuf[SHORE_REQUEST_AGAR];
@@ -329,9 +331,9 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 		velocity[HLB] = (int16_t)(( - robot->movement.march + robot->movement.lag - robot->movement.yaw) >> 1); 
 		velocity[HLF] = (int16_t)((+ robot->movement.march + robot->movement.lag + robot->movement.yaw) >> 1);
 		velocity[HRB] = (int16_t)-(( - robot->movement.march - robot->movement.lag + robot->movement.yaw) >> 1);
-		velocity[HRF] = (int16_t)-((+ robot->movement.march - robot->movement.lag - robot->movement.yaw) >> 1);
-		velocity[VB] = (int16_t)+((- robot->movement.depth + robot->movement.pitch) >> 1); 
-		velocity[VF] = (int16_t)-((+ robot->movement.depth + robot->movement.pitch) >> 1); 
+		velocity[HRF] = (int16_t)((+ robot->movement.march - robot->movement.lag - robot->movement.yaw) >> 1);
+		velocity[VB] = (int16_t)((- robot->movement.depth - robot->movement.pitch) >> 1); 
+		velocity[VF] = (int16_t)-((- robot->movement.depth + robot->movement.pitch) >> 1); 
 		velocity[VL] = (int16_t)((- robot->movement.depth + robot->movement.roll) >> 1);
 		velocity[VR] = (int16_t)((- robot->movement.depth - robot->movement.roll) >> 1);
 		

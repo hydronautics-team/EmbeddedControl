@@ -73,6 +73,14 @@ uint32_t DevCommunicationBuffer[ 64 ];
 osStaticThreadDef_t DevCommunicationControlBlock;
 
 /* USER CODE BEGIN Variables */
+osMessageQId pitchErrorQueueHandle;
+uint8_t pitchErrorQueueBuffer[ 2 * sizeof( int16_t ) ];
+osStaticMessageQDef_t pitchErrorQueueControlBlock;
+
+osMessageQId rollErrorQueueHandle;
+uint8_t rollErrorQueueBuffer[ 2 * sizeof( int16_t ) ];
+osStaticMessageQDef_t rollErrorQueueControlBlock;
+
 #define SHORE_DELAY	  45
 
 TimerHandle_t UARTTimer;
@@ -184,7 +192,12 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
+  osMessageQStaticDef(pitchErrorQueue, 1, int16_t, pitchErrorQueueBuffer, &pitchErrorQueueControlBlock);
+  pitchErrorQueueHandle = osMessageCreate(osMessageQ(pitchErrorQueue), NULL);
+
+  osMessageQStaticDef(rollErrorQueue, 1, int16_t, rollErrorQueueBuffer, &rollErrorQueueControlBlock);
+  rollErrorQueueHandle = osMessageCreate(osMessageQ(rollErrorQueue), NULL);
+	/* USER CODE END RTOS_QUEUES */
 }
 
 /* LedBlinkingTask function */
@@ -233,7 +246,7 @@ void VmaDevCommunicationTask(void const * argument)
 
   /* Infinite loop */
   for(;;){
-		if (shoreCommunicationUpdated){
+		//if (shoreCommunicationUpdated){
 			switch(VMATransaction){
 				case HLB:
 					VMARequestUpdate(&Q100, VMARequestBuf, HLB);
@@ -292,7 +305,7 @@ void VmaDevCommunicationTask(void const * argument)
 				break;
 			}
 			VMATransaction = (VMATransaction + 1) % VMA_DRIVER_NUMBER;
-		}
+	//	}
 		osDelayUntil(&sysTime, 10);
   }
   /* USER CODE END VmaDevCommunicationTask */
@@ -324,7 +337,7 @@ void StabilizationTask(void const * argument)
   for(;;){
 		if (Q100.pitchStabilization.enable){
 			stabilizePitch(&Q100);
-			Q100.movement.pitch -= (int16_t)Q100.pitchStabilization.speedError;
+			//xQueueSend( pitchErrorQueueHandle, ( void *) &Q100.pitchStabilization.speedError, 5);
 		}
 		else {
 			Q100.pitchStabilization.speedError = 0;
@@ -332,7 +345,7 @@ void StabilizationTask(void const * argument)
 		
 		if (Q100.rollStabilization.enable){
 			stabilizeRoll(&Q100);
-			Q100.movement.roll -= (int16_t)Q100.rollStabilization.speedError;
+			xQueueSend( rollErrorQueueHandle, ( void *) &Q100.rollStabilization.speedError, 50);
 		}
 		else {
 			Q100.rollStabilization.speedError = 0;
@@ -350,7 +363,7 @@ void StartDevCommunication(void const * argument)
 	uint8_t DevTransaction = 0;
   /* Infinite loop */		
   for(;;){
-		if (shoreCommunicationUpdated){
+		//if (shoreCommunicationUpdated){
 			switch(DevTransaction){
 				case AGAR:
 					DevRequestUpdate(&Q100, DevRequestBuf, AGAR);
@@ -381,7 +394,7 @@ void StartDevCommunication(void const * argument)
 				break;
 			}
 			DevTransaction = (DevTransaction + 1) % DEV_DRIVER_NUMBER;
-		}
+		//}
 		osDelayUntil(&sysTime, 20);
   }
   /* USER CODE END StartDevCommunication */
@@ -390,14 +403,18 @@ void StartDevCommunication(void const * argument)
 /* USER CODE BEGIN Application */
 void uartTimerCallback(xTimerHandle xTimer)
 {
+	
 		if (uart1PackageReceived){
 			//HAL_IWDG_Refresh(&hiwdg);
 			shoreCommunicationUpdated = true;
 			uart1PackageReceived = false;
 			
+			int16_t pitchError = 0, rollError = 0;
 			switch(numberRx){
 				case SHORE_REQUEST_LENGTH:
-					ShoreRequest(&Q100, ShoreRequestBuf);
+//					xQueueReceive( pitchErrorQueueHandle, &( pitchError ), 1 );
+//					xQueueReceive( rollErrorQueueHandle, &( rollError ), 1 );
+					ShoreRequest(&Q100, ShoreRequestBuf, &pitchError, &rollError);
 					break;
 				case REQUEST_CONFIG_LENGTH:
 					ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);

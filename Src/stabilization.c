@@ -52,25 +52,19 @@ void stabilizePitch(struct Robot *robot)
 
 
 
-
-
-
-
-
-
 // Show these and change
 bool PI_config = 0;
 float different, kren, different_speed, kren_speed;  // in degrees
 float const_time = 1;  
 float proportional_koff = 1;
-float k1_kren = 15;  
+float k1_kren = 15;
 float k2_kren = 1.5;
 float k1_diff = 15;
 float k2_diff = 1.5;
 
-int time_interval = 1; 
+int time_interval = 1;
 
-float start_value_kren = 0.3; 
+float start_value_kren = 0.3;
 float start_value_diff = 1.7;
 
 // Doesn't show
