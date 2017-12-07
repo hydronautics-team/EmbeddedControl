@@ -1,0 +1,16 @@
+embeddedcontrol-refactored\queue.o: ../Middlewares/Third_Party/FreeRTOS/Source/queue.c
+embeddedcontrol-refactored\queue.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
+embeddedcontrol-refactored\queue.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+embeddedcontrol-refactored\queue.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+embeddedcontrol-refactored\queue.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
+embeddedcontrol-refactored\queue.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+embeddedcontrol-refactored\queue.o: ../Inc/FreeRTOSConfig.h
+embeddedcontrol-refactored\queue.o: ../Inc/main.h
+embeddedcontrol-refactored\queue.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+embeddedcontrol-refactored\queue.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+embeddedcontrol-refactored\queue.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+embeddedcontrol-refactored\queue.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+embeddedcontrol-refactored\queue.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+embeddedcontrol-refactored\queue.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+embeddedcontrol-refactored\queue.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+embeddedcontrol-refactored\queue.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h

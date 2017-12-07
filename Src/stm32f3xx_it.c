@@ -35,7 +35,6 @@
 #include "stm32f3xx.h"
 #include "stm32f3xx_it.h"
 #include "cmsis_os.h"
-#include "i2c.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -44,15 +43,14 @@
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_uart4_rx;
 extern DMA_HandleTypeDef hdma_uart4_tx;
-extern DMA_HandleTypeDef hdma_usart1_tx;
 extern DMA_HandleTypeDef hdma_usart1_rx;
+extern DMA_HandleTypeDef hdma_usart1_tx;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart2_tx;
 extern DMA_HandleTypeDef hdma_usart3_rx;
 extern DMA_HandleTypeDef hdma_usart3_tx;
 extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart1;
-extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
 
 extern TIM_HandleTypeDef htim1;
@@ -195,20 +193,6 @@ void USART1_IRQHandler(void)
 }
 
 /**
-* @brief This function handles USART2 global interrupt / USART2 wake-up interrupt through EXTI line 26.
-*/
-void USART2_IRQHandler(void)
-{
-  /* USER CODE BEGIN USART2_IRQn 0 */
-
-  /* USER CODE END USART2_IRQn 0 */
-  HAL_UART_IRQHandler(&huart2);
-  /* USER CODE BEGIN USART2_IRQn 1 */
-
-  /* USER CODE END USART2_IRQn 1 */
-}
-
-/**
 * @brief This function handles USART3 global interrupt / USART3 wake-up interrupt through EXTI line 28.
 */
 void USART3_IRQHandler(void)
@@ -262,30 +246,6 @@ void DMA2_Channel5_IRQHandler(void)
   /* USER CODE BEGIN DMA2_Channel5_IRQn 1 */
 
   /* USER CODE END DMA2_Channel5_IRQn 1 */
-}
-
-void I2C1_EV_IRQHandler(void)
-{
-  /* USER CODE BEGIN I2C1_EV_IRQn 0 */
-	++BTCalls;
-	if(BTCalls == BT_SIZE)
-	{
-		for(uint8_t i=0; i<BT_SIZE; i++)
-		{
-			if(BTReceiveBuf[i] == 0x0D)	
-				Q100.bluetooth.message[i] = 0;
-			else 
-				Q100.bluetooth.message[i] = BTReceiveBuf[i];
-		}
-		BTCalls = 0;
-	}
-	if(BTCalls > BT_SIZE)
-		BTCalls = 0;
-  /* USER CODE END I2C1_EV_IRQn 0 */
-  HAL_I2C_EV_IRQHandler(&hi2c1);
-  /* USER CODE BEGIN I2C1_EV_IRQn 1 */
-	
-  /* USER CODE END I2C1_EV_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

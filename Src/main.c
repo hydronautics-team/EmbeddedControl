@@ -3,6 +3,11 @@
   * File Name          : main.c
   * Description        : Main program body
   ******************************************************************************
+  * This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether 
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
   *
   * Copyright (c) 2017 STMicroelectronics International N.V. 
   * All rights reserved.
@@ -40,6 +45,7 @@
   *
   ******************************************************************************
   */
+
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f3xx_hal.h"
@@ -59,15 +65,11 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-extern uint8_t RxBuffer[1];
-extern uint16_t numberRx;
-extern uint16_t counterRx;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-void Error_Handler(void);
 void MX_FREERTOS_Init(void);
 
 /* USER CODE BEGIN PFP */
@@ -76,43 +78,6 @@ void MX_FREERTOS_Init(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-void variableInit()
-{
-	Q100.VMA[HLB].address = 0x07;
-	Q100.VMA[HLF].address = 0x05;
-	Q100.VMA[HRB].address = 0x02;
-	Q100.VMA[HRF].address = 0x04;
-	Q100.VMA[VB].address = 0x03;
-	Q100.VMA[VF].address = 0x06;
-	Q100.VMA[VL].address = 0x013;
-	Q100.VMA[VR].address = 0x08;
-	
-	
-	Q100.device.agar.address = 0x03;
-	Q100.device.grab.squeezeAddress = 0x01;
-	Q100.device.grab.rotationAddress = 0x02;
-	Q100.device.tilt.address = 0x04;
-	
-	Q100.pitchStabilization.enable = false;
-	Q100.pitchStabilization.iPartEnable = false;
-	Q100.pitchStabilization.pGain = 1;
-	Q100.pitchStabilization.iGain = 0;
-	Q100.pitchStabilization.iMin = 0;
-	Q100.pitchStabilization.iMax = 0;
-	Q100.pitchStabilization.positionFeedbackCoef = 10000;
-	Q100.pitchStabilization.speedFeedbackCoef = 10000;
-	
-	Q100.rollStabilization.enable = false;
-	Q100.rollStabilization.iPartEnable = false;
-	Q100.rollStabilization.pGain = 1;
-	Q100.rollStabilization.iGain = 0;
-	Q100.rollStabilization.iMin = 0;
-	Q100.rollStabilization.iMax = 0;
-	Q100.rollStabilization.positionFeedbackCoef = 10000;
-	Q100.rollStabilization.speedFeedbackCoef = 10000;
-	
-}
-
 
 /* USER CODE END 0 */
 
@@ -128,24 +93,29 @@ int main(void)
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
   /* Configure the system clock */
   SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_USART2_UART_Init();
+  MX_I2C1_Init();
+  MX_IWDG_Init();
+  MX_TIM7_Init();
   MX_UART4_Init();
   MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
   MX_USART3_UART_Init();
-  MX_I2C1_Init();
-  MX_TIM7_Init();
-  //MX_IWDG_Init();
 
   /* USER CODE BEGIN 2 */
-	variableInit();
-	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);		
-
 
   /* USER CODE END 2 */
 
@@ -191,7 +161,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    Error_Handler();
+    _Error_Handler(__FILE__, __LINE__);
   }
 
     /**Initializes the CPU, AHB and APB busses clocks 
@@ -205,7 +175,7 @@ void SystemClock_Config(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
-    Error_Handler();
+    _Error_Handler(__FILE__, __LINE__);
   }
 
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART2
@@ -218,7 +188,7 @@ void SystemClock_Config(void)
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
-    Error_Handler();
+    _Error_Handler(__FILE__, __LINE__);
   }
 
     /**Configure the Systick interrupt time 
@@ -263,15 +233,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   * @param  None
   * @retval None
   */
-void Error_Handler(void)
+void _Error_Handler(char * file, int line)
 {
-  /* USER CODE BEGIN Error_Handler */
+  /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-  while(1)
+  while(1) 
   {
-		
   }
-  /* USER CODE END Error_Handler */ 
+  /* USER CODE END Error_Handler_Debug */ 
 }
 
 #ifdef USE_FULL_ASSERT

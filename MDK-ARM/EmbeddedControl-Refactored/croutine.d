@@ -1,0 +1,15 @@
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/croutine.c
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+embeddedcontrol-refactored\croutine.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
+embeddedcontrol-refactored\croutine.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+embeddedcontrol-refactored\croutine.o: ../Inc/FreeRTOSConfig.h
+embeddedcontrol-refactored\croutine.o: ../Inc/main.h
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/croutine.h
+embeddedcontrol-refactored\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h

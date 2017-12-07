@@ -1,0 +1,13 @@
+embeddedcontrol-refactored\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/port.c
+embeddedcontrol-refactored\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+embeddedcontrol-refactored\port.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
+embeddedcontrol-refactored\port.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+embeddedcontrol-refactored\port.o: ../Inc/FreeRTOSConfig.h
+embeddedcontrol-refactored\port.o: ../Inc/main.h
+embeddedcontrol-refactored\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+embeddedcontrol-refactored\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+embeddedcontrol-refactored\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+embeddedcontrol-refactored\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+embeddedcontrol-refactored\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+embeddedcontrol-refactored\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+embeddedcontrol-refactored\port.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
