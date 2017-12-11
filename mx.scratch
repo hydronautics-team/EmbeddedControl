@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project>
-<ProjectName>C:\Users\Yaroslav\Google &#1044;&#1080;&#1089;&#1082;\Projects\STM32\EmbeddedControlRefactored\EmbeddedControl-Refactored\\EmbeddedControl-Refactored</ProjectName>
+<ProjectName>C:\Users\Yaroslav\Google &#1044;&#1080;&#1089;&#1082;\Projects\STM32\EmbeddedControlRefactored\EmbeddedControl-Refactored MUTEX\\EmbeddedControl-Refactored</ProjectName>
 <CMSIS>..\Drivers\CMSIS</CMSIS>
 <HAL_Driver>C:\Users\Yaroslav\STM32Cube\Repository\STM32Cube_FW_F3_V1.9.0\Drivers\CMSIS</HAL_Driver>
 

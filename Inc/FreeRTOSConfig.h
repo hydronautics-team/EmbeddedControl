@@ -105,6 +105,7 @@
 #define configTOTAL_HEAP_SIZE                    ((size_t)1024)
 #define configMAX_TASK_NAME_LEN                  ( 32 )
 #define configUSE_16_BIT_TICKS                   0
+#define configUSE_MUTEXES                        1
 #define configQUEUE_REGISTRY_SIZE                8
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION  1
 

@@ -54,28 +54,11 @@
 /* USER CODE BEGIN Includes */     
 #include "usart.h"
 #include "timers.h"
-#include "u_messages.h"
-#include "u_robot.h"
-#include "u_global.h"
-#include "u_communication.h"
-#include "u_stabilization.h"
-
-// eto kostil, potomu chto inache sizeof(xData) ne pashet((
-enum eBufTypes {
-	DTYPE_VMA=1,
-	DTYPE_DEV,
-	DTYPE_IMU,
-	DTYPE_SHORE,
-	DTYPE_STAB
-};
-
-typedef struct {
-	uint8_t ucBufType;
-	uint8_t ucBufNumber;
-	uint8_t *ucBufInt;
-	float		*ucBufPitch;
-	float		*ucBufRoll;
-} xData;
+#include "messages.h"
+#include "robot.h"
+#include "global.h"
+#include "communication.h"
+#include "stabilization.h"
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
@@ -94,28 +77,11 @@ osStaticThreadDef_t tStabilizationTaskControlBlock;
 osThreadId tDevCommTaskHandle;
 uint32_t tDevCommTaskBuffer[ 128 ];
 osStaticThreadDef_t tDevCommTaskControlBlock;
-osThreadId tDataPackTaskHandle;
-uint32_t tDataPackTaskBuffer[ 128 ];
-osStaticThreadDef_t tDataPackTaskControlBlock;
-osMessageQId qDataPackQueueHandle;
 osTimerId tUartTimerHandle;
-
-uint16_t taskCalls;
+osMutexId mutDataHandle;
+osStaticMutexDef_t mutDataControlBlock;
 
 /* USER CODE BEGIN Variables */
-TickType_t xLastWakeTime;
-
-//GOVNO
-/*
-osMessageQId pitchErrorQueueHandle;
-uint8_t pitchErrorQueueBuffer[ 2 * sizeof( int16_t ) ];
-osStaticMessageQDef_t pitchErrorQueueControlBlock;
-
-osMessageQId rollErrorQueueHandle;
-uint8_t rollErrorQueueBuffer[ 2 * sizeof( int16_t ) ];
-osStaticMessageQDef_t rollErrorQueueControlBlock;
-*/
-
 #define SHORE_DELAY	  45
 
 TimerHandle_t UARTTimer;
@@ -128,7 +94,6 @@ bool shoreCommunicationUpdated = false;
 
 extern struct PIDRegulator rollPID;
 extern struct PIDRegulator pitchPID;
-//GOVNO END
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -137,13 +102,12 @@ void func_tVmaCommTask(void const * argument);
 void func_tImuCommTask(void const * argument);
 void func_tStabilizationTask(void const * argument);
 void func_tDevCommTask(void const * argument);
-void func_tDataPackTask(void const * argument);
 void func_tUartTimer(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* USER CODE BEGIN FunctionPrototypes */
-void qDataSend(uint8_t type, uint8_t number, uint8_t *intlink,  float pidRoll, float pidPitch);
+void nullIntArray(uint8_t *array, uint8_t size);
 /* USER CODE END FunctionPrototypes */
 
 /* GetIdleTaskMemory prototype (linked to static allocation support) */
@@ -185,9 +149,13 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, Stack
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 	variableInit();
-	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);		
-	taskCalls = 0;
+	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
   /* USER CODE END Init */
+
+  /* Create the mutex(es) */
+  /* definition and creation of mutData */
+  osMutexStaticDef(mutData, &mutDataControlBlock);
+  mutDataHandle = osMutexCreate(osMutex(mutData));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -203,7 +171,7 @@ void MX_FREERTOS_Init(void) {
   tUartTimerHandle = osTimerCreate(osTimer(tUartTimer), osTimerOnce, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
-  UARTTimer = xTimerCreate("timer", SHORE_DELAY/portTICK_RATE_MS, pdFALSE, 0, func_tUartTimer);
+  UARTTimer = xTimerCreate("timer", SHORE_DELAY/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) func_tUartTimer);
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the thread(s) */
@@ -227,18 +195,9 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(tDevCommTask, func_tDevCommTask, osPriorityBelowNormal, 0, 128, tDevCommTaskBuffer, &tDevCommTaskControlBlock);
   tDevCommTaskHandle = osThreadCreate(osThread(tDevCommTask), NULL);
 
-  /* definition and creation of tDataPackTask */
-  osThreadStaticDef(tDataPackTask, func_tDataPackTask, osPriorityNormal, 0, 128, tDataPackTaskBuffer, &tDataPackTaskControlBlock);
-  tDataPackTaskHandle = osThreadCreate(osThread(tDataPackTask), NULL);
-
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
-
-  /* Create the queue(s) */
-  /* definition and creation of qDataPackQueue */
-  osMessageQDef(qDataPackQueue, 16, xData);
-  qDataPackQueueHandle = osMessageCreate(osMessageQ(qDataPackQueue), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -255,35 +214,27 @@ void func_tLedBlinkingTask(void const * argument)
   for(;;)
   {
 		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-		//vTaskDelayUntil(&xLastWakeTime, 200);
 		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 		HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
-		//vTaskDelayUntil(&xLastWakeTime, 200);
 		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
 		HAL_GPIO_TogglePin(LD7_GPIO_Port, LD7_Pin);
-		//vTaskDelayUntil(&xLastWakeTime, 200);	
 		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD7_GPIO_Port, LD7_Pin);
 		HAL_GPIO_TogglePin(LD9_GPIO_Port, LD9_Pin);
-		//vTaskDelayUntil(&xLastWakeTime, 200);	
 		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD9_GPIO_Port, LD9_Pin);
 		HAL_GPIO_TogglePin(LD10_GPIO_Port, LD10_Pin);
-		//vTaskDelayUntil(&xLastWakeTime, 200);		
 		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD10_GPIO_Port, LD10_Pin);
 		HAL_GPIO_TogglePin(LD8_GPIO_Port, LD8_Pin);
-		//vTaskDelayUntil(&xLastWakeTime, 200);	
 		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD8_GPIO_Port, LD8_Pin);
 		HAL_GPIO_TogglePin(LD6_GPIO_Port, LD6_Pin);
-		//vTaskDelayUntil(&xLastWakeTime, 200);
 		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD6_GPIO_Port, LD6_Pin);
 		HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
-		//vTaskDelayUntil(&xLastWakeTime, 200);
 		osDelayUntil(&sysTime, 200);
 		HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
   }
@@ -299,16 +250,20 @@ void func_tVmaCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-		VMARequestUpdate(&Q100, VMARequestBuf, VMATransaction);
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+			VMARequestUpdate(&Q100, VMARequestBuf, VMATransaction);
+			xSemaphoreGive(mutDataHandle);
+		}
+		
 		transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
 		receivePackageDMA(VMA_UART, VMAResponseBuf[VMATransaction], VMA_DEV_RESPONSE_LENGTH);
-		//VMAResponseUpdate(&Q100, VMAResponseBuf[VMATransaction], VMATransaction);
-	
-		qDataSend(DTYPE_VMA, VMATransaction, &VMAResponseBuf[VMATransaction][0], 0, 0);
+		
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+			VMAResponseUpdate(&Q100, VMAResponseBuf[VMATransaction], VMATransaction);
+			xSemaphoreGive(mutDataHandle);
+		}
 		
 		VMATransaction = (VMATransaction + 1) % VMA_DRIVER_NUMBER;
-	
-		//vTaskDelayUntil(&xLastWakeTime, 10);
 		osDelayUntil(&sysTime, 10);
   }
   /* USER CODE END func_tVmaCommTask */
@@ -322,16 +277,15 @@ void func_tImuCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-		transmitPackageDMA(IMU_UART, IMURequestBuf, IMU_REQUEST_LENGTH);
-		receivePackageDMA(IMU_UART, IMUResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
+		HAL_UART_Transmit_IT(&huart4, IMURequestBuf, IMU_REQUEST_LENGTH);
+		HAL_UART_Receive_IT(&huart4, IMUResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
 		
-		qDataSend(DTYPE_IMU, VMA_DEV_NULL, &IMUResponseBuf[0], 0, 0);
-    
-		//uint8_t ErrorCode = 0;
-		//IMUReceive(&Q100, IMUResponseBuf, &ErrorCode);
-		//BTRequest(BTReceiveBuf);
+		uint8_t ErrorCode = 0;
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+			IMUReceive(&Q100, IMUResponseBuf, &ErrorCode);
+			xSemaphoreGive(mutDataHandle);
+		}
 		
-    //vTaskDelayUntil(&xLastWakeTime, 10);
 		osDelayUntil(&sysTime, 10);
   }
   /* USER CODE END func_tImuCommTask */
@@ -342,30 +296,33 @@ void func_tStabilizationTask(void const * argument)
 {
   /* USER CODE BEGIN func_tStabilizationTask */
 	uint32_t sysTime = osKernelSysTick();
-	//uint8_t errtype=0;
-	float rollError, pitchError;
   /* Infinite loop */
   for(;;)
   {
-    if (Q100.pitchStabilization.enable){
-			pitchError = stabilizePitch(&Q100);
-			//xQueueSend( pitchErrorQueueHandle, ( void *) &Q100.pitchStabilization.speedError, 5);
-		}
-		else {
-			//Q100.pitchStabilization.speedError = 0;
-			pitchError = 0;
-		}
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+			if (Q100.pitchStabilization.enable) {
+				Q100.pitchStabilization.speedError = stabilizePitch(&Q100);
+			}
+			else {
+				Q100.pitchStabilization.speedError = 0;
+			}
 		
-		if (Q100.rollStabilization.enable){
-			rollError = stabilizeRoll(&Q100);
-			//xQueueSend( rollErrorQueueHandle, ( void *) &Q100.rollStabilization.speedError, 50);
+			if (Q100.rollStabilization.enable) {
+				Q100.pitchStabilization.speedError = stabilizeRoll(&Q100);
+			}
+			else {
+				Q100.pitchStabilization.speedError = 0;
+			}
+			
+			if (Q100.yawStabilization.enable) {
+				Q100.yawStabilization.speedError = stabilizeYaw(&Q100);
+			}
+			else {
+				Q100.yawStabilization.speedError = 0;
+			}
+			
+			xSemaphoreGive(mutDataHandle);
 		}
-		else {
-			//Q100.rollStabilization.speedError = 0;
-			rollError = 0;
-		}
-		
-    //vTaskDelayUntil(&xLastWakeTime, 50);
 		osDelayUntil(&sysTime, 10);
   }
   /* USER CODE END func_tStabilizationTask */
@@ -380,123 +337,70 @@ void func_tDevCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-		DevRequestUpdate(&Q100, DevRequestBuf, DevTransaction);
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+			DevRequestUpdate(&Q100, DevRequestBuf, DevTransaction);
+			xSemaphoreGive(mutDataHandle);
+		}
+		
 		transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
 		receivePackageDMA(DEV_UART, DevResponseBuf[DevTransaction], VMA_DEV_RESPONSE_LENGTH);
-		//DevResponseUpdate(&Q100, DevResponseBuf[DevTransaction], DevTransaction);
 		
-		qDataSend(DTYPE_DEV, DevTransaction, &DevResponseBuf[DevTransaction][0], 0, 0);
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+			DevResponseUpdate(&Q100, DevResponseBuf[DevTransaction], DevTransaction);
+			xSemaphoreGive(mutDataHandle);
+		}
 		
 		DevTransaction = (DevTransaction + 1) % DEV_DRIVER_NUMBER;
 		
-    //vTaskDelayUntil(&xLastWakeTime, 20);
 		osDelayUntil(&sysTime, 10);
   }
   /* USER CODE END func_tDevCommTask */
-}
-
-/* func_tDataPackTask function */
-void func_tDataPackTask(void const * argument)
-{
-  /* USER CODE BEGIN func_tDataPackTask */
-	uint32_t sysTime = osKernelSysTick();
-	xData qDataStruct;
-  /* Infinite loop */
-  for(;;)
-  {
-	  //taskENTER_CRITICAL();
-		/*if(uxQueueMessagesWaiting(qDataPackQueueHandle) == 0) {
-			osDelayUntil(&sysTime, 10);
-		}*/
-		++taskCalls;
-		xQueueReceive(qDataPackQueueHandle,&qDataStruct,(TickType_t) 20);
-    switch(qDataStruct.ucBufType) {
-			case DTYPE_VMA:
-				VMAResponseUpdate(&Q100, &qDataStruct.ucBufInt[qDataStruct.ucBufNumber], qDataStruct.ucBufNumber);
-			break;
-			
-			case DTYPE_DEV:
-				DevResponseUpdate(&Q100, &qDataStruct.ucBufInt[qDataStruct.ucBufNumber], qDataStruct.ucBufNumber);
-			break;
-			
-			case DTYPE_IMU:
-				IMUReceive(&Q100, qDataStruct.ucBufInt, 0);
-			break;
-			
-			case DTYPE_SHORE:
-				ShoreRequest(&Q100, ShoreRequestBuf, 0, 0);
-				ShoreResponse(&Q100, ShoreResponseBuf);
-				transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
-				HAL_HalfDuplex_EnableReceiver(&huart1);
-				HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
-			break;
-			
-			case DTYPE_STAB:
-				//Q100.rollStabilization.speedError = qDataStruct.ucBufRoll;
-				//Q100.rollStabilization.speedError = qDataStruct.ucBufPitch;
-			break;
-		}
-		//taskEXIT_CRITICAL();
-		//vTaskDelayUntil(&xLastWakeTime, 20);
-  }
-  /* USER CODE END func_tDataPackTask */
 }
 
 /* func_tUartTimer function */
 void func_tUartTimer(void const * argument)
 {
   /* USER CODE BEGIN func_tUartTimer */
-  if (uart1PackageReceived){
-			//HAL_IWDG_Refresh(&hiwdg);
+  if (uart1PackageReceived) {
 			shoreCommunicationUpdated = true;
 			uart1PackageReceived = false;
-			
 			int16_t pitchError = 0, rollError = 0;
-			switch(numberRx){
-				case SHORE_REQUEST_LENGTH:
-//					xQueueReceive( pitchErrorQueueHandle, &( pitchError ), 1 );
-//					xQueueReceive( rollErrorQueueHandle, &( rollError ), 1 );
-					ShoreRequest(&Q100, ShoreRequestBuf, &pitchError, &rollError);
-					break;
-				case REQUEST_CONFIG_LENGTH:
-					ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);
-					break;
-			}		
 			
-			ShoreResponse(&Q100, ShoreResponseBuf);
+			if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+				if(numberRx == SHORE_REQUEST_LENGTH) {
+					ShoreRequest(&Q100, ShoreRequestBuf, &pitchError, &rollError);
+				}
+				else if(numberRx == REQUEST_CONFIG_LENGTH) {
+					ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);
+				}		
+			
+				ShoreResponse(&Q100, ShoreResponseBuf);
+				xSemaphoreGive(mutDataHandle);
+			}
 			transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
 			HAL_HalfDuplex_EnableReceiver(&huart1);
 			HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
 		}
-		else{
+		else {
 			shoreCommunicationUpdated = false;
 			counterRx = 0;
-			switch(numberRx){
-				case SHORE_REQUEST_CODE:
-					for (uint16_t i = 0; i < numberRx; ++i){
-						ShoreRequestBuf[i] = 0x00;
-					}
-					break;
-				case REQUEST_CONFIG_CODE:
-					for (uint16_t i = 0; i < numberRx; ++i){
-						ShoreRequestConfigBuf[i] = 0x00;
-					}
-					break;
+			
+			if(numberRx == SHORE_REQUEST_CODE) {
+					nullIntArray(ShoreRequestBuf, numberRx);
+			}
+			else if(numberRx == REQUEST_CONFIG_CODE) {
+					nullIntArray(ShoreRequestConfigBuf, numberRx);
 			}
 		}		
   /* USER CODE END func_tUartTimer */
 }
 
 /* USER CODE BEGIN Application */
-void qDataSend(uint8_t type, uint8_t number, uint8_t *intlink, float pidRoll, float pidPitch)
+void nullIntArray(uint8_t *array, uint8_t size)
 {
-	xData qDataStruct;
-	qDataStruct.ucBufType = type;
-	qDataStruct.ucBufNumber = number;
-	qDataStruct.ucBufInt = intlink;
-	qDataStruct.ucBufRoll = &pidRoll;
-	qDataStruct.ucBufPitch = &pidPitch;
-	xQueueSend(qDataPackQueueHandle, &qDataStruct, (TickType_t) 20);
+	for (uint8_t i = 0; i < size; ++i) {
+		array[i] = 0x00;
+	}
 }
 /* USER CODE END Application */
 

@@ -2,6 +2,8 @@ MDK-ARM/EmbeddedControl
 MDK-ARM/RTE
 MDK-ARM/*.lst
 *.ярослав
+*.Yaroslav
+*.Ilya
 *.scvd
 *.mxproject
 *.Hydronautics
