@@ -308,10 +308,10 @@ void func_tStabilizationTask(void const * argument)
 			}
 		
 			if (Q100.rollStabilization.enable) {
-				Q100.pitchStabilization.speedError = stabilizeRoll(&Q100);
+				Q100.rollStabilization.speedError = stabilizeRoll(&Q100);
 			}
 			else {
-				Q100.pitchStabilization.speedError = 0;
+				Q100.rollStabilization.speedError = 0;
 			}
 			
 			if (Q100.yawStabilization.enable) {

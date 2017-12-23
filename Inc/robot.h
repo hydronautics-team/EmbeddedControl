@@ -7,7 +7,7 @@
 
 #include "messages.h"
 
-enum VMA{
+enum VMA {
 	HLB = 0,
 	HLF, 
 	HRB, 
@@ -18,7 +18,7 @@ enum VMA{
 	VR
 };
 
-enum DEV{
+enum DEV {
 	AGAR = 0,
 	GRAB,
 	GRAB_ROTATION,
@@ -71,14 +71,23 @@ struct Robot {
 		uint8_t message[BT_SIZE];
 	} bluetooth;
 
-	struct RobotMovement{
+	struct JoystickRobotMovement {
 		float march;
     float lag;
     float depth;
     float roll;
     float pitch;
     float yaw;
-	} movement;
+	} j_movement;
+	
+	struct PositionRobotMovement {
+		float march;
+    float lag;
+    float depth;
+    float roll;
+    float pitch;
+    float yaw;
+	} p_movement;
 	
 	struct RobotDevice {
 		
@@ -118,10 +127,12 @@ struct Robot {
 	struct RobotStabilization {
 		bool enable;
 		bool iPartEnable;
-		float pGain;
-		float iGain;
-		float iMax;
-		float iMin;
+		float pid_pGain;
+		float pid_iGain;
+		float pid_iMax;
+		float pid_iMin;
+		float aiValue;
+		float aiLastTick;
 		float positionFeedbackCoef;
 		float speedFeedbackCoef;
 		float speedError;

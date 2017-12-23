@@ -63,30 +63,30 @@ void variableInit() {
 	
 	Q100.pitchStabilization.enable = true;
 	Q100.pitchStabilization.iPartEnable = false;
-	Q100.pitchStabilization.pGain = 1;
-	Q100.pitchStabilization.iGain = 1;
-	Q100.pitchStabilization.iMin = 0;
-	Q100.pitchStabilization.iMax = 0;
-	Q100.pitchStabilization.positionFeedbackCoef = 1;
-	Q100.pitchStabilization.speedFeedbackCoef = 100;
+	Q100.pitchStabilization.pid_pGain = 1;
+	Q100.pitchStabilization.pid_iGain = 1;
+	Q100.pitchStabilization.pid_iMin = 0;
+	Q100.pitchStabilization.pid_iMax = 0;
+	Q100.pitchStabilization.positionFeedbackCoef = 32768;
+	Q100.pitchStabilization.speedFeedbackCoef = 32768;
 	
 	Q100.rollStabilization.enable = true;
 	Q100.rollStabilization.iPartEnable = false;
-	Q100.rollStabilization.pGain = 1;
-	Q100.rollStabilization.iGain = 1;
-	Q100.rollStabilization.iMin = 0;
-	Q100.rollStabilization.iMax = 0;
-	Q100.rollStabilization.positionFeedbackCoef = 1;
-	Q100.rollStabilization.speedFeedbackCoef = 100;
+	Q100.rollStabilization.pid_pGain = 1;
+	Q100.rollStabilization.pid_iGain = 1;
+	Q100.rollStabilization.pid_iMin = 0;
+	Q100.rollStabilization.pid_iMax = 0;
+	Q100.rollStabilization.positionFeedbackCoef = 32768;
+	Q100.rollStabilization.speedFeedbackCoef = 32768;
 	
 	Q100.yawStabilization.enable = true;
 	Q100.yawStabilization.iPartEnable = false;
-	Q100.yawStabilization.pGain = 1;
-	Q100.yawStabilization.iGain = 1;
-	Q100.yawStabilization.iMin = 0;
-	Q100.yawStabilization.iMax = 0;
-	Q100.yawStabilization.positionFeedbackCoef = 1;
-	Q100.yawStabilization.speedFeedbackCoef = 100;
+	Q100.yawStabilization.pid_pGain = 1;
+	Q100.yawStabilization.pid_iGain = 1;
+	Q100.yawStabilization.pid_iMin = 0;
+	Q100.yawStabilization.pid_iMax = 0;
+	Q100.yawStabilization.positionFeedbackCoef = 32768;
+	Q100.yawStabilization.speedFeedbackCoef = 32768;
 }
 
 void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length) {
@@ -486,30 +486,30 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 		robot->depthStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_DEPTH];
 		robot->depthStabilization.positionFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_DEPTH);
 		robot->depthStabilization.speedFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_DEPTH);
-		robot->depthStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_DEPTH);
-		robot->depthStabilization.iMin = -robot->depthStabilization.iMax;
-		robot->depthStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_DEPTH);
+		robot->depthStabilization.pid_iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_DEPTH);
+		robot->depthStabilization.pid_iMin = -robot->depthStabilization.pid_iMax;
+		robot->depthStabilization.pid_pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_DEPTH);
 		
 		robot->rollStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_ROLL];
 		robot->rollStabilization.positionFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_ROLL);
 		robot->rollStabilization.speedFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_ROLL);
-		robot->rollStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_ROLL);
-		robot->rollStabilization.iMin = -robot->rollStabilization.iMax;
-		robot->rollStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_ROLL);
+		robot->rollStabilization.pid_iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_ROLL);
+		robot->rollStabilization.pid_iMin = -robot->rollStabilization.pid_iMax;
+		robot->rollStabilization.pid_pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_ROLL);
 		
 		robot->pitchStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_PITCH];
 		robot->pitchStabilization.positionFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_PITCH);
 		robot->pitchStabilization.speedFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_PITCH);
-		robot->pitchStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_PITCH);
-		robot->pitchStabilization.iMin = -robot->pitchStabilization.iMax;
-		robot->pitchStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_PITCH);
+		robot->pitchStabilization.pid_iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_PITCH);
+		robot->pitchStabilization.pid_iMin = -robot->pitchStabilization.pid_iMax;
+		robot->pitchStabilization.pid_pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_PITCH);
 		
 		robot->yawStabilization.iPartEnable = requestBuf[REQUEST_CONFIG_CONST_TIME_YAW];
 		robot->yawStabilization.positionFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_YAW);
 		robot->yawStabilization.speedFeedbackCoef = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_YAW);
-		robot->yawStabilization.iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_YAW);
-		robot->yawStabilization.iMin = -robot->yawStabilization.iMax;
-		robot->yawStabilization.pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_YAW);
+		robot->yawStabilization.pid_iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_START_YAW);
+		robot->yawStabilization.pid_iMin = -robot->yawStabilization.pid_iMax;
+		robot->yawStabilization.pid_pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_GAIN_YAW);
 	
 		robot->VMA[HLB].address = requestBuf[REQUEST_CONFIG_POSITION_HLB];
 		robot->VMA[HLF].address = requestBuf[REQUEST_CONFIG_POSITION_HLF];
@@ -554,15 +554,15 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf, int16_t *pitchError,
 {
 	if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)) {
 		shorePackageError = 0;
-		robot->movement.march = (((int16_t)requestBuf[SHORE_REQUEST_MARCH]) << 8) | requestBuf[SHORE_REQUEST_MARCH + 1];
-		robot->movement.lag = (((int16_t)requestBuf[SHORE_REQUEST_LAG]) << 8) | requestBuf[SHORE_REQUEST_LAG + 1];
-		robot->movement.depth = (((int16_t)requestBuf[SHORE_REQUEST_DEPTH]) << 8) | requestBuf[SHORE_REQUEST_DEPTH + 1];
-		robot->movement.pitch = (((int16_t)requestBuf[SHORE_REQUEST_ROLL]) << 8) | requestBuf[SHORE_REQUEST_ROLL + 1];
-		robot->movement.roll = (((int16_t)requestBuf[SHORE_REQUEST_PITCH]) << 8) | requestBuf[SHORE_REQUEST_PITCH + 1];
-		robot->movement.yaw = (((int16_t)requestBuf[SHORE_REQUEST_YAW]) << 8) | requestBuf[SHORE_REQUEST_YAW + 1];
+		robot->j_movement.march = (((int16_t)requestBuf[SHORE_REQUEST_MARCH]) << 8) | requestBuf[SHORE_REQUEST_MARCH + 1];
+		robot->j_movement.lag = (((int16_t)requestBuf[SHORE_REQUEST_LAG]) << 8) | requestBuf[SHORE_REQUEST_LAG + 1];
+		robot->j_movement.depth = (((int16_t)requestBuf[SHORE_REQUEST_DEPTH]) << 8) | requestBuf[SHORE_REQUEST_DEPTH + 1];
+		robot->j_movement.pitch = (((int16_t)requestBuf[SHORE_REQUEST_ROLL]) << 8) | requestBuf[SHORE_REQUEST_ROLL + 1];
+		robot->j_movement.roll = (((int16_t)requestBuf[SHORE_REQUEST_PITCH]) << 8) | requestBuf[SHORE_REQUEST_PITCH + 1];
+		robot->j_movement.yaw = (((int16_t)requestBuf[SHORE_REQUEST_YAW]) << 8) | requestBuf[SHORE_REQUEST_YAW + 1];
 		
-		robot->movement.pitch -= *pitchError;
-		robot->movement.roll -= *rollError;;
+		robot->j_movement.pitch -= *pitchError;
+		robot->j_movement.roll -= *rollError;;
 		
 		robot->device.light.brightness = requestBuf[SHORE_REQUEST_LIGHT];
 		robot->device.agar.opening = requestBuf[SHORE_REQUEST_AGAR];
@@ -588,15 +588,37 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf, int16_t *pitchError,
 	
 		robot->sensors.resetIMU = (bool) requestBuf[SHORE_REQUEST_RESET_IMU];
 		
+		int16_t bYaw, bRoll, bPitch;
+		if(robot->rollStabilization.enable) {
+			bRoll = robot->j_movement.yaw-robot->rollStabilization.speedError;
+		}
+		else {
+			bRoll = robot->j_movement.roll;
+		}
+		
+		if(robot->pitchStabilization.enable) {
+			bPitch = robot->j_movement.yaw-robot->pitchStabilization.speedError;
+		}
+		else {
+			bPitch = robot->j_movement.pitch;
+		}
+		
+		if(robot->yawStabilization.enable) {
+			bYaw = robot->j_movement.yaw-robot->yawStabilization.speedError;
+		}
+		else {
+			bYaw = robot->j_movement.yaw;
+		}
+		
 		int16_t velocity[VMA_DRIVER_NUMBER];
-		velocity[HLB] = (int16_t)( - robot->movement.march + robot->movement.lag - robot->movement.yaw); 
-		velocity[HLF] = (int16_t)(+ robot->movement.march + robot->movement.lag + robot->movement.yaw);
-		velocity[HRB] = (int16_t)-( - robot->movement.march - robot->movement.lag + robot->movement.yaw);
-		velocity[HRF] = (int16_t)(+ robot->movement.march - robot->movement.lag - robot->movement.yaw);
-		velocity[VB] = (int16_t)(- robot->movement.depth - robot->movement.pitch); 
-		velocity[VF] = (int16_t)-(- robot->movement.depth + robot->movement.pitch); 
-		velocity[VL] = (int16_t)(- robot->movement.depth + robot->movement.roll);
-		velocity[VR] = (int16_t)(- robot->movement.depth - robot->movement.roll);
+		velocity[HLB] = (int16_t)( - robot->j_movement.march + robot->j_movement.lag - bYaw); 
+		velocity[HLF] = (int16_t)(+ robot->j_movement.march + robot->j_movement.lag + bYaw);
+		velocity[HRB] = (int16_t)-( - robot->j_movement.march - robot->j_movement.lag + bYaw);
+		velocity[HRF] = (int16_t)(+ robot->j_movement.march - robot->j_movement.lag - bYaw);
+		velocity[VB] = (int16_t)(- robot->j_movement.depth - bPitch); 
+		velocity[VF] = (int16_t)-(- robot->j_movement.depth + bPitch); 
+		velocity[VL] = (int16_t)(- robot->j_movement.depth + bRoll);
+		velocity[VR] = (int16_t)(- robot->j_movement.depth - bRoll);
 		
 		for (uint8_t i = 0; i < VMA_DRIVER_NUMBER; ++i) {
 			velocity[i] = (int8_t)(velocity[i] / 0xFF);
@@ -616,12 +638,12 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf, int16_t *pitchError,
 	}
 	
 	if (shorePackageError == PACKAGE_TOLLERANCE) {
-		robot->movement.march = 0;
-		robot->movement.lag = 0;
-		robot->movement.depth = 0;
-		robot->movement.pitch = 0;
-		robot->movement.roll = 0;
-		robot->movement.yaw = 0;
+		robot->j_movement.march = 0;
+		robot->j_movement.lag = 0;
+		robot->j_movement.depth = 0;
+		robot->j_movement.pitch = 0;
+		robot->j_movement.roll = 0;
+		robot->j_movement.yaw = 0;
 	
 		robot->device.light.brightness = 0;
 		robot->device.agar.opening = 0;
@@ -718,11 +740,11 @@ void IMUReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 	robot->sensors.pitch = ((double) buffer) * 0.0109863;
 	
 	buffer = (((int16_t) ReceiveBuf[GYRO_PROC_X]) << 8) | ReceiveBuf[GYRO_PROC_X+1];
-	robot->sensors.rollSpeed = ((double) buffer) * 0.000183105;
+	robot->sensors.rollSpeed = ((double) buffer) * 0.1; //0.000183105;
 	buffer = (((int16_t) ReceiveBuf[GYRO_PROC_Y]) << 8) | ReceiveBuf[GYRO_PROC_Y+1];
-	robot->sensors.pitchSpeed = ((double) buffer) * 0.000183105;
+	robot->sensors.pitchSpeed = ((double) buffer) * 0.1;
 	buffer = (((int16_t) ReceiveBuf[GYRO_PROC_Z]) << 8) | ReceiveBuf[GYRO_PROC_Z+1];
-	robot->sensors.yawSpeed = ((double) buffer) * 0.000183105;
+	robot->sensors.yawSpeed = ((double) buffer) * 0.1;
 	
 	buffer = (((int16_t) ReceiveBuf[ACCEL_PROC_X]) << 8) | ReceiveBuf[ACCEL_PROC_X+1];
 	robot->sensors.accelX = ((double) buffer) * 0.000183105;
