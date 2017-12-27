@@ -6,80 +6,88 @@ struct PIDRegulator yawPID;
 
 void stabilizationInit(struct Robot *robot)
 {
-	PIDRegulatorInit(&rollPID,
-			robot->rollStabilization.pid_pGain, 0,
-			robot->rollStabilization.pid_iGain,
-			robot->rollStabilization.pid_iMax, 
-			robot->rollStabilization.pid_iMin);
-	
-	PIDRegulatorInit(&pitchPID,
-			robot->pitchStabilization.pid_pGain, 0,
-			robot->pitchStabilization.pid_iGain,
-			robot->pitchStabilization.pid_iMax, 
-			robot->pitchStabilization.pid_iMin);
-	
-	PIDRegulatorInit(&yawPID,
-			robot->yawStabilization.pid_pGain, 0,
-			robot->yawStabilization.pid_iGain,
-			robot->yawStabilization.pid_iMax, 
-			robot->yawStabilization.pid_iMin);
+    PIDRegulatorInit(&rollPID,
+            robot->rollStabCons.pid_pGain, 0,
+            robot->rollStabCons.pid_iGain,
+            robot->rollStabCons.pid_iMax,
+            robot->rollStabCons.pid_iMin);
+
+    PIDRegulatorInit(&pitchPID,
+            robot->pitchStabCons.pid_pGain, 0,
+            robot->pitchStabCons.pid_iGain,
+            robot->pitchStabCons.pid_iMax,
+            robot->pitchStabCons.pid_iMin);
+
+    PIDRegulatorInit(&yawPID,
+            robot->yawStabCons.pid_pGain, 0,
+            robot->yawStabCons.pid_iGain,
+            robot->yawStabCons.pid_iMax,
+            robot->yawStabCons.pid_iMin);
 }
 
-float stabilizeRoll(struct Robot *robot)
+void stabilizeRoll(struct Robot *robot)
 {
-	float newValue = 0;
-	
-	// Integration
-	robot->rollStabilization.aiValue += robot->j_movement.roll * fromTickToMs(xTaskGetTickCount() - robot->rollStabilization.aiLastTick) / 1000.0f;
-	robot->rollStabilization.aiLastTick = xTaskGetTickCount();
-	
-	// Position feedback
-	float rollError = robot->rollStabilization.aiValue - robot->sensors.roll * robot->rollStabilization.positionFeedbackCoef;
-	
-	// PID regulation
-	float pidValue = update(&rollPID, rollError, fromTickToMs(xTaskGetTickCount() - rollPID.lastUpdateTick));
-	
-	// Speed feedback
-	newValue = pidValue - robot->sensors.rollSpeed * robot->rollStabilization.speedFeedbackCoef;
-	
-	return newValue;
+    // Integration
+    robot->rollStabSt.joy_iValue += robot->f_joySpeed.roll * fromTickToMs(xTaskGetTickCount() - robot->rollStabSt.joy_iLastTick) / 1000.0f;
+    robot->rollStabSt.joy_iLastTick = xTaskGetTickCount();
+
+    // Position feedback
+    robot->rollStabSt.posError = robot->rollStabSt.joy_iValue - robot->f_sensors.roll * robot->rollStabCons.pPosFback;
+
+    // Feedback amplifier
+    robot->rollStabSt.posErrorAmp = robot->rollStabSt.posError * robot->rollStabCons.pErrGain;
+
+    // PID regulation
+    robot->rollStabSt.pidValue = update(&rollPID, robot->rollStabSt.posErrorAmp, fromTickToMs(xTaskGetTickCount() - rollPID.lastUpdateTick));
+
+    // Dynamic summator
+    robot->rollStabSt.dynSummator = robot->rollStabSt.pidValue + robot->f_joySpeed.roll * robot->rollStabCons.pSpeedDyn;
+
+    // Speed feedback
+    robot->rollStabSt.speedError = robot->rollStabSt.dynSummator - robot->f_sensors.rollSpeed * robot->rollStabCons.pSpeedFback;
 }
 
 
-float stabilizePitch(struct Robot *robot)
+void stabilizePitch(struct Robot *robot)
 {
-	float newValue = 0;
-	
-	// Integration
-	robot->pitchStabilization.aiValue += robot->j_movement.pitch * fromTickToMs(xTaskGetTickCount() - robot->pitchStabilization.aiLastTick) / 1000.0f;
-	robot->pitchStabilization.aiLastTick = xTaskGetTickCount();
-	
-	// Position feedback
-	float pitchError = robot->pitchStabilization.aiValue - robot->sensors.pitch * robot->pitchStabilization.positionFeedbackCoef;
-	
-	// PID regulation
-	float pidValue = update(&pitchPID, pitchError, fromTickToMs(xTaskGetTickCount() - pitchPID.lastUpdateTick));
-	
-	// speed regulation
-	newValue = pidValue - robot->sensors.pitchSpeed * robot->pitchStabilization.speedFeedbackCoef;
-	
-	return newValue;
+    // Integration
+    robot->pitchStabSt.joy_iValue += robot->f_joySpeed.pitch * fromTickToMs(xTaskGetTickCount() - robot->pitchStabSt.joy_iLastTick) / 1000.0f;
+    robot->pitchStabSt.joy_iLastTick = xTaskGetTickCount();
+
+    // Position feedback
+    robot->pitchStabSt.posError = robot->pitchStabSt.joy_iValue - robot->f_sensors.pitch * robot->pitchStabCons.pPosFback;
+
+    // Feedback amplifier
+    robot->pitchStabSt.posErrorAmp = robot->pitchStabSt.posError * robot->pitchStabCons.pErrGain;
+
+    // PID regulation
+    robot->pitchStabSt.pidValue = update(&rollPID, robot->pitchStabSt.posErrorAmp, fromTickToMs(xTaskGetTickCount() - rollPID.lastUpdateTick));
+
+    // Dynamic summator
+    robot->pitchStabSt.dynSummator = robot->pitchStabSt.pidValue + robot->f_joySpeed.pitch * robot->pitchStabCons.pSpeedDyn;
+
+    // Speed feedback
+    robot->pitchStabSt.speedError = robot->pitchStabSt.dynSummator - robot->f_sensors.pitchSpeed * robot->pitchStabCons.pSpeedFback;
 }
 
-float stabilizeYaw(struct Robot *robot)
+void stabilizeYaw(struct Robot *robot)
 {
-	// Integration
-	robot->yawStabilization.aiValue += robot->j_movement.yaw * fromTickToMs(xTaskGetTickCount() - robot->yawStabilization.aiLastTick) / 1000.0f;
-	robot->yawStabilization.aiLastTick = xTaskGetTickCount();
-	
-	// Position feedback
-	float yawError = robot->yawStabilization.aiValue - robot->sensors.yaw * robot->yawStabilization.positionFeedbackCoef;
-	
-	// PID regulation
-	float pidValue = update(&pitchPID, yawError, fromTickToMs(xTaskGetTickCount() - pitchPID.lastUpdateTick));
-	
-	// Speed feedback
-	float newValue = pidValue - robot->sensors.yawSpeed * robot->yawStabilization.speedFeedbackCoef;
-	
-	return newValue;
+    // Integration
+    robot->yawStabSt.joy_iValue += robot->f_joySpeed.yaw * fromTickToMs(xTaskGetTickCount() - robot->yawStabSt.joy_iLastTick) / 1000.0f;
+    robot->yawStabSt.joy_iLastTick = xTaskGetTickCount();
+
+    // Position feedback
+    robot->yawStabSt.posError = robot->yawStabSt.joy_iValue - robot->f_sensors.yaw * robot->yawStabCons.pPosFback;
+
+    // Feedback amplifier
+    robot->yawStabSt.posErrorAmp = robot->yawStabSt.posError * robot->yawStabCons.pErrGain;
+
+    // PID regulation
+    robot->yawStabSt.pidValue = update(&rollPID, robot->yawStabSt.posErrorAmp, fromTickToMs(xTaskGetTickCount() - rollPID.lastUpdateTick));
+
+    // Dynamic summator
+    robot->yawStabSt.dynSummator = robot->yawStabSt.pidValue + robot->f_joySpeed.yaw * robot->yawStabCons.pSpeedDyn;
+
+    // Speed feedback
+    robot->yawStabSt.speedError = robot->yawStabSt.dynSummator - robot->f_sensors.yawSpeed * robot->yawStabCons.pSpeedFback;
 }
