@@ -32,7 +32,7 @@ void stabilizeRoll(struct Robot *robot)
     robot->rollStabSt.joy_iLastTick = xTaskGetTickCount();
 
     // Position feedback
-    robot->rollStabSt.posError = robot->rollStabSt.joy_iValue - robot->f_sensors.roll * robot->rollStabCons.pPosFback;
+    robot->rollStabSt.posError = robot->rollStabSt.joy_iValue - robot->f_sensors.roll;
 
     // Feedback amplifier
     robot->rollStabSt.posErrorAmp = robot->rollStabSt.posError * robot->rollStabCons.pErrGain;
@@ -55,7 +55,7 @@ void stabilizePitch(struct Robot *robot)
     robot->pitchStabSt.joy_iLastTick = xTaskGetTickCount();
 
     // Position feedback
-    robot->pitchStabSt.posError = robot->pitchStabSt.joy_iValue - robot->f_sensors.pitch * robot->pitchStabCons.pPosFback;
+    robot->pitchStabSt.posError = robot->pitchStabSt.joy_iValue - robot->f_sensors.pitch;
 
     // Feedback amplifier
     robot->pitchStabSt.posErrorAmp = robot->pitchStabSt.posError * robot->pitchStabCons.pErrGain;
@@ -77,7 +77,7 @@ void stabilizeYaw(struct Robot *robot)
     robot->yawStabSt.joy_iLastTick = xTaskGetTickCount();
 
     // Position feedback
-    robot->yawStabSt.posError = robot->yawStabSt.joy_iValue - robot->f_sensors.yaw * robot->yawStabCons.pPosFback;
+    robot->yawStabSt.posError = robot->yawStabSt.joy_iValue - robot->f_sensors.yaw;
 
     // Feedback amplifier
     robot->yawStabSt.posErrorAmp = robot->yawStabSt.posError * robot->yawStabCons.pErrGain;

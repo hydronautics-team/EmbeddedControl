@@ -5,41 +5,41 @@
   ******************************************************************************
   * This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether
+  * USER CODE END. Other portions of this file, whether 
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2017 STMicroelectronics International N.V.
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
   * All rights reserved.
   *
-  * Redistribution and use in source and binary forms, with or without
+  * Redistribution and use in source and binary forms, with or without 
   * modification, are permitted, provided that the following conditions are met:
   *
-  * 1. Redistribution of source code must retain the above copyright notice,
+  * 1. Redistribution of source code must retain the above copyright notice, 
   *    this list of conditions and the following disclaimer.
   * 2. Redistributions in binary form must reproduce the above copyright notice,
   *    this list of conditions and the following disclaimer in the documentation
   *    and/or other materials provided with the distribution.
-  * 3. Neither the name of STMicroelectronics nor the names of other
-  *    contributors to this software may be used to endorse or promote products
+  * 3. Neither the name of STMicroelectronics nor the names of other 
+  *    contributors to this software may be used to endorse or promote products 
   *    derived from this software without specific written permission.
-  * 4. This software, including modifications and/or derivative works of this
+  * 4. This software, including modifications and/or derivative works of this 
   *    software, must execute solely and exclusively on microcontroller or
   *    microprocessor devices manufactured by or for STMicroelectronics.
-  * 5. Redistribution and use of this software other than as permitted under
-  *    this license is void and will automatically terminate your rights under
-  *    this license.
+  * 5. Redistribution and use of this software other than as permitted under 
+  *    this license is void and will automatically terminate your rights under 
+  *    this license. 
   *
-  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT
-  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS" 
+  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT 
+  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
   * PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL PROPERTY
-  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT
+  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT 
   * SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
   * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
-  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
+  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
   * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
   * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
@@ -51,7 +51,7 @@
 #include "task.h"
 #include "cmsis_os.h"
 
-/* USER CODE BEGIN Includes */
+/* USER CODE BEGIN Includes */     
 #include "usart.h"
 #include "timers.h"
 #include "messages.h"
@@ -59,6 +59,7 @@
 #include "global.h"
 #include "communication.h"
 #include "stabilization.h"
+#include "checksum.h"
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
@@ -92,8 +93,6 @@ extern uint16_t counterRx;
 
 bool shoreCommunicationUpdated = false;
 
-extern struct PIDRegulator rollPID;
-extern struct PIDRegulator pitchPID;
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -214,30 +213,8 @@ void func_tLedBlinkingTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-        HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+        HAL_GPIO_TogglePin(DBG_LED_GPIO_Port, DBG_LED_Pin);
         osDelayUntil(&sysTime, 200);
-        HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-        HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
-        osDelayUntil(&sysTime, 200);
-        HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
-        HAL_GPIO_TogglePin(LD7_GPIO_Port, LD7_Pin);
-        osDelayUntil(&sysTime, 200);
-        HAL_GPIO_TogglePin(LD7_GPIO_Port, LD7_Pin);
-        HAL_GPIO_TogglePin(LD9_GPIO_Port, LD9_Pin);
-        osDelayUntil(&sysTime, 200);
-        HAL_GPIO_TogglePin(LD9_GPIO_Port, LD9_Pin);
-        HAL_GPIO_TogglePin(LD10_GPIO_Port, LD10_Pin);
-        osDelayUntil(&sysTime, 200);
-        HAL_GPIO_TogglePin(LD10_GPIO_Port, LD10_Pin);
-        HAL_GPIO_TogglePin(LD8_GPIO_Port, LD8_Pin);
-        osDelayUntil(&sysTime, 200);
-        HAL_GPIO_TogglePin(LD8_GPIO_Port, LD8_Pin);
-        HAL_GPIO_TogglePin(LD6_GPIO_Port, LD6_Pin);
-        osDelayUntil(&sysTime, 200);
-        HAL_GPIO_TogglePin(LD6_GPIO_Port, LD6_Pin);
-        HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
-        osDelayUntil(&sysTime, 200);
-        HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
   }
   /* USER CODE END func_tLedBlinkingTask */
 }
@@ -274,18 +251,23 @@ void func_tVmaCommTask(void const * argument)
 void func_tImuCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tImuCommTask */
-    uint32_t sysTime = osKernelSysTick();
+  uint32_t sysTime = osKernelSysTick();
+  uint8_t ErrorCode = 0;
   /* Infinite loop */
   for(;;)
   {
-        HAL_UART_Transmit_IT(&huart4, IMURequestBuf, IMU_REQUEST_LENGTH);
-        HAL_UART_Receive_IT(&huart4, IMUResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
-
-        uint8_t ErrorCode = 0;
-        if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
-            IMUReceive(&Q100, IMUResponseBuf, &ErrorCode);
-            xSemaphoreGive(mutDataHandle);
-        }
+	  	if(Q100.i_sensors.resetIMU) {
+	  		transmitPackageDMA(IMU_UART, IMUResetRequestBuf, IMU_REQUEST_LENGTH);
+	  		Q100.i_sensors.resetIMU = false;
+	  	}
+	  	else {
+	  		transmitPackageDMA(IMU_UART, IMURequestBuf, IMU_REQUEST_LENGTH);
+	  		receivePackageDMA(IMU_UART, IMUResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
+	  		if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+	  			IMUReceive(&Q100, IMUResponseBuf, &ErrorCode);
+	        	xSemaphoreGive(mutDataHandle);
+	  		}
+	  	}
 
         osDelayUntil(&sysTime, 10);
   }
@@ -365,11 +347,10 @@ void func_tUartTimer(void const * argument)
   if (uart1PackageReceived) {
             shoreCommunicationUpdated = true;
             uart1PackageReceived = false;
-            int16_t pitchError = 0, rollError = 0;
 
             if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
                 if(numberRx == SHORE_REQUEST_LENGTH) {
-                    ShoreRequest(&Q100, ShoreRequestBuf, &pitchError, &rollError);
+                    ShoreRequest(&Q100, ShoreRequestBuf);
                 }
                 else if(numberRx == REQUEST_CONFIG_LENGTH) {
                     ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);
@@ -397,12 +378,7 @@ void func_tUartTimer(void const * argument)
 }
 
 /* USER CODE BEGIN Application */
-void nullIntArray(uint8_t *array, uint8_t size)
-{
-    for (uint8_t i = 0; i < size; ++i) {
-        array[i] = 0x00;
-    }
-}
+
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

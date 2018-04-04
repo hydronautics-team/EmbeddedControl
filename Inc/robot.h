@@ -110,12 +110,12 @@ struct Robot {
     } f_joySpeed;
 
     struct i_PositionRobotMovement {
-        int16_t march;
-        int16_t lag;
-        int16_t depth;
-        int16_t roll;
-        int16_t pitch;
-        int16_t yaw;
+    	int16_t march;
+    	int16_t lag;
+    	int16_t depth;
+    	int16_t roll;
+    	int16_t pitch;
+    	int16_t yaw;
     } i_posMov;
 
     struct f_PositionRobotMovement {
@@ -164,20 +164,17 @@ struct Robot {
 
     struct RobotStabilizationConstants {
         bool enable;
-        bool iPartEnable;
-        bool posMode;
         // Before PID
         float iJoySpeed;
         float pSpeedDyn;
         float pErrGain;
+        // Feedback
+        float pSpeedFback;
         // PID
         float pid_pGain;
         float pid_iGain;
         float pid_iMax;
         float pid_iMin;
-        // Feedback
-        float pPosFback;
-        float pSpeedFback;
     } depthStabCons, rollStabCons, pitchStabCons, yawStabCons;
 
     struct RobotStabilizationState {

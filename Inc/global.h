@@ -28,7 +28,8 @@ extern uint8_t ShoreRequestConfigBuf[REQUEST_CONFIG_LENGTH];
 extern uint8_t ShoreResponseBuf[SHORE_RESPONSE_LENGTH];
 
 extern uint8_t IMURequestBuf[IMU_REQUEST_LENGTH];
-extern uint8_t IMUResponseBuf[IMU_RESPONSE_LENGTH*IMU_CHECKSUMS*2];
+extern uint8_t IMUResetRequestBuf[IMU_REQUEST_LENGTH];
+extern uint8_t IMUResponseBuf[IMU_RESPONSE_LENGTH*IMU_CHECKSUMS];
 
 extern uint8_t BTReceiveBuf[BT_SIZE];
 extern uint8_t BTCalls;

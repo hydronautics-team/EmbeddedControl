@@ -101,3 +101,26 @@ void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size)
     *lowbyte = (uint8_t) ((checksum & 0xFF00) >> 8);
     *upbyte = (uint8_t) (checksum & 0x00FF);
 }
+
+int16_t MergeBytes(uint8_t most, uint8_t least)
+{
+	return ((int16_t) most << 8) | (least & 0x0F);
+}
+
+uint16_t MergeUBytes(uint8_t most, uint8_t least)
+{
+	return ((uint16_t) most << 8) | (least & 0x0F);
+}
+
+float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos)
+{
+	return *(float *) (&buff[high_byte_pos]);
+    //return (float) ((buff[high_byte_pos] << 24) | (buff[high_byte_pos + 1] << 16) | (buff[high_byte_pos + 2] << 8) | buff[high_byte_pos + 3]);
+}
+
+void nullIntArray(uint8_t *array, uint8_t size)
+{
+    for (uint8_t i = 0; i < size; ++i) {
+        array[i] = 0x00;
+    }
+}
