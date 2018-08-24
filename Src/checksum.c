@@ -56,16 +56,44 @@ bool IsChecksumm8bCorrect(uint8_t *msg, uint16_t length)
     else return 0;
 }
 
+bool IsChecksumm8bCorrectVma(uint8_t *msg, uint16_t length)
+{
+	uint8_t crcGot, crc = 0;
+	int i;
+
+	crcGot = msg[length-1] ;
+
+	for(i=1; i < length - 1; i++) {
+		crc ^= msg[i];
+	}
+
+	if(crc == crcGot)
+		return 1;
+	else return 0;
+}
+
 void AddChecksumm8b(uint8_t *msg, uint16_t length)
 {
-    uint8_t crc = 0;
-    int i = 0;
+	uint8_t crc = 0;
+	int i = 0;
 
-    for(i=0; i < length - 1; i++){
-            crc ^= msg[i];
-        }
+	for(i=0; i < length - 1; i++) {
+		crc ^= msg[i];
+	}
 
-    msg[length-1] = crc;
+	msg[length-1] = crc;
+}
+
+void AddChecksumm8bVma(uint8_t *msg, uint16_t length)
+{
+	uint8_t crc = 0;
+	int i = 0;
+
+	for(i=1; i < length - 1; i++) {
+		crc ^= msg[i];
+	}
+
+	msg[length-1] = crc;
 }
 
 void AddChecksum16bS(uint8_t *msg, uint16_t length)
@@ -118,9 +146,51 @@ float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos)
     //return (float) ((buff[high_byte_pos] << 24) | (buff[high_byte_pos + 1] << 16) | (buff[high_byte_pos + 2] << 8) | buff[high_byte_pos + 3]);
 }
 
+void Uint8FromFloat(float input, uint8_t *outArray)
+{
+	uint8_t *d = (uint8_t *) &input;
+
+	outArray[0] = *d & 0xFF;
+	outArray[1] = (*d >> 8) & 0xFF;
+	outArray[2] = (*d >> 16) & 0xFF;
+	outArray[3] = (*d >> 24) & 0xFF;
+}
+
 void nullIntArray(uint8_t *array, uint8_t size)
 {
     for (uint8_t i = 0; i < size; ++i) {
         array[i] = 0x00;
     }
+}
+
+bool PickBit(uint8_t input, uint8_t bit)
+{
+	return (bool) ((input << (8 - bit)) >> 8);
+}
+
+void SetBit(uint8_t *byte, uint8_t bit, bool state)
+{
+	*byte = (*byte & ~(1 << bit)) | ((uint8_t) state << bit);
+}
+
+void writeBit(uint8_t *byte, uint8_t value, uint8_t biteNumb)
+{
+    if (value == 0){
+        *byte &= ~(1 << biteNumb);
+    }
+    else{
+        *byte |= (1 << biteNumb);
+    }
+}
+
+uint8_t ComputeChecksum8b(uint8_t *msg, uint16_t length)
+{
+    uint8_t crc = 0;
+    int i = 0;
+
+    for(i=0; i < length - 1; i++) {
+            crc ^= msg[i];
+        }
+
+    return crc;
 }

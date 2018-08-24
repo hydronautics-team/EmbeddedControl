@@ -1,193 +1,289 @@
 #ifndef MESSAGES_H
 #define MESSAGES_H
 
+#include "stdint.h"
+
+#pragma pack(push, 1)
+
 /* STM send requests and VMA send responses */
-#define VMA_DEV_REQUEST_LENGTH              7
 
-#define VMA_DEV_REQUEST_AA1                 0
-#define VMA_DEV_REQUEST_AA2                 1
-#define VMA_DEV_REQUEST_ADDRESS             2
-#define VMA_DEV_REQUEST_SETTING             3
-#define VMA_DEV_REQUEST_VELOCITY1           4
-#define VMA_DEV_REQUEST_VELOCITY2           5
-#define VMA_DEV_REQUEST_CHECKSUM            6
+#define VMA_NUMBER              	8
+#define VMA_DRIVER_NUMBER       	8
 
-#define VMA_DEV_NULL						-1
-#define VMA_DEV_RESPONSE_LENGTH             10
+#define VMA_REQUEST_LENGTH   		12
+#define VMA_CONFIG_REQUEST_LENGTH  	7
+#define VMA_RESPONSE_LENGTH  		10
 
-#define VMA_DEV_RESPONSE_AA                 0
-#define VMA_DEV_RESPONSE_ADDRESS            1
-#define VMA_DEV_RESPONSE_ERRORS             2
-#define VMA_DEV_RESPONSE_CURRENT_1H         3
-#define VMA_DEV_RESPONSE_CURRENT_1L         4
-#define VMA_DEV_RESPONSE_CURRENT_2H         5
-#define VMA_DEV_RESPONSE_CURRENT_2L         6
-#define VMA_DEV_RESPONSE_VELOCITY1			7
-#define VMA_DEV_RESPONSE_VELOCITY2			8
-#define VMA_DEV_RESPONSE_CHECKSUM           9
+#define VMA_NORMAL_REQUEST_TYPE 	0x01
+#define VMA_CONFIG_REQUEST_TYPE 	0x02
 
-#define VMA_NUMBER              8
-#define VMA_DRIVER_NUMBER       8
-#define DEV_DRIVER_NUMBER       4
-#define BLUETOOTH_MESSAGE_SIZE  8
+struct vmaRequest_s
+{
+	uint8_t AA; // 0xAA doesn't include in CRC calculation
+	uint8_t type; // 0x01
+	uint8_t address;
+	uint8_t update_base_vector; // true or false
+	uint8_t position_setting; // enabling of position_setting
+	uint16_t angle; // angle - 0..359;
+	int8_t velocity;
+	uint8_t frequency;
+	int16_t outrunning_angle;
+	uint8_t crc;
+};
+
+struct vmaConfigRequest_s
+{
+    uint8_t AA;
+    uint8_t type; // 0x02
+    uint8_t update_firmware; // (bool) set new address or update firmware even if old address doesn't equal BLDC address
+    uint8_t forse_setting; // (bool) set new address even if old address doesn't equal BLDC address
+    uint8_t old_address;
+    uint8_t new_address;
+    uint8_t crc;
+};
+
+struct vmaResponse_s
+{
+    uint8_t AA;
+    uint8_t type;
+    uint8_t address;
+    uint8_t state;
+    uint8_t position_code;
+    uint16_t cur_angle;
+    uint16_t current;
+    uint8_t crc;
+};
+
+/* STM send requests and DEV send responses */
+
+#define DEV_REQUEST_LENGTH 			7
+#define DEV_NULL					-1
+#define DEV_RESPONSE_LENGTH			10
+#define DEV_DRIVER_NUMBER      		4
+
+struct devRequest_s
+{
+	uint8_t AA1;
+	uint8_t AA2;
+	uint8_t address;
+	uint8_t setting;
+	uint8_t velocity1;
+	uint8_t velocity2;
+	uint8_t checksum;
+};
+
+struct devResponse_s
+{
+    uint8_t AA;
+    uint8_t address;
+    uint8_t errors;
+    uint16_t current1;
+    uint16_t current2;
+    uint8_t velocity1;
+    uint8_t velocity2;
+    uint8_t checksum;
+};
 
 ///* Shore send requests and STM send responses */
 ///* --- SHORE REQUEST NORMAL MODE --- */
 #define SHORE_REQUEST_CODE             0xA5
 
-#define SHORE_REQUEST_LENGTH           27
+#define SHORE_REQUEST_LENGTH           26
 
-#define SHORE_REQUEST_TYPE             0
-#define SHORE_REQUEST_FLAGS            1
-#define SHORE_REQUEST_MARCH            2
-#define SHORE_REQUEST_LAG              4
-#define SHORE_REQUEST_DEPTH            6
-#define SHORE_REQUEST_ROLL             8
-#define SHORE_REQUEST_PITCH            10
-#define SHORE_REQUEST_YAW              12
+#define SHORE_STABILIZE_DEPTH_BIT 		0
+#define SHORE_STABILIZE_ROLL_BIT 		1
+#define SHORE_STABILIZE_PITCH_BIT 		2
+#define SHORE_STABILIZE_YAW_BIT 		3
+#define SHORE_STABILIZE_IMU_BIT 		4
 
-#define SHORE_REQUEST_LIGHT            14
-#define SHORE_REQUEST_GRAB             15
-#define SHORE_REQUEST_TILT             16
-#define SHORE_REQUEST_GRAB_ROTATE      17
-#define SHORE_REQUEST_AGAR             18
-#define SHORE_REQUEST_BOTTOM_LIGHT     19
+#define SHORE_DEVICE_AC_BIT 			0
 
-#define SHORE_REQUEST_STABILIZE_DEPTH  20
-#define SHORE_REQUEST_STABILIZE_ROLL   21
-#define SHORE_REQUEST_STABILIZE_PITCH  22
-#define SHORE_REQUEST_STABILIZE_YAW    23
-#define SHORE_REQUEST_RESET_IMU        24
+struct shoreRequest_s
+{
+	uint8_t type;
+	uint8_t flags;
+	int16_t march;
+	int16_t lag;
+	int16_t depth;
+	int16_t roll;
+	int16_t pitch;
+	int16_t yaw;
+	int8_t light;
+	int8_t grab;
+	int8_t tilt;
+	int8_t grab_rotate;
+	int8_t dev1;
+	int8_t dev2;
+	uint8_t dev_flags;
+	uint8_t stabilize_flags;
+	uint8_t cameras;
+	uint8_t pc_reset;
+	uint16_t checksum;
+};
 
-#define SHORE_REQUEST_CHECKSUM         25
-
-
-/* --- SHORE REQUEST CONFIG MODE --- */
-// ? ??????????
 #define REQUEST_CONFIG_CODE             0x55
-
 #define REQUEST_CONFIG_LENGTH           195
 
-#define REQUEST_CONFIG_TYPE             0
+struct shoreConfigRequest_s
+{
+    uint8_t type;
 
-#define REQUEST_CONFIG_K1_DEPTH         1
-#define REQUEST_CONFIG_K2_DEPTH         5
-#define REQUEST_CONFIG_K3_DEPTH         9
-#define REQUEST_CONFIG_K4_DEPTH         13
-#define REQUEST_CONFIG_IBORDERS_DEPTH   17
-#define REQUEST_CONFIG_PGAIN_DEPTH      21
-#define REQUEST_CONFIG_IGAIN_DEPTH      25
+    float depth_k1;
+    float depth_k2;
+    float depth_k3;
+    float depth_k4;
+    float depth_iborders;
+    float depth_pgain;
+    float depth_igain;
 
-#define REQUEST_CONFIG_K1_ROLL          29
-#define REQUEST_CONFIG_K2_ROLL          33
-#define REQUEST_CONFIG_K3_ROLL          37
-#define REQUEST_CONFIG_K4_ROLL          41
-#define REQUEST_CONFIG_IBORDERS_ROLL    45
-#define REQUEST_CONFIG_PGAIN_ROLL       49
-#define REQUEST_CONFIG_IGAIN_ROLL       53
+    float roll_k1;
+    float roll_k2;
+    float roll_k3;
+    float roll_k4;
+    float roll_iborders;
+    float roll_pgain;
+    float roll_igain;
 
-#define REQUEST_CONFIG_K1_PITCH         57
-#define REQUEST_CONFIG_K2_PITCH         61
-#define REQUEST_CONFIG_K3_PITCH         65
-#define REQUEST_CONFIG_K4_PITCH         69
-#define REQUEST_CONFIG_IBORDERS_PITCH   73
-#define REQUEST_CONFIG_PGAIN_PITCH      77
-#define REQUEST_CONFIG_IGAIN_PITCH      81
+    float pitch_k1;
+    float pitch_k2;
+    float pitch_k3;
+    float pitch_k4;
+    float pitch_iborders;
+    float pitch_pgain;
+    float pitch_igain;
 
-#define REQUEST_CONFIG_K1_YAW           85
-#define REQUEST_CONFIG_K2_YAW           89
-#define REQUEST_CONFIG_K3_YAW           93
-#define REQUEST_CONFIG_K4_YAW           97
-#define REQUEST_CONFIG_IBORDERS_YAW     101
-#define REQUEST_CONFIG_PGAIN_YAW        105
-#define REQUEST_CONFIG_IGAIN_YAW        109
+    float yaw_k1;
+    float yaw_k2;
+    float yaw_k3;
+    float yaw_k4;
+    float yaw_iborders;
+    float yaw_pgain;
+    float yaw_igain;
 
-#define REQUEST_CONFIG_POSITION_HLB     113
-#define REQUEST_CONFIG_POSITION_HLF     114
-#define REQUEST_CONFIG_POSITION_HRB     115
-#define REQUEST_CONFIG_POSITION_HRF     116
-#define REQUEST_CONFIG_POSITION_VB      117
-#define REQUEST_CONFIG_POSITION_VF      118
-#define REQUEST_CONFIG_POSITION_VL      119
-#define REQUEST_CONFIG_POSITION_VR      120
+    uint8_t position_hlb;
+    uint8_t position_hlf;
+    uint8_t position_hrb;
+    uint8_t position_hrf;
+    uint8_t position_vb;
+    uint8_t position_vf;
+    uint8_t position_vl;
+    uint8_t position_vr;
 
-#define REQUEST_CONFIG_SETTING_HLB      121
-#define REQUEST_CONFIG_SETTING_HLF      122
-#define REQUEST_CONFIG_SETTING_HRB      123
-#define REQUEST_CONFIG_SETTING_HRF      124
-#define REQUEST_CONFIG_SETTING_VB       125
-#define REQUEST_CONFIG_SETTING_VF       126
-#define REQUEST_CONFIG_SETTING_VL       127
-#define REQUEST_CONFIG_SETTING_VR       128
+    uint8_t setting_hlb;
+    uint8_t setting_hlf;
+    uint8_t setting_hrb;
+    uint8_t setting_hrf;
+    uint8_t setting_vb;
+    uint8_t setting_vf;
+    uint8_t setting_vl;
+    uint8_t setting_vr;
 
-#define REQUEST_CONFIG_K_FORWARD_HLB    129
-#define REQUEST_CONFIG_K_FORWARD_HLF    133
-#define REQUEST_CONFIG_K_FORWARD_HRB    137
-#define REQUEST_CONFIG_K_FORWARD_HRF    141
-#define REQUEST_CONFIG_K_FORWARD_VB     145
-#define REQUEST_CONFIG_K_FORWARD_VF     149
-#define REQUEST_CONFIG_K_FORWARD_VL     153
-#define REQUEST_CONFIG_K_FORWARD_VR     157
+    uint8_t kforward_hlb;
+    uint8_t kforward_hlf;
+    uint8_t kforward_hrb;
+    uint8_t kforward_hrf;
+    uint8_t kforward_vb;
+    uint8_t kforward_vf;
+    uint8_t kforward_vl;
+    uint8_t kforward_vr;
 
-#define REQUEST_CONFIG_K_BACKWARD_HLB   161
-#define REQUEST_CONFIG_K_BACKWARD_HLF   165
-#define REQUEST_CONFIG_K_BACKWARD_HRB   169
-#define REQUEST_CONFIG_K_BACKWARD_HRF   173
-#define REQUEST_CONFIG_K_BACKWARD_VB    177
-#define REQUEST_CONFIG_K_BACKWARD_VF    181
-#define REQUEST_CONFIG_K_BACKWARD_VL    185
-#define REQUEST_CONFIG_K_BACKWARD_VR    189
+    uint8_t kbackward_hlb;
+    uint8_t kbackward_hlf;
+    uint8_t kbackward_hrb;
+    uint8_t kbackward_hrf;
+    uint8_t kbackward_vb;
+    uint8_t kbackward_vf;
+    uint8_t kbackward_vl;
+    uint8_t kbackward_vr;
 
-#define REQUEST_CONFIG_CHECKSUM         193
+    uint16_t checksum;
+};
 
-/* --- SHORE RESPONSE MODE --- */
-#define SHORE_RESPONSE_LENGTH                 63
+#define SHORE_RESPONSE_LENGTH			72
 
-#define SHORE_RESPONSE_ROLL                   0
-#define SHORE_RESPONSE_PITCH                  2
-#define SHORE_RESPONSE_YAW                    4
+struct shoreResponse_s
+{
+    int16_t roll;
+    int16_t pitch;
+    int16_t yaw;
 
-#define SHORE_RESPONSE_ROLL_SPEED             6
-#define SHORE_RESPONSE_PITCH_SPEED            8
-#define SHORE_RESPONSE_YAW_SPEED              10
+    int16_t rollSpeed;
+    int16_t pitchSpeed;
+    int16_t yawSpeed;
 
-#define SHORE_RESPONSE_PRESSURE               12
+    uint16_t pressure;
 
-#define SHORE_RESPONSE_BLUETOOTH              14
+    uint8_t wf_type;
+    uint8_t wf_tickrate;
+    uint8_t wf_voltage;
+    float wf_x;
+    float wf_y;
 
-#define SHORE_RESPONSE_VMA_CURRENT_HLB        22
-#define SHORE_RESPONSE_VMA_CURRENT_HLF        24
-#define SHORE_RESPONSE_VMA_CURRENT_HRB        26
-#define SHORE_RESPONSE_VMA_CURRENT_HRF        28
-#define SHORE_RESPONSE_VMA_CURRENT_VB         30
-#define SHORE_RESPONSE_VMA_CURRENT_VF         32
-#define SHORE_RESPONSE_VMA_CURRENT_VL         34
-#define SHORE_RESPONSE_VMA_CURRENT_VR         36
+    uint8_t dev_state;
+    int16_t leak_data;
+    int16_t in_pressure;
 
+    uint16_t vma_current_hlb;
+    uint16_t vma_current_hlf;
+    uint16_t vma_current_hrb;
+    uint16_t vma_current_hrf;
+    uint16_t vma_current_vb;
+    uint16_t vma_current_vf;
+    uint16_t vma_current_vl;
+    uint16_t vma_current_vr;
 
-#define SHORE_RESPONSE_VMA_VELOCITY_HLB       38
-#define SHORE_RESPONSE_VMA_VELOCITY_HLF       39
-#define SHORE_RESPONSE_VMA_VELOCITY_HRB       40
-#define SHORE_RESPONSE_VMA_VELOCITY_HRF       41
-#define SHORE_RESPONSE_VMA_VELOCITY_VB        42
-#define SHORE_RESPONSE_VMA_VELOCITY_VF        43
-#define SHORE_RESPONSE_VMA_VELOCITY_VL        44
-#define SHORE_RESPONSE_VMA_VELOCITY_VR        45
+    int8_t vma_velocity_hlb;
+    int8_t vma_velocity_hlf;
+    int8_t vma_velocity_hrb;
+    int8_t vma_velocity_hrf;
+    int8_t vma_velocity_vb;
+    int8_t vma_velocity_vf;
+    int8_t vma_velocity_vl;
+    int8_t vma_velocity_vr;
 
-#define SHORE_RESPONSE_LIGHT_CURRENT          46
-#define SHORE_RESPONSE_BOTTOM_LIGHT_CURRENT   48
-#define SHORE_RESPONSE_AGAR_CURRENT           50
-#define SHORE_RESPONSE_GRAB_CURRENT           52
-#define SHORE_RESPONSE_GRAB_ROTATE_CURRENT    54
-#define SHORE_RESPONSE_CURRENT_TILT           56
+    uint16_t dev_current_light;
+    uint16_t dev_current_tilt;
+    uint16_t dev_current_grab;
+    uint16_t dev_current_grab_rotate;
+    uint16_t dev_current_dev1;
+    uint16_t dev_current_dev2;
 
-#define SHORE_RESPONSE_VMA_ERRORS             58
+    uint16_t vma_errors;
+    uint8_t dev_errors;
+    uint8_t pc_errors;
 
-#define SHORE_RESPONSE_DEV_ERRORS             60
+    uint16_t checksum;
+};
 
-#define SHORE_RESPONSE_CHECKSUM               61
+/* --- IMU package and parsing info  --- */
+#define IMU_REQUEST_LENGTH 11 // size of transmit package
+#define IMU_RESPONSE_LENGTH 15 // size of receive package
+#define IMU_CHECKSUMS 5 // amount of packages
 
-/* --- IMU parsing info  --- */
+struct imuResponse_s
+{
+    uint16_t gyro_x;
+    uint16_t gyro_y;
+    uint16_t gyro_z;
+
+    uint16_t accel_x;
+    uint16_t accel_y;
+    uint16_t accel_z;
+
+    uint16_t mag_x;
+    uint16_t mag_y;
+    uint16_t mag_z;
+
+    uint16_t euler_x;
+    uint16_t euler_y;
+    uint16_t euler_z;
+
+    uint16_t quat_a;
+    uint16_t quat_b;
+    uint16_t quat_c;
+    uint16_t quat_d;
+};
+
 #define GYRO_PROC_X 5 // 0x5C
 #define GYRO_PROC_Y 7 // 0x5C
 #define GYRO_PROC_Z 9 // 0x5D
@@ -204,13 +300,35 @@
 #define QUAT_B 67 // 0x64
 #define QUAT_C 69 // 0x65
 #define QUAT_D 71 // 0x65
-#define IMU_CHECKSUMS 5 // amount of packages
 
-/* --- IMU & BT info --- */
-#define IMU_REQUEST_LENGTH 11 // size of transmit package
-#define IMU_RESPONSE_LENGTH 15 // size of receive package
+/* --- I2C2 Sensors communication info --- */
 
-#define BT_SLAVE_ID 1 // I2C slave ID of BT module
-#define BT_SIZE 8 // size of BT I2C buffer
+#define SENSORS_DEVICES_NUM 		3
+#define SENSORS_PACKAGE_SIZE 		4
+
+#define SENSORS_ADC1_ADDR 			0
+#define SENSORS_ADC2_ADDR 			1
+#define SENSORS_PRESSURE_ADDR 		2
+
+/* --- Delays and waiting rates --- */
+
+#define DELAY_LED_TASK 				10
+#define DELAY_VMA_TASK 				10
+#define DELAY_DEV_TASK 				10
+#define DELAY_IMU_TASK 				10
+#define DELAY_PC_TASK 				10
+#define DELAY_SENSOR_TASK 			10
+#define DELAY_STAB_TASK 			10
+#define DELAY_TIMER_TASK 			10
+
+#define WAITING_DEV 				10
+#define WAITING_IMU 				10
+#define WAITING_SHORE 				10
+#define WAITING_VMA 				10
+#define WAITING_SENSORS				10
+#define WAITING_PC					10
+
+
+#pragma pack(pop)
 
 #endif

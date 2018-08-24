@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include "cmsis_os.h"
 #include "usart.h"
 #include "i2c.h"
@@ -11,25 +12,9 @@
 #include "messages.h"
 #include "checksum.h"
 
-#define PACKAGE_TOLLERANCE 20
-
-enum ImuErrcodes {
-    IMU_FIND_ERROR=1,
-    IMU_BAD_CHECKSUM_ERROR
-};
-
-enum BTErrCodes {
-    BT_ERROR_RECEIVED_NOTHING=1,
-    BT_ERROR_RECEIVED_LESS
-};
-
-// GOVNO S UARTA NACHALO
+#define PACKAGE_TOLLERANCE 	20
 
 extern TimerHandle_t UARTTimer;
-
-#define TASK_WAITING    5
-#define SHORE_WAITING   15
-#define DELAY           1
 
 uint8_t RxBuffer[1] = {0};
 uint16_t numberRx = 0;
@@ -39,11 +24,15 @@ bool uart1PackageTransmit = false;
 bool uart2PackageTransmit = false;
 bool uart3PackageTransmit = false;
 bool uart4PackageTransmit = false;
+bool i2c1PackageTransmit = false;
+bool i2c2PackageTransmit = false;
 
 bool uart1PackageReceived = false;
 bool uart2PackageReceived = false;
 bool uart3PackageReceived = false;
 bool uart4PackageReceived = false;
+bool i2c1PackageReceived = false;
+bool i2c2PackageReceived = false;
 
 void variableInit() {
     Q100.VMA[HLB].address = 0x07;
@@ -55,10 +44,10 @@ void variableInit() {
     Q100.VMA[VL].address = 0x013;
     Q100.VMA[VR].address = 0x08;
 
-    Q100.device.agar.address = 0x03;
-    Q100.device.grab.squeezeAddress = 0x01;
-    Q100.device.grab.rotationAddress = 0x02;
-    Q100.device.tilt.address = 0x04;
+    Q100.device[DEV1].address = 0x03;
+    Q100.device[GRAB].address = 0x01;
+    Q100.device[GRAB_ROTATION].address = 0x02;
+    Q100.device[TILT].address = 0x04;
 
     // Pitch stabilization constants
     Q100.pitchStabCons.enable = false;
@@ -123,33 +112,109 @@ void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length) {
         case SHORE_UART:
             HAL_HalfDuplex_EnableTransmitter(&huart1);
             HAL_UART_Transmit_DMA(&huart1, buf, length);
-            while (!uart1PackageTransmit && xTaskGetTickCount() - timeBegin < SHORE_WAITING) {
-                osDelay(DELAY);
+            while (!uart1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SHORE) {
+                osDelay(DELAY_TIMER_TASK);
             }
             uart1PackageTransmit = false;
             break;
         case VMA_UART:
             HAL_HalfDuplex_EnableTransmitter(&huart2);
             HAL_UART_Transmit_DMA(&huart2, buf, length);
-            while (!uart2PackageTransmit && xTaskGetTickCount() - timeBegin < TASK_WAITING) {
-                osDelay(DELAY);
+            while (!uart2PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_VMA) {
+                osDelay(DELAY_VMA_TASK);
             }
             uart2PackageTransmit = false;
             break;
         case DEV_UART:
             HAL_HalfDuplex_EnableTransmitter(&huart3);
             HAL_UART_Transmit_DMA(&huart3, buf, length);
-            while (!uart3PackageTransmit && xTaskGetTickCount() - timeBegin < TASK_WAITING) {
-                osDelay(DELAY);
+            while (!uart3PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_DEV) {
+                osDelay(DELAY_DEV_TASK);
             }
             uart3PackageTransmit = false;
             break;
         case IMU_UART:
             HAL_UART_Transmit_IT(&huart4, buf, length);
-            while (!uart4PackageTransmit && xTaskGetTickCount() - timeBegin < TASK_WAITING) {
-                osDelay(DELAY);
+            while (!uart4PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_IMU) {
+                osDelay(DELAY_IMU_TASK);
             }
             uart4PackageTransmit = false;
+            break;
+    }
+}
+
+void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
+{
+    TickType_t timeBegin = xTaskGetTickCount();
+    switch(UART){
+        case SHORE_UART:
+            HAL_HalfDuplex_EnableReceiver(&huart1);
+            HAL_UART_Receive_DMA(&huart1, buf, length);
+            while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SHORE){
+                osDelay(DELAY_TIMER_TASK);
+            }
+            uart1PackageReceived = false;
+            break;
+        case VMA_UART:
+            HAL_HalfDuplex_EnableReceiver(&huart2);
+            HAL_UART_Receive_DMA(&huart2, buf, length);
+            while (!uart2PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_VMA){
+                osDelay(DELAY_VMA_TASK);
+            }
+            uart2PackageReceived = false;
+            break;
+        case DEV_UART:
+            HAL_HalfDuplex_EnableReceiver(&huart3);
+            HAL_UART_Receive_DMA(&huart3, buf, length);
+            while (!uart3PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_DEV){
+                osDelay(DELAY_DEV_TASK);
+            }
+            uart3PackageReceived = false;
+            break;
+        case IMU_UART:
+            HAL_UART_Receive_IT(&huart4, buf, length);
+            while (!uart4PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_IMU){
+                osDelay(DELAY_IMU_TASK);
+            }
+            uart4PackageReceived = false;
+            break;
+    }
+}
+
+void receiveByte(uint8_t UART, uint8_t *byte)
+{
+    TickType_t timeBegin = xTaskGetTickCount();
+    switch(UART){
+        case SHORE_UART:
+            HAL_HalfDuplex_EnableReceiver(&huart1);
+            HAL_UART_Receive_IT(&huart1, byte, 1);
+            while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
+                osDelay(DELAY_TIMER_TASK);
+            }
+            uart1PackageReceived = false;
+            break;
+        case VMA_UART:
+            HAL_HalfDuplex_EnableReceiver(&huart2);
+            HAL_UART_Receive_DMA(&huart2, byte, 1);
+            while (!uart2PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
+                osDelay(DELAY_VMA_TASK);
+            }
+            uart2PackageReceived = false;
+            break;
+        case DEV_UART:
+            HAL_HalfDuplex_EnableReceiver(&huart3);
+            HAL_UART_Receive_DMA(&huart3, byte, 1);
+            while (!uart3PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
+                osDelay(DELAY_DEV_TASK);
+            }
+            uart3PackageReceived = false;
+            break;
+        case IMU_UART:
+            HAL_UART_Receive_IT(&huart4, byte, 1);
+            while (!uart4PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
+                osDelay(DELAY_IMU_TASK);
+            }
+            uart4PackageReceived = false;
             break;
     }
 }
@@ -170,123 +235,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
     }
 }
 
-void receiveByte(uint8_t UART, uint8_t *byte)
-{
-    TickType_t timeBegin = xTaskGetTickCount();
-    switch(UART){
-        case SHORE_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart1);
-            HAL_UART_Receive_IT(&huart1, byte, 1);
-            while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
-                osDelay(DELAY);
-            }
-            uart1PackageReceived = false;
-            break;
-        case VMA_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart2);
-            HAL_UART_Receive_DMA(&huart2, byte, 1);
-            while (!uart2PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
-                osDelay(DELAY);
-            }
-            uart2PackageReceived = false;
-            break;
-        case DEV_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart3);
-            HAL_UART_Receive_DMA(&huart3, byte, 1);
-            while (!uart3PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
-                osDelay(DELAY);
-            }
-            uart3PackageReceived = false;
-            break;
-        case IMU_UART:
-            HAL_UART_Receive_IT(&huart4, byte, 1);
-            while (!uart4PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
-                osDelay(DELAY);
-            }
-            uart4PackageReceived = false;
-            break;
-    }
-}
-
-void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
-{
-    TickType_t timeBegin = xTaskGetTickCount();
-    switch(UART){
-        case SHORE_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart1);
-            HAL_UART_Receive_DMA(&huart1, buf, length);
-            while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < SHORE_WAITING){
-                osDelay(DELAY);
-            }
-            uart1PackageReceived = false;
-            break;
-        case VMA_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart2);
-            HAL_UART_Receive_DMA(&huart2, buf, length);
-            while (!uart2PackageReceived  && xTaskGetTickCount() - timeBegin < TASK_WAITING){
-                osDelay(DELAY);
-            }
-            uart2PackageReceived = false;
-            break;
-        case DEV_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart3);
-            HAL_UART_Receive_DMA(&huart3, buf, length);
-            while (!uart3PackageReceived  && xTaskGetTickCount() - timeBegin < TASK_WAITING){
-                osDelay(DELAY);
-            }
-            uart3PackageReceived = false;
-            break;
-        case IMU_UART:
-            HAL_UART_Receive_IT(&huart4, buf, length);
-            while (!uart4PackageReceived  && xTaskGetTickCount() - timeBegin < TASK_WAITING){
-                osDelay(DELAY);
-            }
-            uart4PackageReceived = false;
-            break;
-    }
-}
-
-void ShoreReceive()
-{
-    static portBASE_TYPE xHigherPriorityTaskWoken;
-    xHigherPriorityTaskWoken = pdFALSE;
-
-    if (counterRx == 0) {
-        xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
-        switch(RxBuffer[0]) {
-            case SHORE_REQUEST_CODE:
-                numberRx = SHORE_REQUEST_LENGTH;
-                break;
-            case REQUEST_CONFIG_CODE:
-                numberRx = REQUEST_CONFIG_LENGTH;
-                break;
-        }
-    }
-
-    switch(numberRx) {
-    case SHORE_REQUEST_LENGTH:
-            ShoreRequestBuf[counterRx] = RxBuffer[0];
-            break;
-        case REQUEST_CONFIG_LENGTH:
-            ShoreRequestConfigBuf[counterRx] = RxBuffer[0];
-            break;
-    }
-    ++counterRx;
-
-    if (counterRx == numberRx) {
-        uart1PackageReceived = true;
-        counterRx = 0;
-    }
-    else {
-        HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
-    }
-
-    if (xHigherPriorityTaskWoken == pdTRUE){
-        xHigherPriorityTaskWoken = pdFALSE;
-        taskYIELD();
-    }
-}
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if(huart == &huart1){
@@ -303,234 +251,219 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     }
 }
 
-void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t DEV)
+void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
 {
-    buf[VMA_DEV_REQUEST_AA1] = 0xAA;
-    buf[VMA_DEV_REQUEST_AA2] = 0xAA;
-    switch(DEV) {
-        case AGAR:
-            buf[VMA_DEV_REQUEST_ADDRESS] = robot->device.agar.address;
-            buf[VMA_DEV_REQUEST_SETTING] = robot->device.agar.settings;
-            buf[VMA_DEV_REQUEST_VELOCITY1] = 0;
-            buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.agar.opening;
+	TickType_t timeBegin = xTaskGetTickCount();
+    switch(I2C) {
+        case DEV_I2C:
+            HAL_I2C_Master_Receive_DMA(&hi2c1, SENSORS_PRESSURE_ADDR, buf, length);
+            while (!i2c1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+                osDelay(DELAY_SENSOR_TASK);
+            }
+            i2c1PackageTransmit = false;
             break;
-        case GRAB:
-            buf[VMA_DEV_REQUEST_ADDRESS] = robot->device.grab.squeezeAddress;
-            buf[VMA_DEV_REQUEST_SETTING] = robot->device.grab.settings;
-            buf[VMA_DEV_REQUEST_VELOCITY1] = 0;
-            buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.grab.squeeze;
-            break;
-        case GRAB_ROTATION:
-            buf[VMA_DEV_REQUEST_ADDRESS] = robot->device.grab.rotationAddress;
-            buf[VMA_DEV_REQUEST_SETTING] = robot->device.grab.settings;
-            buf[VMA_DEV_REQUEST_VELOCITY1] = 0;
-            buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.grab.rotation;
-            break;
-        case TILT:
-            buf[VMA_DEV_REQUEST_ADDRESS] = robot->device.tilt.address;
-            buf[VMA_DEV_REQUEST_SETTING] = robot->device.tilt.settings;
-            buf[VMA_DEV_REQUEST_VELOCITY1] = 0;
-            buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.tilt.rotation;
+        case PC_I2C:
+        	// TODO what is this?
+            //HAL_I2C_Master_Receive_DMA(&hi2c2, SENSORS_PRESSURE_ADDR, buf, length);
+            while (!i2c2PackageTransmit  && xTaskGetTickCount() - timeBegin < WAITING_PC) {
+                osDelay(DELAY_PC_TASK);
+            }
+            i2c2PackageTransmit = false;
             break;
     }
-    AddChecksumm8b(buf, VMA_DEV_REQUEST_LENGTH);
 }
 
-void writeBit(uint8_t *byte, uint8_t value, uint8_t biteNumb)
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-    if (value == 0){
-        *byte &= ~(1 << biteNumb);
+	if(hi2c == &hi2c1) {
+		i2c1PackageTransmit = true;
+	}
+	else if(hi2c == &hi2c2) {
+		i2c2PackageTransmit = true;
+	}
+}
+
+void SensorsRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id)
+{
+	switch(Sensor_id) {
+		case DEV_I2C:
+			robot->f_sensors.pressure = FloatFromUint8(buf, 0);
+			break;
+	}
+}
+
+void ShoreReceive()
+{
+    static portBASE_TYPE xHigherPriorityTaskWoken;
+    xHigherPriorityTaskWoken = pdFALSE;
+
+    if (counterRx == 0) {
+        xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
+        if(RxBuffer[0] == SHORE_REQUEST_CODE) {
+        	numberRx = SHORE_REQUEST_LENGTH;
+        }
+        else if(RxBuffer[0] == REQUEST_CONFIG_CODE) {
+        	numberRx = REQUEST_CONFIG_LENGTH;
+        }
     }
-    else{
-        *byte |= (1 << biteNumb);
+
+    if(numberRx == SHORE_REQUEST_LENGTH) {
+    	ShoreRequestBuf[counterRx] = RxBuffer[0];
     }
+    else if(numberRx == REQUEST_CONFIG_LENGTH) {
+    	ShoreRequestConfigBuf[counterRx] = RxBuffer[0];
+    }
+    ++counterRx;
+
+    if (counterRx == numberRx) {
+    	uart1PackageReceived = true;
+    	counterRx = 0;
+    }
+    else {
+    	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
+    }
+
+    if (xHigherPriorityTaskWoken == pdTRUE) {
+    	xHigherPriorityTaskWoken = pdFALSE;
+    	taskYIELD();
+    }
+}
+
+void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
+{
+	struct devRequest_s req;
+
+    req.AA1 = 0xAA;
+    req.AA2 = 0xAA;
+    req.address = robot->device[dev].address;
+    req.setting = robot->device[dev].settings;
+    req.velocity1 = 0;
+    req.velocity2 = robot->device[dev].force;
+
+    memcpy((void*)&req, (void*)buf, DEV_REQUEST_LENGTH);
+    AddChecksumm8b(buf, DEV_REQUEST_LENGTH);
 }
 
 void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
 {
-    if(IsChecksumm8bCorrect(buf, VMA_DEV_RESPONSE_LENGTH)) {
-        switch(dev) {
-            case AGAR:
-                robot->device.agar.current = MergeUBytes(buf[VMA_DEV_RESPONSE_CURRENT_1H], buf[VMA_DEV_RESPONSE_CURRENT_1L]);
-                writeBit(&(robot->device.errors), buf[VMA_DEV_RESPONSE_ERRORS], AGAR);
-                break;
-            case GRAB:
-                robot->device.grab.squeezeCurrent = MergeUBytes(buf[VMA_DEV_RESPONSE_CURRENT_1H], buf[VMA_DEV_RESPONSE_CURRENT_1L]);
-                writeBit(&(robot->device.errors), buf[VMA_DEV_RESPONSE_ERRORS], GRAB);
-                break;
-            case GRAB_ROTATION:
-                robot->device.agar.current = MergeUBytes(buf[VMA_DEV_RESPONSE_CURRENT_1H], buf[VMA_DEV_RESPONSE_CURRENT_1L]);
-                writeBit(&(robot->device.errors), buf[VMA_DEV_RESPONSE_ERRORS], GRAB_ROTATION);
-                break;
-            case TILT:
-                robot->device.agar.current = MergeUBytes(buf[VMA_DEV_RESPONSE_CURRENT_1H], buf[VMA_DEV_RESPONSE_CURRENT_1L]);
-                writeBit(&(robot->device.errors), buf[VMA_DEV_RESPONSE_ERRORS], TILT);
-                break;
-        }
+    if(IsChecksumm8bCorrect(buf, DEV_RESPONSE_LENGTH)) {
+    	struct devResponse_s res;
+    	res.current1 = 0; // for compiler sake
+    	memcpy((void*)buf, (void*)&res, DEV_RESPONSE_LENGTH);
+
+        robot->device[dev].current = res.current1;
+        // TODO make errors work pls
+        //writeBit(&(robot->device[dev].errors), res.errors, AGAR);
     }
 }
 
-void VMARequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
+void VmaRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
 {
-    buf[VMA_DEV_REQUEST_AA1] = 0xAA;
-    buf[VMA_DEV_REQUEST_AA2] = 0xAA;
-    buf[VMA_DEV_REQUEST_ADDRESS] = robot->VMA[vma].address;
-    buf[VMA_DEV_REQUEST_SETTING] = robot->VMA[vma].settings;
-    buf[VMA_DEV_REQUEST_VELOCITY1] = robot->VMA[vma].desiredSpeed;
+    struct vmaRequest_s res;
 
-    switch(vma) {
-        case HLB:
-            buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.light.brightness;
-            break;
+    res.AA = 0xAA;
+    res.type = 0x01;
+    res.address = robot->VMA[vma].address;
+    res.update_base_vector = false;
+    res.position_setting = 0;
+    res.angle = 0;
+    res.velocity = robot->VMA[vma].desiredSpeed*0.1;
+    res.frequency = 0;
+    res.outrunning_angle = 0;
 
-        case HLF:
-            buf[VMA_DEV_REQUEST_VELOCITY2] = 0;
-            break;
-
-        case HRB:
-            buf[VMA_DEV_REQUEST_VELOCITY2] = robot->device.bottomLight.brightness;
-            break;
-
-        case HRF:
-            buf[VMA_DEV_REQUEST_VELOCITY2] = 0;
-            break;
-
-        case VB:
-            buf[VMA_DEV_REQUEST_VELOCITY2] = 0;
-            break;
-
-        case VF:
-            buf[VMA_DEV_REQUEST_VELOCITY2] = 0;
-            break;
-
-        case VL:
-            buf[VMA_DEV_REQUEST_VELOCITY2] = 0;
-            break;
-
-        case VR:
-            buf[VMA_DEV_REQUEST_VELOCITY2] = 0;
-            break;
-    }
-    AddChecksumm8b(buf, VMA_DEV_REQUEST_LENGTH);
+    memcpy((void*)&res, (void*)buf, VMA_REQUEST_LENGTH);
+    AddChecksumm8bVma(buf, VMA_REQUEST_LENGTH);
 }
 
-void VMAResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
+void VmaResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
 {
-//TODO errors parsing!
-    if(IsChecksumm8bCorrect(buf, VMA_DEV_RESPONSE_LENGTH)) {
-        robot->VMA[vma].errors = buf[VMA_DEV_RESPONSE_ERRORS];
-        robot->VMA[vma].current = MergeUBytes(buf[VMA_DEV_RESPONSE_CURRENT_1H], buf[VMA_DEV_RESPONSE_CURRENT_1L]);
-        robot->VMA[vma].realSpeed = buf[VMA_DEV_RESPONSE_VELOCITY1];
-        switch(vma) {
-            case HLB:
-                robot->device.light.current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_2H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_2L]);
-                break;
+	//TODO errors parsing! and what is all this new stuff means
+    if(IsChecksumm8bCorrectVma(buf, VMA_RESPONSE_LENGTH)) {
+    	struct vmaResponse_s res;
+    	res.current = 0; // for compiler sake
+    	memcpy((void*)buf, (void*)&res, VMA_RESPONSE_LENGTH);
 
-            case HLF:
-                robot->device.bottomLight.current = (uint16_t)(buf[VMA_DEV_RESPONSE_CURRENT_2H] << 8 | buf[VMA_DEV_RESPONSE_CURRENT_2L]);
-                break;
-
-            case HRB:
-
-                break;
-
-            case HRF:
-
-                break;
-
-            case VB:
-
-                break;
-
-            case VF:
-
-                break;
-
-            case VL:
-
-                break;
-
-            case VR:
-
-                break;
-        }
+        robot->VMA[vma].current = res.current;
     }
 }
 
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 {
     if(IsChecksumm16bCorrect(requestBuf, REQUEST_CONFIG_LENGTH)) {
-        robot->depthStabCons.iJoySpeed = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_DEPTH);
-        robot->depthStabCons.pSpeedDyn = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_DEPTH);
-        robot->depthStabCons.pErrGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K3_DEPTH);
-        robot->depthStabCons.pSpeedFback = FloatFromUint8(requestBuf, REQUEST_CONFIG_K4_DEPTH);
-        robot->depthStabCons.pid_iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_IBORDERS_DEPTH);
-        robot->depthStabCons.pid_iMin = -robot->depthStabCons.pid_iMax;
-        robot->depthStabCons.pid_pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_PGAIN_DEPTH);
-        robot->depthStabCons.pid_iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_IGAIN_DEPTH);
+    	struct shoreConfigRequest_s req;
+    	memcpy((void*)&req, (void*)requestBuf, SHORE_REQUEST_LENGTH);
 
-        robot->rollStabCons.iJoySpeed = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_ROLL);
-        robot->rollStabCons.pSpeedDyn = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_ROLL);
-        robot->rollStabCons.pErrGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K3_ROLL);
-        robot->rollStabCons.pSpeedFback = FloatFromUint8(requestBuf, REQUEST_CONFIG_K4_ROLL);
-        robot->rollStabCons.pid_iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_IBORDERS_ROLL);
-        robot->rollStabCons.pid_iMin = -robot->rollStabCons.pid_iMax;
-        robot->rollStabCons.pid_pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_PGAIN_ROLL);
-        robot->rollStabCons.pid_iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_IGAIN_ROLL);
+        robot->depthStabCons.iJoySpeed = req.depth_k1;
+        robot->depthStabCons.pSpeedDyn = req.depth_k2;
+        robot->depthStabCons.pErrGain = req.depth_k3;
+        robot->depthStabCons.pSpeedFback = req.depth_k4;
+        robot->depthStabCons.pid_iMax = req.depth_iborders;
+        robot->depthStabCons.pid_iMin = -req.depth_iborders;
+        robot->depthStabCons.pid_pGain = req.depth_pgain;
+        robot->depthStabCons.pid_iGain = req.depth_igain;
 
-        robot->pitchStabCons.iJoySpeed = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_PITCH);
-        robot->pitchStabCons.pSpeedDyn = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_PITCH);
-        robot->pitchStabCons.pErrGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K3_PITCH);
-        robot->pitchStabCons.pSpeedFback = FloatFromUint8(requestBuf, REQUEST_CONFIG_K4_PITCH);
-        robot->pitchStabCons.pid_iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_IBORDERS_PITCH);
-        robot->pitchStabCons.pid_iMin = -robot->pitchStabCons.pid_iMax;
-        robot->pitchStabCons.pid_pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_PGAIN_PITCH);
-        robot->pitchStabCons.pid_iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_IGAIN_PITCH);
+        robot->rollStabCons.iJoySpeed = req.roll_k1;
+        robot->rollStabCons.pSpeedDyn = req.roll_k2;
+        robot->rollStabCons.pErrGain = req.roll_k3;
+        robot->rollStabCons.pSpeedFback = req.roll_k4;
+        robot->rollStabCons.pid_iMax = req.roll_iborders;
+        robot->rollStabCons.pid_iMin = -req.roll_iborders;
+        robot->rollStabCons.pid_pGain = req.roll_pgain;
+        robot->rollStabCons.pid_iGain = req.roll_igain;
 
-        robot->yawStabCons.iJoySpeed = FloatFromUint8(requestBuf, REQUEST_CONFIG_K1_YAW);
-        robot->yawStabCons.pSpeedDyn = FloatFromUint8(requestBuf, REQUEST_CONFIG_K2_YAW);
-        robot->yawStabCons.pErrGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_K3_YAW);
-        robot->yawStabCons.pSpeedFback = FloatFromUint8(requestBuf, REQUEST_CONFIG_K4_YAW);
-        robot->yawStabCons.pid_iMax = FloatFromUint8(requestBuf, REQUEST_CONFIG_IBORDERS_YAW);
-        robot->yawStabCons.pid_iMin = -robot->yawStabCons.pid_iMax;
-        robot->yawStabCons.pid_pGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_PGAIN_YAW);
-        robot->yawStabCons.pid_iGain = FloatFromUint8(requestBuf, REQUEST_CONFIG_IGAIN_YAW);
+        robot->pitchStabCons.iJoySpeed = req.pitch_k1;
+        robot->pitchStabCons.pSpeedDyn = req.pitch_k2;
+        robot->pitchStabCons.pErrGain = req.pitch_k3;
+        robot->pitchStabCons.pSpeedFback = req.pitch_k4;
+        robot->pitchStabCons.pid_iMax = req.pitch_iborders;
+        robot->pitchStabCons.pid_iMin = -req.pitch_iborders;
+        robot->pitchStabCons.pid_pGain = req.pitch_pgain;
+        robot->pitchStabCons.pid_iGain = req.pitch_igain;
 
-        robot->VMA[HLB].address = requestBuf[REQUEST_CONFIG_POSITION_HLB];
-        robot->VMA[HLF].address = requestBuf[REQUEST_CONFIG_POSITION_HLF];
-        robot->VMA[HRB].address = requestBuf[REQUEST_CONFIG_POSITION_HRB];
-        robot->VMA[HRF].address = requestBuf[REQUEST_CONFIG_POSITION_HRF];
-        robot->VMA[VB].address = requestBuf[REQUEST_CONFIG_POSITION_VB];
-        robot->VMA[VF].address = requestBuf[REQUEST_CONFIG_POSITION_VF];
-        robot->VMA[VL].address  = requestBuf[REQUEST_CONFIG_POSITION_VL];
-        robot->VMA[VR].address = requestBuf[REQUEST_CONFIG_POSITION_VR];
+        robot->yawStabCons.iJoySpeed = req.yaw_k1;
+        robot->yawStabCons.pSpeedDyn = req.yaw_k2;
+        robot->yawStabCons.pErrGain = req.yaw_k3;
+        robot->yawStabCons.pSpeedFback = req.yaw_k4;
+        robot->yawStabCons.pid_iMax = req.yaw_iborders;
+        robot->yawStabCons.pid_iMin = -req.yaw_iborders;
+        robot->yawStabCons.pid_pGain = req.yaw_pgain;
+        robot->yawStabCons.pid_iGain = req.yaw_igain;
 
-        robot->VMA[HLB].settings = requestBuf[REQUEST_CONFIG_SETTING_HLB];
-        robot->VMA[HLF].settings = requestBuf[REQUEST_CONFIG_SETTING_HLF];
-        robot->VMA[HRB].settings = requestBuf[REQUEST_CONFIG_SETTING_HRB];
-        robot->VMA[HRF].settings = requestBuf[REQUEST_CONFIG_SETTING_HRF];
-        robot->VMA[VB].settings = requestBuf[REQUEST_CONFIG_SETTING_VB];
-        robot->VMA[VF].settings = requestBuf[REQUEST_CONFIG_SETTING_VF];
-        robot->VMA[VL].settings = requestBuf[REQUEST_CONFIG_SETTING_VL];
-        robot->VMA[VR].settings = requestBuf[REQUEST_CONFIG_SETTING_VR];
+        robot->VMA[HLB].address = req.position_hlb;
+        robot->VMA[HLF].address = req.position_hlf;
+        robot->VMA[HRB].address = req.position_hrb;
+        robot->VMA[HRF].address = req.position_hrf;
+        robot->VMA[VB].address = req.position_vb;
+        robot->VMA[VF].address = req.position_vf;
+        robot->VMA[VL].address = req.position_vl;
+        robot->VMA[VR].address = req.position_vr;
 
-        robot->VMA[HLB].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLB);
-        robot->VMA[HLF].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLF);
-        robot->VMA[HRB].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRB);
-        robot->VMA[HRF].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRF);
-        robot->VMA[VB].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VB);
-        robot->VMA[VF].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VF);
-        robot->VMA[VL].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VL);
-        robot->VMA[VR].kForward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VR);
+        robot->VMA[HLB].settings = req.setting_hlb;
+        robot->VMA[HLF].settings = req.setting_hlf;
+        robot->VMA[HRB].settings = req.setting_hrb;
+        robot->VMA[HRF].settings = req.setting_hrf;
+        robot->VMA[VB].settings = req.setting_vb;
+        robot->VMA[VF].settings = req.setting_vf;
+        robot->VMA[VL].settings = req.setting_vl;
+        robot->VMA[VR].settings = req.setting_vr;
 
-        robot->VMA[HLB].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLB);
-        robot->VMA[HLF].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HLF);
-        robot->VMA[HRB].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRB);
-        robot->VMA[HRF].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_HRF);
-        robot->VMA[VB].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VB);
-        robot->VMA[VF].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VF);
-        robot->VMA[VL].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VL);
-        robot->VMA[VR].kBackward = FloatFromUint8(requestBuf, REQUEST_CONFIG_K_FORWARD_VR);
+        robot->VMA[HLB].kForward = req.kforward_hlb;
+        robot->VMA[HLF].kForward = req.kforward_hlf;
+        robot->VMA[HRB].kForward = req.kforward_hrb;
+        robot->VMA[HRF].kForward = req.kforward_hrf;
+        robot->VMA[VB].kForward = req.kforward_vb;
+        robot->VMA[VF].kForward = req.kforward_vf;
+        robot->VMA[VL].kForward = req.kforward_vl;
+        robot->VMA[VR].kForward = req.kforward_vr;
+
+        robot->VMA[HLB].kBackward = req.kbackward_hlb;
+        robot->VMA[HLF].kBackward = req.kbackward_hlf;
+        robot->VMA[HRB].kBackward = req.kbackward_hrb;
+        robot->VMA[HRF].kBackward = req.kbackward_hrf;
+        robot->VMA[VB].kBackward = req.kbackward_vb;
+        robot->VMA[VF].kBackward = req.kbackward_vf;
+        robot->VMA[VL].kBackward = req.kbackward_vl;
+        robot->VMA[VR].kBackward = req.kbackward_vr;
     }
 }
 
@@ -538,39 +471,70 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 {
     if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)) {
+    	struct shoreRequest_s req;
+    	memcpy((void*)&req, (void*)requestBuf, SHORE_REQUEST_LENGTH);
+
+    	uint8_t tempCameraNum = 0;
         shorePackageError = 0;
 
-        robot->i_joySpeed.march = MergeBytes(requestBuf[SHORE_REQUEST_MARCH],requestBuf[SHORE_REQUEST_MARCH+1]);
-        robot->i_joySpeed.lag = MergeBytes(requestBuf[SHORE_REQUEST_LAG],requestBuf[SHORE_REQUEST_LAG+1]);
-        robot->i_joySpeed.depth = MergeBytes(requestBuf[SHORE_REQUEST_DEPTH],requestBuf[SHORE_REQUEST_DEPTH+1]);
-        robot->i_joySpeed.pitch = MergeBytes(requestBuf[SHORE_REQUEST_ROLL],requestBuf[SHORE_REQUEST_ROLL+1]);
-        robot->i_joySpeed.roll = MergeBytes(requestBuf[SHORE_REQUEST_PITCH],requestBuf[SHORE_REQUEST_PITCH+1]);
-        robot->i_joySpeed.yaw = MergeBytes(requestBuf[SHORE_REQUEST_YAW],requestBuf[SHORE_REQUEST_YAW+1]);
+        robot->i_joySpeed.march = req.march;
+        robot->i_joySpeed.lag = req.lag;
+        robot->i_joySpeed.depth = req.depth;
+        robot->i_joySpeed.roll = req.roll;
+        robot->i_joySpeed.pitch = req.pitch;
+        robot->i_joySpeed.yaw = req.yaw;
 
-        robot->device.light.brightness = requestBuf[SHORE_REQUEST_LIGHT];
-        robot->device.agar.opening = requestBuf[SHORE_REQUEST_AGAR];
-        robot->device.bottomLight.brightness = requestBuf[SHORE_REQUEST_BOTTOM_LIGHT];
+        robot->device[LIGHT].force = req.light;
+        robot->device[GRAB].force = req.grab;
+        if (robot->device[GRAB].force < -127) {
+            robot->device[GRAB].force = -127;
+        }
+        robot->device[TILT].force = req.tilt;
+        if (robot->device[TILT].force < -127) {
+        	robot->device[TILT].force = -127;
+        }
+        robot->device[GRAB_ROTATION].force  = req.grab_rotate;
+        if (robot->device[GRAB_ROTATION].force < -127) {
+            robot->device[GRAB_ROTATION].force = -127;
+        }
 
-        robot->device.grab.squeeze = requestBuf[SHORE_REQUEST_GRAB];
-        if (robot->device.grab.squeeze < -127){
-            robot->device.grab.squeeze = -127;
-        }
-        robot->device.grab.rotation  = requestBuf[SHORE_REQUEST_GRAB_ROTATE];
-        if (robot->device.grab.rotation < -127){
-            robot->device.grab.rotation = -127;
-        }
-        robot->device.tilt.rotation = requestBuf[SHORE_REQUEST_TILT];
-        if (robot->device.tilt.rotation < -127){
-            robot->device.tilt.rotation = -127;
-        }
+        robot->device[DEV1].force = req.dev1;
+        robot->device[DEV2].force = req.dev2;
 
         // TODO POMENYAL MESTAMI YAW I DEPTH
-        robot->depthStabCons.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_YAW];
-        robot->rollStabCons.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_ROLL];
-        robot->pitchStabCons.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_PITCH ];
-        robot->yawStabCons.enable = (bool) requestBuf[SHORE_REQUEST_STABILIZE_DEPTH ];
+        robot->depthStabCons.enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
+        robot->rollStabCons.enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_ROLL_BIT);
+        robot->pitchStabCons.enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
+        robot->yawStabCons.enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
+        robot->i_sensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
 
-        robot->i_sensors.resetIMU = (bool) requestBuf[SHORE_REQUEST_RESET_IMU];
+        tempCameraNum = req.cameras;
+        robot->pc.reset = req.pc_reset;
+
+        if(tempCameraNum != robot->cameraNum) {
+        	robot->cameraNum = tempCameraNum;
+        	switch(robot->cameraNum) {
+        	case 0:
+        		HAL_GPIO_WritePin(GPIOA, CAM1_Pin, GPIO_PIN_RESET);
+        		HAL_GPIO_WritePin(GPIOA, CAM2_Pin, GPIO_PIN_RESET);
+        		break;
+
+        	case 1:
+        		HAL_GPIO_WritePin(GPIOA, CAM1_Pin, GPIO_PIN_SET);
+        		HAL_GPIO_WritePin(GPIOA, CAM2_Pin, GPIO_PIN_RESET);
+        		break;
+
+        	case 2:
+        		HAL_GPIO_WritePin(GPIOA, CAM1_Pin, GPIO_PIN_RESET);
+        		HAL_GPIO_WritePin(GPIOA, CAM2_Pin, GPIO_PIN_SET);
+        		break;
+
+        	case 3:
+        		HAL_GPIO_WritePin(GPIOA, CAM1_Pin, GPIO_PIN_SET);
+        		HAL_GPIO_WritePin(GPIOA, CAM2_Pin, GPIO_PIN_SET);
+        		break;
+        	}
+        }
 
         // TODO KOEF OSHIBOK VRUCHNUU POMENYAL
         int16_t bYaw, bRoll, bPitch;
@@ -630,12 +594,12 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
         robot->i_joySpeed.roll = 0;
         robot->i_joySpeed.yaw = 0;
 
-        robot->device.light.brightness = 0;
-        robot->device.agar.opening = 0;
-        robot->device.bottomLight.brightness = 0;
-        robot->device.grab.squeeze = 0;
-        robot->device.grab.rotation  = 0;
-        robot->device.tilt.rotation = 0;
+        robot->device[LIGHT].force = 0;
+        robot->device[DEV1].force = 0;
+        robot->device[DEV2].force = 0;
+        robot->device[GRAB].force = 0;
+        robot->device[GRAB_ROTATION].force  = 0;
+        robot->device[TILT].force = 0;
 
         for (uint8_t i = 0; i < VMA_DRIVER_NUMBER; ++i){
             robot->VMA[i].desiredSpeed = 0;
@@ -645,68 +609,66 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 
 void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 {
-    responseBuf[SHORE_RESPONSE_ROLL] = robot->i_sensors.roll >> 8;
-    responseBuf[SHORE_RESPONSE_ROLL + 1] = robot->i_sensors.roll;
-    responseBuf[SHORE_RESPONSE_PITCH] = robot->i_sensors.pitch >> 8;
-    responseBuf[SHORE_RESPONSE_PITCH + 1] = robot->i_sensors.pitch;
-    responseBuf[SHORE_RESPONSE_YAW] = robot->i_sensors.yaw >> 8;
-    responseBuf[SHORE_RESPONSE_YAW + 1] = robot->i_sensors.yaw;
-    responseBuf[SHORE_RESPONSE_ROLL_SPEED] = robot->i_sensors.rollSpeed >> 8;
-    responseBuf[SHORE_RESPONSE_ROLL_SPEED + 1] = robot->i_sensors.rollSpeed;
-    responseBuf[SHORE_RESPONSE_PITCH_SPEED] = robot->i_sensors.pitchSpeed >> 8;
-    responseBuf[SHORE_RESPONSE_PITCH_SPEED + 1] = robot->i_sensors.pitchSpeed;
-    responseBuf[SHORE_RESPONSE_YAW_SPEED] = robot->i_sensors.yawSpeed >> 8;
-    responseBuf[SHORE_RESPONSE_YAW_SPEED + 1] = robot->i_sensors.yawSpeed;
+	struct shoreResponse_s res;
 
-    responseBuf[SHORE_RESPONSE_PRESSURE] = robot->i_sensors.pressure >> 8;
-    responseBuf[SHORE_RESPONSE_PRESSURE + 1] = robot->i_sensors.pressure;
+    res.roll = robot->i_sensors.roll;
+    res.pitch = robot->i_sensors.pitch;
+    res.yaw = robot->i_sensors.yaw;
+    res.rollSpeed = robot->i_sensors.rollSpeed;
+    res.pitchSpeed = robot->i_sensors.pitchSpeed;
+    res.yawSpeed = robot->i_sensors.yawSpeed;
 
-    for(uint8_t i = 0; i < BLUETOOTH_MESSAGE_SIZE; ++i) {
-        responseBuf[SHORE_RESPONSE_BLUETOOTH + i] = robot->bluetooth.message[i];
-    }
+    res.pressure = robot->i_sensors.pressure;
 
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_HLB] = robot->VMA[HLB].current >> 8;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_HLB + 1] = robot->VMA[HLB].current;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_HLF] = robot->VMA[HLF].current >> 8;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_HLF + 1] = robot->VMA[HLF].current;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_HRB] = robot->VMA[HRB].current >> 8;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_HRB + 1] = robot->VMA[HRB].current;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_HRF] = robot->VMA[HRF].current >> 8;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_HRF + 1] = robot->VMA[HRF].current;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_VB] = robot->VMA[VB].current >> 8;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_VB + 1] = robot->VMA[VB].current;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_VF] = robot->VMA[VF].current >> 8;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_VF + 1] = robot->VMA[VF].current;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_VL] = robot->VMA[VL].current >> 8;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_VL + 1] = robot->VMA[VL].current;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_VR] = robot->VMA[VR].current >> 8;
-    responseBuf[SHORE_RESPONSE_VMA_CURRENT_VR + 1] = robot->VMA[VR].current;
+    res.wf_type = robot->wifi.type;
+    res.wf_tickrate = robot->wifi.tickrate;
+    res.wf_voltage = robot->wifi.voltage;
+    res.wf_x = robot->wifi.x;
+    res.wf_y = robot->wifi.y;
 
-    responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HLB] = robot->VMA[HLB].desiredSpeed;
-    responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HLF] = robot->VMA[HLF].desiredSpeed;
-    responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HRB] = robot->VMA[HRB].desiredSpeed;
-    responseBuf[SHORE_RESPONSE_VMA_VELOCITY_HRF] = robot->VMA[HRF].desiredSpeed;
-    responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VB] = robot->VMA[VB].desiredSpeed;
-    responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VF] = robot->VMA[VF].desiredSpeed;
-    responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VL] = robot->VMA[VR].desiredSpeed;
-    responseBuf[SHORE_RESPONSE_VMA_VELOCITY_VR] = robot->VMA[VR].desiredSpeed;
+    SetBit(&res.dev_state, SHORE_DEVICE_AC_BIT, robot->logdevice[ACOUSTIC].state);
+    // TODO other devices
 
-    responseBuf[SHORE_RESPONSE_LIGHT_CURRENT] = robot->device.light.current;
-    responseBuf[SHORE_RESPONSE_BOTTOM_LIGHT_CURRENT] = robot->device.bottomLight.current;
-    responseBuf[SHORE_RESPONSE_AGAR_CURRENT] = robot->device.agar.current;
-    responseBuf[SHORE_RESPONSE_GRAB_CURRENT] = robot->device.grab.squeezeCurrent;
-    responseBuf[SHORE_RESPONSE_GRAB_ROTATE_CURRENT] = robot->device.grab.rotationCurrent;
-    responseBuf[SHORE_RESPONSE_CURRENT_TILT] = robot->device.tilt.current;
+    res.wf_y = robot->i_sensors.leak;
+    res.wf_y = robot->i_sensors.in_pressure;
 
-    responseBuf[SHORE_RESPONSE_VMA_ERRORS] = 0x55;         //!!!!!TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    responseBuf[SHORE_RESPONSE_VMA_ERRORS + 1] = 0x55;
-    responseBuf[SHORE_RESPONSE_DEV_ERRORS] = robot->device.errors;
+    res.vma_current_hlb = robot->VMA[HLB].current;
+    res.vma_current_hlf = robot->VMA[HLF].current;
+    res.vma_current_hrb = robot->VMA[HRB].current;
+    res.vma_current_hrf = robot->VMA[HRF].current;
+    res.vma_current_vb = robot->VMA[VB].current;
+    res.vma_current_vf = robot->VMA[VF].current;
+    res.vma_current_vl = robot->VMA[VL].current;
+    res.vma_current_vr = robot->VMA[VR].current;
+
+    res.vma_velocity_hlb = robot->VMA[HLB].desiredSpeed;
+    res.vma_velocity_hlf = robot->VMA[HLF].desiredSpeed;
+    res.vma_velocity_hrb = robot->VMA[HRB].desiredSpeed;
+    res.vma_velocity_hrf = robot->VMA[HRF].desiredSpeed;
+    res.vma_velocity_vb = robot->VMA[VB].desiredSpeed;
+    res.vma_velocity_vf = robot->VMA[VF].desiredSpeed;
+    res.vma_velocity_vl = robot->VMA[VL].desiredSpeed;
+    res.vma_velocity_vr = robot->VMA[VR].desiredSpeed;
+
+    res.dev_current_light = robot->device[LIGHT].current;
+    res.dev_current_tilt = robot->device[TILT].current;
+    res.dev_current_grab = robot->device[GRAB].current;
+    res.dev_current_grab_rotate = robot->device[GRAB_ROTATION].current;
+    res.dev_current_dev1 = robot->device[DEV1].current;
+    res.dev_current_dev2 = robot->device[DEV2].current;
+
+    res.vma_errors = 0x55;         //!!!!!TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // TODO do this properly pls
+    //res.dev_errors = robot->device.errors;
+    res.pc_errors = robot->pc.errors;
+
+    memcpy((void*)&res, (void*)responseBuf, SHORE_RESPONSE_LENGTH);
 
     AddChecksumm16b(responseBuf, SHORE_RESPONSE_LENGTH);
 }
 
 
-void IMUReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
+void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
 {
     for(uint8_t i = 0; i < IMU_CHECKSUMS; ++i) {
         if(!IsChecksum16bSCorrect(&ReceiveBuf[i*IMU_RESPONSE_LENGTH], IMU_RESPONSE_LENGTH)) {

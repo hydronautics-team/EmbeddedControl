@@ -53,6 +53,7 @@
 
 /* USER CODE BEGIN Includes */     
 #include "usart.h"
+#include "i2c.h"
 #include "timers.h"
 #include "messages.h"
 #include "robot.h"
@@ -78,6 +79,12 @@ osStaticThreadDef_t tStabilizationTaskControlBlock;
 osThreadId tDevCommTaskHandle;
 uint32_t tDevCommTaskBuffer[ 128 ];
 osStaticThreadDef_t tDevCommTaskControlBlock;
+osThreadId tSensCommTaskHandle;
+uint32_t tSensCommTaskBuffer[ 128 ];
+osStaticThreadDef_t tSensCommTaskControlBlock;
+osThreadId tPcCommTaskHandle;
+uint32_t tPcCommTaskBuffer[ 128 ];
+osStaticThreadDef_t tPcCommTaskControlBlock;
 osTimerId tUartTimerHandle;
 osMutexId mutDataHandle;
 osStaticMutexDef_t mutDataControlBlock;
@@ -101,6 +108,8 @@ void func_tVmaCommTask(void const * argument);
 void func_tImuCommTask(void const * argument);
 void func_tStabilizationTask(void const * argument);
 void func_tDevCommTask(void const * argument);
+void func_tSensCommTask(void const * argument);
+void func_tPcCommTask(void const * argument);
 void func_tUartTimer(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -195,6 +204,14 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(tDevCommTask, func_tDevCommTask, osPriorityBelowNormal, 0, 128, tDevCommTaskBuffer, &tDevCommTaskControlBlock);
   tDevCommTaskHandle = osThreadCreate(osThread(tDevCommTask), NULL);
 
+  /* definition and creation of tSensCommTask */
+  osThreadStaticDef(tSensCommTask, func_tSensCommTask, osPriorityBelowNormal, 0, 128, tSensCommTaskBuffer, &tSensCommTaskControlBlock);
+  tSensCommTaskHandle = osThreadCreate(osThread(tSensCommTask), NULL);
+
+  /* definition and creation of tPcCommTask */
+  osThreadStaticDef(tPcCommTask, func_tPcCommTask, osPriorityBelowNormal, 0, 128, tPcCommTaskBuffer, &tPcCommTaskControlBlock);
+  tPcCommTaskHandle = osThreadCreate(osThread(tPcCommTask), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -214,7 +231,7 @@ void func_tLedBlinkingTask(void const * argument)
   for(;;)
   {
         HAL_GPIO_TogglePin(DBG_LED_GPIO_Port, DBG_LED_Pin);
-        osDelayUntil(&sysTime, 200);
+        osDelayUntil(&sysTime, DELAY_LED_TASK);
   }
   /* USER CODE END func_tLedBlinkingTask */
 }
@@ -224,25 +241,25 @@ void func_tVmaCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tVmaCommTask */
     uint32_t sysTime = osKernelSysTick();
-    uint8_t VMATransaction = 0;
+    uint8_t VmaTransaction = 0;
   /* Infinite loop */
   for(;;)
   {
-        if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
-            VMARequestUpdate(&Q100, VMARequestBuf, VMATransaction);
+        if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_VMA_TASK) == pdTRUE) {
+            VmaRequestUpdate(&Q100, VmaRequestBuf, VmaTransaction);
             xSemaphoreGive(mutDataHandle);
         }
 
-        transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-        receivePackageDMA(VMA_UART, VMAResponseBuf[VMATransaction], VMA_DEV_RESPONSE_LENGTH);
+        transmitPackageDMA(VMA_UART, VmaRequestBuf, DEV_REQUEST_LENGTH);
+        receivePackageDMA(VMA_UART, VmaResponseBuf[VmaTransaction], DEV_RESPONSE_LENGTH);
 
-        if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
-            VMAResponseUpdate(&Q100, VMAResponseBuf[VMATransaction], VMATransaction);
+        if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_VMA_TASK) == pdTRUE) {
+        	VmaResponseUpdate(&Q100, VmaResponseBuf[VmaTransaction], VmaTransaction);
             xSemaphoreGive(mutDataHandle);
         }
 
-        VMATransaction = (VMATransaction + 1) % VMA_DRIVER_NUMBER;
-        osDelayUntil(&sysTime, 10);
+        VmaTransaction = (VmaTransaction + 1) % VMA_DRIVER_NUMBER;
+        osDelayUntil(&sysTime, DELAY_VMA_TASK);
   }
   /* USER CODE END func_tVmaCommTask */
 }
@@ -257,19 +274,19 @@ void func_tImuCommTask(void const * argument)
   for(;;)
   {
 	  	if(Q100.i_sensors.resetIMU) {
-	  		transmitPackageDMA(IMU_UART, IMUResetRequestBuf, IMU_REQUEST_LENGTH);
+	  		transmitPackageDMA(IMU_UART, ImuResetRequestBuf, IMU_REQUEST_LENGTH);
 	  		Q100.i_sensors.resetIMU = false;
 	  	}
 	  	else {
-	  		transmitPackageDMA(IMU_UART, IMURequestBuf, IMU_REQUEST_LENGTH);
-	  		receivePackageDMA(IMU_UART, IMUResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
-	  		if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
-	  			IMUReceive(&Q100, IMUResponseBuf, &ErrorCode);
+	  		transmitPackageDMA(IMU_UART, ImuRequestBuf, IMU_REQUEST_LENGTH);
+	  		receivePackageDMA(IMU_UART, ImuResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
+	  		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_IMU_TASK) == pdTRUE) {
+	  			ImuReceive(&Q100, ImuResponseBuf, &ErrorCode);
 	        	xSemaphoreGive(mutDataHandle);
 	  		}
 	  	}
 
-        osDelayUntil(&sysTime, 10);
+        osDelayUntil(&sysTime, DELAY_IMU_TASK);
   }
   /* USER CODE END func_tImuCommTask */
 }
@@ -282,7 +299,7 @@ void func_tStabilizationTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-        if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+        if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STAB_TASK) == pdTRUE) {
             if (Q100.pitchStabCons.enable) {
                 stabilizePitch(&Q100);
             }
@@ -306,7 +323,7 @@ void func_tStabilizationTask(void const * argument)
 
             xSemaphoreGive(mutDataHandle);
         }
-        osDelayUntil(&sysTime, 10);
+        osDelayUntil(&sysTime, DELAY_STAB_TASK);
   }
   /* USER CODE END func_tStabilizationTask */
 }
@@ -320,60 +337,93 @@ void func_tDevCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-        if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+        if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_DEV_TASK) == pdTRUE) {
             DevRequestUpdate(&Q100, DevRequestBuf, DevTransaction);
             xSemaphoreGive(mutDataHandle);
         }
 
-        transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-        receivePackageDMA(DEV_UART, DevResponseBuf[DevTransaction], VMA_DEV_RESPONSE_LENGTH);
+        transmitPackageDMA(DEV_UART, DevRequestBuf, DEV_REQUEST_LENGTH);
+        receivePackageDMA(DEV_UART, DevResponseBuf[DevTransaction], DEV_RESPONSE_LENGTH);
 
-        if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
+        if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_DEV_TASK) == pdTRUE) {
             DevResponseUpdate(&Q100, DevResponseBuf[DevTransaction], DevTransaction);
             xSemaphoreGive(mutDataHandle);
         }
 
         DevTransaction = (DevTransaction + 1) % DEV_DRIVER_NUMBER;
 
-        osDelayUntil(&sysTime, 10);
+        osDelayUntil(&sysTime, DELAY_DEV_TASK);
   }
   /* USER CODE END func_tDevCommTask */
+}
+
+/* func_tSensCommTask function */
+void func_tSensCommTask(void const * argument)
+{
+  /* USER CODE BEGIN func_tSensCommTask */
+	uint32_t sysTime = osKernelSysTick();
+  /* Infinite loop */
+  for(;;)
+  {
+	  receiveI2cPackageDMA (DEV_I2C, SENSORS_PRESSURE_ADDR, SensorsResponseBuf[0], SENSORS_PACKAGE_SIZE);
+	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
+		  SensorsRequestUpdate(&Q100, DevRequestBuf, DEV_I2C);
+		  xSemaphoreGive(mutDataHandle);
+	  }
+
+	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
+  }
+  /* USER CODE END func_tSensCommTask */
+}
+
+/* func_tPcCommTask function */
+void func_tPcCommTask(void const * argument)
+{
+  /* USER CODE BEGIN func_tPcCommTask */
+	uint32_t sysTime = osKernelSysTick();
+  /* Infinite loop */
+  for(;;)
+  {
+	  osDelayUntil(&sysTime, DELAY_PC_TASK);
+  }
+  /* USER CODE END func_tPcCommTask */
 }
 
 /* func_tUartTimer function */
 void func_tUartTimer(void const * argument)
 {
   /* USER CODE BEGIN func_tUartTimer */
-  if (uart1PackageReceived) {
-            shoreCommunicationUpdated = true;
-            uart1PackageReceived = false;
+	if (uart1PackageReceived) {
+		shoreCommunicationUpdated = true;
+		uart1PackageReceived = false;
 
-            if(xSemaphoreTake(mutDataHandle, (TickType_t) 10) == pdTRUE) {
-                if(numberRx == SHORE_REQUEST_LENGTH) {
-                    ShoreRequest(&Q100, ShoreRequestBuf);
-                }
-                else if(numberRx == REQUEST_CONFIG_LENGTH) {
-                    ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);
-                }
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_TIMER_TASK) == pdTRUE) {
+			if(numberRx == SHORE_REQUEST_LENGTH) {
+				ShoreRequest(&Q100, ShoreRequestBuf);
+			}
+			else if(numberRx == REQUEST_CONFIG_LENGTH) {
+				ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);
+			}
 
-                ShoreResponse(&Q100, ShoreResponseBuf);
-                xSemaphoreGive(mutDataHandle);
-            }
-            transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
-            HAL_HalfDuplex_EnableReceiver(&huart1);
-            HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
-        }
-        else {
-            shoreCommunicationUpdated = false;
-            counterRx = 0;
+			ShoreResponse(&Q100, ShoreResponseBuf);
+			xSemaphoreGive(mutDataHandle);
+		}
+		transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
+		HAL_HalfDuplex_EnableReceiver(&huart1);
+		HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
+	}
+	else {
+		shoreCommunicationUpdated = false;
+		uart1PackageReceived = false;
+		counterRx = 0;
 
-            if(numberRx == SHORE_REQUEST_CODE) {
-                    nullIntArray(ShoreRequestBuf, numberRx);
-            }
-            else if(numberRx == REQUEST_CONFIG_CODE) {
-                    nullIntArray(ShoreRequestConfigBuf, numberRx);
-            }
-        }
+		if(numberRx == SHORE_REQUEST_CODE) {
+			nullIntArray(ShoreRequestBuf, numberRx);
+		}
+		else if(numberRx == REQUEST_CONFIG_CODE) {
+			nullIntArray(ShoreRequestConfigBuf, numberRx);
+		}
+	}
   /* USER CODE END func_tUartTimer */
 }
 

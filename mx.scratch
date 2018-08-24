@@ -85,10 +85,10 @@
                                                     <name>../Middlewares/Third_Party/FreeRTOS/Source/list.c</name>
                                             </file>
                                             <file>
-                                                    <name>../Middlewares/Third_Party/FreeRTOS/Source/event_groups.c</name>
+                                                    <name>../Middlewares/Third_Party/FreeRTOS/Source/timers.c</name>
                                             </file>
                                             <file>
-                                                    <name>../Middlewares/Third_Party/FreeRTOS/Source/queue.c</name>
+                                                    <name>../Middlewares/Third_Party/FreeRTOS/Source/event_groups.c</name>
                                             </file>
                                             <file>
                                                     <name>../Middlewares/Third_Party/FreeRTOS/Source/tasks.c</name>
@@ -97,7 +97,7 @@
                                                     <name>../Middlewares/Third_Party/FreeRTOS/Source/croutine.c</name>
                                             </file>
                                             <file>
-                                                    <name>../Middlewares/Third_Party/FreeRTOS/Source/timers.c</name>
+                                                    <name>../Middlewares/Third_Party/FreeRTOS/Source/queue.c</name>
                                             </file>
                                             <file>
                                                     <name>../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c</name>

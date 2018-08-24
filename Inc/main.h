@@ -73,6 +73,8 @@
 #define RES_PC_2_GPIO_Port GPIOE
 #define ON_OFF_Pin GPIO_PIN_7
 #define ON_OFF_GPIO_Port GPIOC
+#define I2C2_SDA_Pin GPIO_PIN_10
+#define I2C2_SDA_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
 #define SWCLK_GPIO_Port GPIOA
 #define SWO_Pin GPIO_PIN_3

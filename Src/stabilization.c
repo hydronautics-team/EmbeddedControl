@@ -1,3 +1,4 @@
+#include "FreeRTOSTick.h"
 #include "stabilization.h"
 
 struct PIDRegulator rollPID;

@@ -18,16 +18,32 @@ enum VMA {
     VR
 };
 
+#define DEV_AMOUNT 7
+
 enum DEV {
     AGAR = 0,
     GRAB,
     GRAB_ROTATION,
     TILT,
     LIGHT,
-    BOTTOM_LIGHT
+    DEV1,
+	DEV2
+};
+
+#define LOGDEV_AMOUNT 1
+
+enum LOGDEV {
+	ACOUSTIC = 0
+};
+
+enum I2C {
+	I2C_SENSORS,
+	I2C_PC
 };
 
 struct Robot {
+
+	uint8_t cameraNum;
 
     struct robotVMA {
         uint8_t address;
@@ -64,6 +80,8 @@ struct Robot {
     float quatD;
     bool resetIMU;
     float pressure;
+    float in_pressure;
+    float leak;
   } f_sensors;
 
   struct i_Sensors {
@@ -84,12 +102,23 @@ struct Robot {
     int16_t quatC;
     int16_t quatD;
     bool resetIMU;
-    int16_t pressure;
+    uint16_t pressure;
+    uint16_t in_pressure;
+    uint16_t leak;
   } i_sensors;
 
-    struct robotBluetooth {
-        uint8_t message[BT_SIZE];
-    } bluetooth;
+    struct robotWifi {
+        uint8_t type;
+        uint8_t tickrate;
+        uint8_t voltage;
+        float x;
+        float y;
+    } wifi;
+
+    struct robotPC {
+    	uint8_t reset;
+    	uint8_t errors;
+    } pc;
 
     struct i_JoystickRobotSpeed {
         int16_t march;
@@ -127,44 +156,25 @@ struct Robot {
         float yaw;
     } f_posMov;
 
-    struct RobotDevice {
 
-        struct RobotLight {
-            uint8_t address;
-            uint8_t settings;
-            int8_t brightness;
-            uint16_t current;
-        } light, bottomLight;
+    struct RobotDev {
+    	uint8_t address;
+    	uint8_t settings;
+    	int8_t force;
+    	uint16_t current;
+    	uint8_t errors;
+    } device[DEV_AMOUNT];
 
-        struct RobotGrab  {
-            uint8_t squeezeAddress;
-            uint8_t rotationAddress;
-            uint8_t settings;
-            int8_t squeeze;
-            int8_t rotation;
-            uint16_t squeezeCurrent;
-            uint16_t rotationCurrent;
-        } grab;
-
-        struct RobotTilt {
-            uint8_t address;
-            uint8_t settings;
-            int8_t rotation;
-            uint16_t current;
-        } tilt;
-
-        struct RobotAgarGrab {
-            uint8_t address;
-            uint8_t settings;
-            uint8_t opening;
-            uint16_t current;
-        } agar;
+    struct RobotLogDev {
+    	uint8_t state;
+    	uint8_t control;
         uint8_t errors;
-    } device;
+    } logdevice[LOGDEV_AMOUNT];
 
     struct RobotStabilizationConstants {
         bool enable;
-        // Before PID
+        // Before P
+    	uint8_t cameras;
         float iJoySpeed;
         float pSpeedDyn;
         float pErrGain;
