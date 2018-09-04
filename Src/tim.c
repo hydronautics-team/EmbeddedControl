@@ -51,17 +51,7 @@
 #include "tim.h"
 
 /* USER CODE BEGIN 0 */
-void delayUs(uint16_t delay)
-{
-	uint8_t i;
-	htim7.Instance->ARR = delay;
-	htim7.Instance->EGR = TIM_EGR_UG;
-	htim7.Instance->CR1 = TIM_CR1_CEN|TIM_CR1_OPM;
-	while ((htim7.Instance->CR1 & TIM_CR1_CEN) != 0){
-		++i;
-		--i;
-	}
-}
+
 /* USER CODE END 0 */
 
 TIM_HandleTypeDef htim7;

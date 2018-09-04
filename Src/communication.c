@@ -35,14 +35,14 @@ bool i2c1PackageReceived = false;
 bool i2c2PackageReceived = false;
 
 void variableInit() {
-    Q100.VMA[HLB].address = 0x07;
-    Q100.VMA[HLF].address = 0x05;
-    Q100.VMA[HRB].address = 0x02;
-    Q100.VMA[HRF].address = 0x04;
-    Q100.VMA[VB].address = 0x03;
-    Q100.VMA[VF].address = 0x06;
-    Q100.VMA[VL].address = 0x013;
-    Q100.VMA[VR].address = 0x08;
+    Q100.VMA[HLB].address = 0;
+    Q100.VMA[HLF].address = 1;
+    Q100.VMA[HRB].address = 2;
+    Q100.VMA[HRF].address = 3;
+    Q100.VMA[VB].address = 4;
+    Q100.VMA[VF].address = 5;
+    Q100.VMA[VL].address = 6;
+    Q100.VMA[VR].address = 7;
 
     Q100.device[DEV1].address = 0x03;
     Q100.device[GRAB].address = 0x01;
@@ -340,7 +340,7 @@ void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
     req.velocity1 = 0;
     req.velocity2 = robot->device[dev].force;
 
-    memcpy((void*)&req, (void*)buf, DEV_REQUEST_LENGTH);
+    memcpy((void*)buf, (void*)&req, DEV_REQUEST_LENGTH);
     AddChecksumm8b(buf, DEV_REQUEST_LENGTH);
 }
 
@@ -348,8 +348,7 @@ void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
 {
     if(IsChecksumm8bCorrect(buf, DEV_RESPONSE_LENGTH)) {
     	struct devResponse_s res;
-    	res.current1 = 0; // for compiler sake
-    	memcpy((void*)buf, (void*)&res, DEV_RESPONSE_LENGTH);
+    	memcpy((void*)&res, (void*)buf, DEV_RESPONSE_LENGTH);
 
         robot->device[dev].current = res.current1;
         // TODO make errors work pls
@@ -371,7 +370,7 @@ void VmaRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
     res.frequency = 0;
     res.outrunning_angle = 0;
 
-    memcpy((void*)&res, (void*)buf, VMA_REQUEST_LENGTH);
+    memcpy((void*)buf, (void*)&res, VMA_REQUEST_LENGTH);
     AddChecksumm8bVma(buf, VMA_REQUEST_LENGTH);
 }
 
@@ -380,8 +379,7 @@ void VmaResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
 	//TODO errors parsing! and what is all this new stuff means
     if(IsChecksumm8bCorrectVma(buf, VMA_RESPONSE_LENGTH)) {
     	struct vmaResponse_s res;
-    	res.current = 0; // for compiler sake
-    	memcpy((void*)buf, (void*)&res, VMA_RESPONSE_LENGTH);
+    	memcpy((void*)&res, (void*)buf, VMA_RESPONSE_LENGTH);
 
         robot->VMA[vma].current = res.current;
     }
@@ -472,7 +470,7 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 {
     if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)) {
     	struct shoreRequest_s req;
-    	memcpy((void*)&req, (void*)requestBuf, SHORE_REQUEST_LENGTH);
+    	memcpy(/*(void*)*/&req, /*(void*)*/requestBuf, SHORE_REQUEST_LENGTH);
 
     	uint8_t tempCameraNum = 0;
         shorePackageError = 0;
@@ -662,7 +660,7 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
     //res.dev_errors = robot->device.errors;
     res.pc_errors = robot->pc.errors;
 
-    memcpy((void*)&res, (void*)responseBuf, SHORE_RESPONSE_LENGTH);
+    memcpy(&responseBuf, &res, SHORE_RESPONSE_LENGTH);
 
     AddChecksumm16b(responseBuf, SHORE_RESPONSE_LENGTH);
 }

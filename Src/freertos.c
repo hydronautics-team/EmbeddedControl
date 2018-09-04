@@ -99,7 +99,6 @@ extern uint16_t numberRx;
 extern uint16_t counterRx;
 
 bool shoreCommunicationUpdated = false;
-
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -129,27 +128,27 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, Stack
 /* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
 static StaticTask_t xIdleTaskTCBBuffer;
 static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
-
+  
 void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
 {
   *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
   *ppxIdleTaskStackBuffer = &xIdleStack[0];
   *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
   /* place for user code */
-}
+}                   
 /* USER CODE END GET_IDLE_TASK_MEMORY */
 
 /* USER CODE BEGIN GET_TIMER_TASK_MEMORY */
 static StaticTask_t xTimerTaskTCBBuffer;
 static StackType_t xTimerStack[configTIMER_TASK_STACK_DEPTH];
-
-void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize )
+  
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize )  
 {
   *ppxTimerTaskTCBBuffer = &xTimerTaskTCBBuffer;
   *ppxTimerTaskStackBuffer = &xTimerStack[0];
   *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
   /* place for user code */
-}
+}                   
 /* USER CODE END GET_TIMER_TASK_MEMORY */
 
 /* Init FreeRTOS */
@@ -158,7 +157,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
     variableInit();
     stabilizationInit(&Q100);
-    HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
+	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -245,13 +244,13 @@ void func_tVmaCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-        if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_VMA_TASK) == pdTRUE) {
+         if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_VMA_TASK) == pdTRUE) {
             VmaRequestUpdate(&Q100, VmaRequestBuf, VmaTransaction);
             xSemaphoreGive(mutDataHandle);
         }
 
-        transmitPackageDMA(VMA_UART, VmaRequestBuf, DEV_REQUEST_LENGTH);
-        receivePackageDMA(VMA_UART, VmaResponseBuf[VmaTransaction], DEV_RESPONSE_LENGTH);
+        transmitPackageDMA(VMA_UART, VmaRequestBuf, VMA_REQUEST_LENGTH);
+        receivePackageDMA(VMA_UART, VmaResponseBuf[VmaTransaction], VMA_RESPONSE_LENGTH);
 
         if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_VMA_TASK) == pdTRUE) {
         	VmaResponseUpdate(&Q100, VmaResponseBuf[VmaTransaction], VmaTransaction);
@@ -299,7 +298,7 @@ void func_tStabilizationTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-        if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STAB_TASK) == pdTRUE) {
+	  	if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STAB_TASK) == pdTRUE) {
             if (Q100.pitchStabCons.enable) {
                 stabilizePitch(&Q100);
             }
@@ -323,6 +322,7 @@ void func_tStabilizationTask(void const * argument)
 
             xSemaphoreGive(mutDataHandle);
         }
+
         osDelayUntil(&sysTime, DELAY_STAB_TASK);
   }
   /* USER CODE END func_tStabilizationTask */
@@ -351,7 +351,6 @@ void func_tDevCommTask(void const * argument)
         }
 
         DevTransaction = (DevTransaction + 1) % DEV_DRIVER_NUMBER;
-
         osDelayUntil(&sysTime, DELAY_DEV_TASK);
   }
   /* USER CODE END func_tDevCommTask */
@@ -365,12 +364,14 @@ void func_tSensCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+	  // TODO infinite loop starts here
+	  /*
 	  receiveI2cPackageDMA (DEV_I2C, SENSORS_PRESSURE_ADDR, SensorsResponseBuf[0], SENSORS_PACKAGE_SIZE);
 	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
 		  SensorsRequestUpdate(&Q100, DevRequestBuf, DEV_I2C);
 		  xSemaphoreGive(mutDataHandle);
 	  }
-
+	  */
 	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
   }
   /* USER CODE END func_tSensCommTask */
@@ -428,7 +429,7 @@ void func_tUartTimer(void const * argument)
 }
 
 /* USER CODE BEGIN Application */
-
+     
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

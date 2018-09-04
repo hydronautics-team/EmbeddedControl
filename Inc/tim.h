@@ -72,7 +72,7 @@ extern void _Error_Handler(char *, int);
 void MX_TIM7_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-void delayUs(uint16_t delay);
+
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
