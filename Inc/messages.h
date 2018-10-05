@@ -10,9 +10,9 @@
 #define VMA_NUMBER              	8
 #define VMA_DRIVER_NUMBER       	8
 
-#define VMA_REQUEST_LENGTH   		12
-#define VMA_CONFIG_REQUEST_LENGTH  	7
-#define VMA_RESPONSE_LENGTH  		10
+#define VMA_REQUEST_LENGTH   		14
+#define VMA_CONFIG_REQUEST_LENGTH  	13
+#define VMA_RESPONSE_LENGTH  		12
 
 #define VMA_NORMAL_REQUEST_TYPE 	0x01
 #define VMA_CONFIG_REQUEST_TYPE 	0x02
@@ -28,30 +28,35 @@ struct vmaRequest_s
 	int8_t velocity;
 	uint8_t frequency;
 	int16_t outrunning_angle;
+	uint16_t speed_k;
 	uint8_t crc;
 };
 
 struct vmaConfigRequest_s
 {
-    uint8_t AA;
-    uint8_t type; // 0x02
-    uint8_t update_firmware; // (bool) set new address or update firmware even if old address doesn't equal BLDC address
-    uint8_t forse_setting; // (bool) set new address even if old address doesn't equal BLDC address
-    uint8_t old_address;
-    uint8_t new_address;
-    uint8_t crc;
+	uint8_t AA;
+	uint8_t type; // 0x02
+	uint8_t update_firmware; // (bool) set new address or update firmware even if old address doesn't equal BLDC address
+	uint8_t forse_setting; // (bool) set new address even if old address doesn't equal BLDC address
+	uint8_t old_address;
+	uint8_t new_address;
+	uint16_t high_threshold;
+	uint16_t low_threshold;
+	uint16_t average_threshold;
+	uint8_t crc;
 };
 
 struct vmaResponse_s
 {
-    uint8_t AA;
-    uint8_t type;
-    uint8_t address;
-    uint8_t state;
-    uint8_t position_code;
-    uint16_t cur_angle;
-    uint16_t current;
-    uint8_t crc;
+	uint8_t AA;
+	uint8_t type;
+	uint8_t address;
+	uint8_t state;
+	uint8_t position_code;
+	uint16_t cur_angle;
+	uint16_t current;
+	uint16_t speed_period;
+	uint8_t crc;
 };
 
 /* STM send requests and DEV send responses */

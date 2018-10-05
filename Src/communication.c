@@ -366,9 +366,10 @@ void VmaRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
     res.update_base_vector = false;
     res.position_setting = 0;
     res.angle = 0;
-    res.velocity = robot->VMA[vma].desiredSpeed*0.1;
+    res.velocity = robot->VMA[vma].desiredSpeed*0.2;
     res.frequency = 0;
     res.outrunning_angle = 0;
+    res.speed_k = 0;
 
     memcpy((void*)buf, (void*)&res, VMA_REQUEST_LENGTH);
     AddChecksumm8bVma(buf, VMA_REQUEST_LENGTH);
@@ -470,7 +471,7 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 {
     if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)) {
     	struct shoreRequest_s req;
-    	memcpy(/*(void*)*/&req, /*(void*)*/requestBuf, SHORE_REQUEST_LENGTH);
+    	memcpy((void*)&req, (void*)requestBuf, SHORE_REQUEST_LENGTH);
 
     	uint8_t tempCameraNum = 0;
         shorePackageError = 0;
@@ -657,10 +658,10 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 
     res.vma_errors = 0x55;         //!!!!!TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // TODO do this properly pls
-    //res.dev_errors = robot->device.errors;
+    res.dev_errors = 0;//robot->device.errors;
     res.pc_errors = robot->pc.errors;
 
-    memcpy(&responseBuf, &res, SHORE_RESPONSE_LENGTH);
+    memcpy((void*)responseBuf, (void*)&res, SHORE_RESPONSE_LENGTH);
 
     AddChecksumm16b(responseBuf, SHORE_RESPONSE_LENGTH);
 }
