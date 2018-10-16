@@ -2,8 +2,6 @@
   ******************************************************************************
   * @file    stm32f3xx_hal_def.h
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    16-December-2016
   * @brief   This file contains HAL common defines, enumeration, macros and 
   *          structures definitions. 
   ******************************************************************************
@@ -46,7 +44,9 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f3xx.h"
+#if defined USE_LEGACY
 #include "Legacy/stm32_hal_legacy.h"
+#endif
 #include <stdio.h>
 
 /* Exported types ------------------------------------------------------------*/
@@ -72,10 +72,13 @@ typedef enum
 } HAL_LockTypeDef;
 
 /* Exported macro ------------------------------------------------------------*/
+
+#define UNUSED(X) (void)X      /* To avoid gcc/g++ warnings */
+
 #define HAL_MAX_DELAY      0xFFFFFFFFU
 
-#define HAL_IS_BIT_SET(REG, BIT)         (((REG) & (BIT)) != RESET)
-#define HAL_IS_BIT_CLR(REG, BIT)         (((REG) & (BIT)) == RESET)
+#define HAL_IS_BIT_SET(REG, BIT)         (((REG) & (BIT)) == BIT)
+#define HAL_IS_BIT_CLR(REG, BIT)         (((REG) & (BIT)) == 0U)
 
 #define __HAL_LINKDMA(__HANDLE__, __PPP_DMA_FIELD_, __DMA_HANDLE_)                 \
                         do{                                                        \
@@ -83,10 +86,8 @@ typedef enum
                               (__DMA_HANDLE_).Parent = (__HANDLE__);               \
                           } while(0U)
 
-#define UNUSED(x) ((void)(x))
-                         
 /** @brief Reset the Handle's State field.
-  * @param __HANDLE__: specifies the Peripheral Handle.
+  * @param __HANDLE__ specifies the Peripheral Handle.
   * @note  This macro can be used for the following purpose:
   *          - When the Handle is declared as local variable; before passing it as parameter
   *            to HAL_PPP_Init() for the first time, it is mandatory to use this macro
@@ -123,7 +124,7 @@ typedef enum
                                     }while (0U)
 #endif /* USE_RTOS */
 
-#if  defined ( __GNUC__ )
+#if defined ( __GNUC__ ) && !defined (__CC_ARM) /* GNU Compiler */
   #ifndef __weak
     #define __weak   __attribute__((weak))
   #endif /* __weak */
@@ -134,7 +135,7 @@ typedef enum
 
 
 /* Macro to get variable aligned on 4-bytes, for __ICCARM__ the directive "#pragma data_alignment=4" must be used instead */
-#if defined   (__GNUC__)        /* GNU Compiler */
+#if defined ( __GNUC__ ) && !defined (__CC_ARM) /* GNU Compiler */
   #ifndef __ALIGN_END
     #define __ALIGN_END    __attribute__ ((aligned (4)))
   #endif /* __ALIGN_END */

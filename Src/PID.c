@@ -28,9 +28,9 @@ float update(struct PIDRegulator *PID, float error, float deltaTime_ms) {
 
 	float pTerm, dTerm, iTerm;
 	pTerm = PID->pGain * error; //proportional term
-
+	
 	PID->iState += error * deltaTime_ms / 1000.0f;
-
+	
 	if (PID->iState > PID->iMax) {
 		PID->iState = PID->iMax;
 	}

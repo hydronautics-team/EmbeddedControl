@@ -3,8 +3,13 @@
   * File Name          : freertos.c
   * Description        : Code for freertos applications
   ******************************************************************************
+  * This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether 
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2017 STMicroelectronics International N.V. 
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -47,40 +52,44 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN Includes */     
-#include "main.h"
 #include "usart.h"
-#include "iwdg.h"
-#include "communication.h"
+#include "i2c.h"
+#include "timers.h"
+#include "messages.h"
+#include "robot.h"
 #include "global.h"
+#include "communication.h"
 #include "stabilization.h"
+#include "checksum.h"
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
-osThreadId LedBlinkingHandle;
-uint32_t LedBlinkingBuffer[ 64 ];
-osStaticThreadDef_t LedBlinkingControlBlock;
-osThreadId VmaDevCommunicationHandle;
-uint32_t VmaDevCommunicationBuffer[ 64 ];
-osStaticThreadDef_t VmaDevCommunicationControlBlock;
-osThreadId SensorsCommunicationHandle;
-uint32_t SensorsCommunicationBuffer[ 128 ];
-osStaticThreadDef_t SensorsCommunicationControlBlock;
-osThreadId StabilizationHandle;
-uint32_t StabilizationBuffer[ 64 ];
-osStaticThreadDef_t StabilizationControlBlock;
-osThreadId DevCommunicationHandle;
-uint32_t DevCommunicationBuffer[ 64 ];
-osStaticThreadDef_t DevCommunicationControlBlock;
+osThreadId tLedBlinkingTaskHandle;
+uint32_t tLedBlinkingTaskBuffer[ 128 ];
+osStaticThreadDef_t tLedBlinkingTaskControlBlock;
+osThreadId tVmaCommTaskHandle;
+uint32_t tVmaCommTaskBuffer[ 128 ];
+osStaticThreadDef_t tVmaCommTaskControlBlock;
+osThreadId tImuCommTaskHandle;
+uint32_t tImuCommTaskBuffer[ 128 ];
+osStaticThreadDef_t tImuCommTaskControlBlock;
+osThreadId tStabilizationTaskHandle;
+uint32_t tStabilizationTaskBuffer[ 128 ];
+osStaticThreadDef_t tStabilizationTaskControlBlock;
+osThreadId tDevCommTaskHandle;
+uint32_t tDevCommTaskBuffer[ 128 ];
+osStaticThreadDef_t tDevCommTaskControlBlock;
+osThreadId tSensCommTaskHandle;
+uint32_t tSensCommTaskBuffer[ 128 ];
+osStaticThreadDef_t tSensCommTaskControlBlock;
+osThreadId tPcCommTaskHandle;
+uint32_t tPcCommTaskBuffer[ 128 ];
+osStaticThreadDef_t tPcCommTaskControlBlock;
+osTimerId tUartTimerHandle;
+osMutexId mutDataHandle;
+osStaticMutexDef_t mutDataControlBlock;
 
 /* USER CODE BEGIN Variables */
-osMessageQId pitchErrorQueueHandle;
-uint8_t pitchErrorQueueBuffer[ 2 * sizeof( int16_t ) ];
-osStaticMessageQDef_t pitchErrorQueueControlBlock;
-
-osMessageQId rollErrorQueueHandle;
-uint8_t rollErrorQueueBuffer[ 2 * sizeof( int16_t ) ];
-osStaticMessageQDef_t rollErrorQueueControlBlock;
-
 #define SHORE_DELAY	  45
 
 TimerHandle_t UARTTimer;
@@ -90,22 +99,22 @@ extern uint16_t numberRx;
 extern uint16_t counterRx;
 
 bool shoreCommunicationUpdated = false;
-
-extern struct PIDRegulator rollPID;
-extern struct PIDRegulator pitchPID;
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
-void LedBlinkingTask(void const * argument);
-void VmaDevCommunicationTask(void const * argument);
-void SensorsCommunicationTask(void const * argument);
-void StabilizationTask(void const * argument);
-void StartDevCommunication(void const * argument);
+void func_tLedBlinkingTask(void const * argument);
+void func_tVmaCommTask(void const * argument);
+void func_tImuCommTask(void const * argument);
+void func_tStabilizationTask(void const * argument);
+void func_tDevCommTask(void const * argument);
+void func_tSensCommTask(void const * argument);
+void func_tPcCommTask(void const * argument);
+void func_tUartTimer(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* USER CODE BEGIN FunctionPrototypes */
-void uartTimerCallback(xTimerHandle xTimer);
+void nullIntArray(uint8_t *array, uint8_t size);
 /* USER CODE END FunctionPrototypes */
 
 /* GetIdleTaskMemory prototype (linked to static allocation support) */
@@ -146,11 +155,15 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, Stack
 
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-  while(HAL_I2C_GetState(&hi2c1)!= HAL_I2C_STATE_READY) { }
-	while(HAL_UART_GetState(&huart4)!= HAL_UART_STATE_READY) { }
-	
-  IMUReset();
+    variableInit();
+    stabilizationInit(&Q100);
+	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
   /* USER CODE END Init */
+
+  /* Create the mutex(es) */
+  /* definition and creation of mutData */
+  osMutexStaticDef(mutData, &mutDataControlBlock);
+  mutDataHandle = osMutexCreate(osMutex(mutData));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -160,31 +173,43 @@ void MX_FREERTOS_Init(void) {
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
+  /* Create the timer(s) */
+  /* definition and creation of tUartTimer */
+  osTimerDef(tUartTimer, func_tUartTimer);
+  tUartTimerHandle = osTimerCreate(osTimer(tUartTimer), osTimerOnce, NULL);
+
   /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
-	UARTTimer = xTimerCreate("timer", SHORE_DELAY/portTICK_RATE_MS, pdFALSE, 0, uartTimerCallback);
+  UARTTimer = xTimerCreate("timer", SHORE_DELAY/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) func_tUartTimer);
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the thread(s) */
-  /* definition and creation of LedBlinking */
-  osThreadStaticDef(LedBlinking, LedBlinkingTask, osPriorityNormal, 0, 64, LedBlinkingBuffer, &LedBlinkingControlBlock);
-  LedBlinkingHandle = osThreadCreate(osThread(LedBlinking), NULL);
+  /* definition and creation of tLedBlinkingTask */
+  osThreadStaticDef(tLedBlinkingTask, func_tLedBlinkingTask, osPriorityLow, 0, 128, tLedBlinkingTaskBuffer, &tLedBlinkingTaskControlBlock);
+  tLedBlinkingTaskHandle = osThreadCreate(osThread(tLedBlinkingTask), NULL);
 
-  /* definition and creation of VmaDevCommunication */
-  osThreadStaticDef(VmaDevCommunication, VmaDevCommunicationTask, osPriorityAboveNormal, 0, 64, VmaDevCommunicationBuffer, &VmaDevCommunicationControlBlock);
-  VmaDevCommunicationHandle = osThreadCreate(osThread(VmaDevCommunication), NULL);
+  /* definition and creation of tVmaCommTask */
+  osThreadStaticDef(tVmaCommTask, func_tVmaCommTask, osPriorityBelowNormal, 0, 128, tVmaCommTaskBuffer, &tVmaCommTaskControlBlock);
+  tVmaCommTaskHandle = osThreadCreate(osThread(tVmaCommTask), NULL);
 
-  /* definition and creation of SensorsCommunication */
-  osThreadStaticDef(SensorsCommunication, SensorsCommunicationTask, osPriorityNormal, 0, 128, SensorsCommunicationBuffer, &SensorsCommunicationControlBlock);
-  SensorsCommunicationHandle = osThreadCreate(osThread(SensorsCommunication), NULL);
+  /* definition and creation of tImuCommTask */
+  osThreadStaticDef(tImuCommTask, func_tImuCommTask, osPriorityBelowNormal, 0, 128, tImuCommTaskBuffer, &tImuCommTaskControlBlock);
+  tImuCommTaskHandle = osThreadCreate(osThread(tImuCommTask), NULL);
 
-  /* definition and creation of Stabilization */
-  osThreadStaticDef(Stabilization, StabilizationTask, osPriorityNormal, 0, 64, StabilizationBuffer, &StabilizationControlBlock);
-  StabilizationHandle = osThreadCreate(osThread(Stabilization), NULL);
+  /* definition and creation of tStabilizationTask */
+  osThreadStaticDef(tStabilizationTask, func_tStabilizationTask, osPriorityBelowNormal, 0, 128, tStabilizationTaskBuffer, &tStabilizationTaskControlBlock);
+  tStabilizationTaskHandle = osThreadCreate(osThread(tStabilizationTask), NULL);
 
-  /* definition and creation of DevCommunication */
-  osThreadStaticDef(DevCommunication, StartDevCommunication, osPriorityAboveNormal, 0, 64, DevCommunicationBuffer, &DevCommunicationControlBlock);
-  DevCommunicationHandle = osThreadCreate(osThread(DevCommunication), NULL);
+  /* definition and creation of tDevCommTask */
+  osThreadStaticDef(tDevCommTask, func_tDevCommTask, osPriorityBelowNormal, 0, 128, tDevCommTaskBuffer, &tDevCommTaskControlBlock);
+  tDevCommTaskHandle = osThreadCreate(osThread(tDevCommTask), NULL);
+
+  /* definition and creation of tSensCommTask */
+  osThreadStaticDef(tSensCommTask, func_tSensCommTask, osPriorityBelowNormal, 0, 128, tSensCommTaskBuffer, &tSensCommTaskControlBlock);
+  tSensCommTaskHandle = osThreadCreate(osThread(tSensCommTask), NULL);
+
+  /* definition and creation of tPcCommTask */
+  osThreadStaticDef(tPcCommTask, func_tPcCommTask, osPriorityBelowNormal, 0, 128, tPcCommTaskBuffer, &tPcCommTaskControlBlock);
+  tPcCommTaskHandle = osThreadCreate(osThread(tPcCommTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -192,257 +217,219 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
-  osMessageQStaticDef(pitchErrorQueue, 1, int16_t, pitchErrorQueueBuffer, &pitchErrorQueueControlBlock);
-  pitchErrorQueueHandle = osMessageCreate(osMessageQ(pitchErrorQueue), NULL);
-
-  osMessageQStaticDef(rollErrorQueue, 1, int16_t, rollErrorQueueBuffer, &rollErrorQueueControlBlock);
-  rollErrorQueueHandle = osMessageCreate(osMessageQ(rollErrorQueue), NULL);
-	/* USER CODE END RTOS_QUEUES */
+  /* USER CODE END RTOS_QUEUES */
 }
 
-/* LedBlinkingTask function */
-void LedBlinkingTask(void const * argument)
+/* func_tLedBlinkingTask function */
+void func_tLedBlinkingTask(void const * argument)
 {
 
-  /* USER CODE BEGIN LedBlinkingTask */
-	uint32_t sysTime = osKernelSysTick();
-	
+  /* USER CODE BEGIN func_tLedBlinkingTask */
+    uint32_t sysTime = osKernelSysTick();
   /* Infinite loop */
-  for(;;){
-		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-		osDelayUntil(&sysTime, 200);
-		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-		HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
-		osDelayUntil(&sysTime, 200);
-		HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
-		HAL_GPIO_TogglePin(LD7_GPIO_Port, LD7_Pin);
-		osDelayUntil(&sysTime, 200);	
-		HAL_GPIO_TogglePin(LD7_GPIO_Port, LD7_Pin);
-		HAL_GPIO_TogglePin(LD9_GPIO_Port, LD9_Pin);
-		osDelayUntil(&sysTime, 200);	
-		HAL_GPIO_TogglePin(LD9_GPIO_Port, LD9_Pin);
-		HAL_GPIO_TogglePin(LD10_GPIO_Port, LD10_Pin);
-		osDelayUntil(&sysTime, 200);		
-		HAL_GPIO_TogglePin(LD10_GPIO_Port, LD10_Pin);
-		HAL_GPIO_TogglePin(LD8_GPIO_Port, LD8_Pin);
-		osDelayUntil(&sysTime, 200);	
-		HAL_GPIO_TogglePin(LD8_GPIO_Port, LD8_Pin);
-		HAL_GPIO_TogglePin(LD6_GPIO_Port, LD6_Pin);
-		osDelayUntil(&sysTime, 200);
-		HAL_GPIO_TogglePin(LD6_GPIO_Port, LD6_Pin);
-		HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
-		osDelayUntil(&sysTime, 200);
-		HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
+  for(;;)
+  {
+        HAL_GPIO_TogglePin(DBG_LED_GPIO_Port, DBG_LED_Pin);
+        osDelayUntil(&sysTime, DELAY_LED_TASK);
   }
-  /* USER CODE END LedBlinkingTask */
+  /* USER CODE END func_tLedBlinkingTask */
 }
 
-/* VmaDevCommunicationTask function */
-void VmaDevCommunicationTask(void const * argument)
+/* func_tVmaCommTask function */
+void func_tVmaCommTask(void const * argument)
 {
-  /* USER CODE BEGIN VmaDevCommunicationTask */
-	uint32_t sysTime = osKernelSysTick();
-	uint8_t VMATransaction = 0;
-
+  /* USER CODE BEGIN func_tVmaCommTask */
+    uint32_t sysTime = osKernelSysTick();
+    uint8_t VmaTransaction = 0;
   /* Infinite loop */
-  for(;;){
-		//if (shoreCommunicationUpdated){
-			switch(VMATransaction){
-				case HLB:
-					VMARequestUpdate(&Q100, VMARequestBuf, HLB);
-					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					VMAResponseUpdate(&Q100, VMAResponseBuf, HLB);
-				break;
-				
-				case HLF:
-					VMARequestUpdate(&Q100, VMARequestBuf, HLF);
-					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					VMAResponseUpdate(&Q100, VMAResponseBuf, HLF);
-				break;
-				
-				case HRB:
-					VMARequestUpdate(&Q100, VMARequestBuf, HRB);
-					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					VMAResponseUpdate(&Q100, VMAResponseBuf, HRB);
-				break;
-				
-				case HRF:
-					VMARequestUpdate(&Q100, VMARequestBuf, HRF);
-					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					VMAResponseUpdate(&Q100, VMAResponseBuf, HRF);
-				break;
-				
-				case VB:
-					VMARequestUpdate(&Q100, VMARequestBuf, VB);
-					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					VMAResponseUpdate(&Q100, VMAResponseBuf, VB);
-				break;
-				
-				case VF:		
-					VMARequestUpdate(&Q100, VMARequestBuf, VF);
-					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					VMAResponseUpdate(&Q100, VMAResponseBuf, VF);
-				break;
-				
-				case VL:
-					VMARequestUpdate(&Q100, VMARequestBuf, VL);
-					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					VMAResponseUpdate(&Q100, VMAResponseBuf, VL);
-				break;
-				
-				case VR:
-					VMARequestUpdate(&Q100, VMARequestBuf, VR);
-					transmitPackageDMA(VMA_UART, VMARequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(VMA_UART, VMAResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					VMAResponseUpdate(&Q100, VMAResponseBuf, VR);
-				break;
+  for(;;)
+  {
+         if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_VMA_TASK) == pdTRUE) {
+            VmaRequestUpdate(&Q100, VmaRequestBuf, VmaTransaction);
+            xSemaphoreGive(mutDataHandle);
+        }
+
+        transmitPackageDMA(VMA_UART, VmaRequestBuf, VMA_REQUEST_LENGTH);
+        receivePackageDMA(VMA_UART, VmaResponseBuf[VmaTransaction], VMA_RESPONSE_LENGTH);
+
+        if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_VMA_TASK) == pdTRUE) {
+        	VmaResponseUpdate(&Q100, VmaResponseBuf[VmaTransaction], VmaTransaction);
+            xSemaphoreGive(mutDataHandle);
+        }
+
+        VmaTransaction = (VmaTransaction + 1) % VMA_DRIVER_NUMBER;
+        osDelayUntil(&sysTime, DELAY_VMA_TASK);
+  }
+  /* USER CODE END func_tVmaCommTask */
+}
+
+/* func_tImuCommTask function */
+void func_tImuCommTask(void const * argument)
+{
+  /* USER CODE BEGIN func_tImuCommTask */
+  uint32_t sysTime = osKernelSysTick();
+  uint8_t ErrorCode = 0;
+  /* Infinite loop */
+  for(;;)
+  {
+	  	if(Q100.i_sensors.resetIMU) {
+	  		transmitPackageDMA(IMU_UART, ImuResetRequestBuf, IMU_REQUEST_LENGTH);
+	  		Q100.i_sensors.resetIMU = false;
+	  	}
+	  	else {
+	  		transmitPackageDMA(IMU_UART, ImuRequestBuf, IMU_REQUEST_LENGTH);
+	  		receivePackageDMA(IMU_UART, ImuResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
+	  		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_IMU_TASK) == pdTRUE) {
+	  			ImuReceive(&Q100, ImuResponseBuf, &ErrorCode);
+	        	xSemaphoreGive(mutDataHandle);
+	  		}
+	  	}
+
+        osDelayUntil(&sysTime, DELAY_IMU_TASK);
+  }
+  /* USER CODE END func_tImuCommTask */
+}
+
+/* func_tStabilizationTask function */
+void func_tStabilizationTask(void const * argument)
+{
+  /* USER CODE BEGIN func_tStabilizationTask */
+    uint32_t sysTime = osKernelSysTick();
+  /* Infinite loop */
+  for(;;)
+  {
+	  	if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STAB_TASK) == pdTRUE) {
+            if (Q100.pitchStabCons.enable) {
+                stabilizePitch(&Q100);
+            }
+            else {
+                Q100.pitchStabSt.speedError = 0;
+            }
+
+            if (Q100.rollStabCons.enable) {
+                stabilizeRoll(&Q100);
+            }
+            else {
+                Q100.rollStabSt.speedError = 0;
+            }
+
+            if (Q100.yawStabCons.enable) {
+                stabilizeYaw(&Q100);
+            }
+            else {
+                Q100.yawStabSt.speedError = 0;
+            }
+
+            xSemaphoreGive(mutDataHandle);
+        }
+
+        osDelayUntil(&sysTime, DELAY_STAB_TASK);
+  }
+  /* USER CODE END func_tStabilizationTask */
+}
+
+/* func_tDevCommTask function */
+void func_tDevCommTask(void const * argument)
+{
+  /* USER CODE BEGIN func_tDevCommTask */
+    uint32_t sysTime = osKernelSysTick();
+    uint8_t DevTransaction = 0;
+  /* Infinite loop */
+  for(;;)
+  {
+        if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_DEV_TASK) == pdTRUE) {
+            DevRequestUpdate(&Q100, DevRequestBuf, DevTransaction);
+            xSemaphoreGive(mutDataHandle);
+        }
+
+        transmitPackageDMA(DEV_UART, DevRequestBuf, DEV_REQUEST_LENGTH);
+        receivePackageDMA(DEV_UART, DevResponseBuf[DevTransaction], DEV_RESPONSE_LENGTH);
+
+        if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_DEV_TASK) == pdTRUE) {
+            DevResponseUpdate(&Q100, DevResponseBuf[DevTransaction], DevTransaction);
+            xSemaphoreGive(mutDataHandle);
+        }
+
+        DevTransaction = (DevTransaction + 1) % DEV_DRIVER_NUMBER;
+        osDelayUntil(&sysTime, DELAY_DEV_TASK);
+  }
+  /* USER CODE END func_tDevCommTask */
+}
+
+/* func_tSensCommTask function */
+void func_tSensCommTask(void const * argument)
+{
+  /* USER CODE BEGIN func_tSensCommTask */
+	uint32_t sysTime = osKernelSysTick();
+  /* Infinite loop */
+  for(;;)
+  {
+	  // TODO infinite loop starts here
+	  /*
+	  receiveI2cPackageDMA (DEV_I2C, SENSORS_PRESSURE_ADDR, SensorsResponseBuf[0], SENSORS_PACKAGE_SIZE);
+	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
+		  SensorsRequestUpdate(&Q100, DevRequestBuf, DEV_I2C);
+		  xSemaphoreGive(mutDataHandle);
+	  }
+	  */
+	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
+  }
+  /* USER CODE END func_tSensCommTask */
+}
+
+/* func_tPcCommTask function */
+void func_tPcCommTask(void const * argument)
+{
+  /* USER CODE BEGIN func_tPcCommTask */
+	uint32_t sysTime = osKernelSysTick();
+  /* Infinite loop */
+  for(;;)
+  {
+	  osDelayUntil(&sysTime, DELAY_PC_TASK);
+  }
+  /* USER CODE END func_tPcCommTask */
+}
+
+/* func_tUartTimer function */
+void func_tUartTimer(void const * argument)
+{
+  /* USER CODE BEGIN func_tUartTimer */
+	if (uart1PackageReceived) {
+		shoreCommunicationUpdated = true;
+		uart1PackageReceived = false;
+
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_TIMER_TASK) == pdTRUE) {
+			if(numberRx == SHORE_REQUEST_LENGTH) {
+				ShoreRequest(&Q100, ShoreRequestBuf);
 			}
-			VMATransaction = (VMATransaction + 1) % VMA_DRIVER_NUMBER;
-	//	}
-		osDelayUntil(&sysTime, 10);
-  }
-  /* USER CODE END VmaDevCommunicationTask */
-}
-
-/* SensorsCommunicationTask function */
-void SensorsCommunicationTask(void const * argument)
-{
-  /* USER CODE BEGIN SensorsCommunicationTask */
-	uint32_t sysTime = osKernelSysTick();
-  /* Infinite loop */
-  for(;;){
-		uint8_t ErrorCode = 0;
-		IMUReceive(&Q100, IMUReceiveBuf, &ErrorCode);
-		BTRequest(BTReceiveBuf);
-		
-    osDelayUntil(&sysTime, 100);
-  }
-  /* USER CODE END SensorsCommunicationTask */
-}
-
-/* StabilizationTask function */
-void StabilizationTask(void const * argument)
-{
-  /* USER CODE BEGIN StabilizationTask */
-	uint32_t sysTime = osKernelSysTick();
-	stabilizationInit(&Q100);
-	/* Infinite loop */
-  for(;;){
-		if (Q100.pitchStabilization.enable){
-			stabilizePitch(&Q100);
-			//xQueueSend( pitchErrorQueueHandle, ( void *) &Q100.pitchStabilization.speedError, 5);
-		}
-		else {
-			Q100.pitchStabilization.speedError = 0;
-		}
-		
-		if (Q100.rollStabilization.enable){
-			stabilizeRoll(&Q100);
-			xQueueSend( rollErrorQueueHandle, ( void *) &Q100.rollStabilization.speedError, 50);
-		}
-		else {
-			Q100.rollStabilization.speedError = 0;
-		}
-    osDelayUntil(&sysTime, 50);
-  }
-  /* USER CODE END StabilizationTask */
-}
-
-/* StartDevCommunication function */
-void StartDevCommunication(void const * argument)
-{
-  /* USER CODE BEGIN StartDevCommunication */
-	uint32_t sysTime = osKernelSysTick();
-	uint8_t DevTransaction = 0;
-  /* Infinite loop */		
-  for(;;){
-		//if (shoreCommunicationUpdated){
-			switch(DevTransaction){
-				case AGAR:
-					DevRequestUpdate(&Q100, DevRequestBuf, AGAR);
-					transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					DevResponseUpdate(&Q100, DevResponseBuf, AGAR);
-				break;
-				
-				case GRAB:
-					DevRequestUpdate(&Q100, DevRequestBuf, GRAB);
-					transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					DevResponseUpdate(&Q100, DevResponseBuf, GRAB);
-				break;
-				
-				case GRAB_ROTATION:
-					DevRequestUpdate(&Q100, DevRequestBuf, GRAB_ROTATION);
-					transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					DevResponseUpdate(&Q100, DevResponseBuf, GRAB_ROTATION);
-				break;
-				
-				case TILT:
-					DevRequestUpdate(&Q100, DevRequestBuf, TILT);
-					transmitPackageDMA(DEV_UART, DevRequestBuf, VMA_DEV_REQUEST_LENGTH);
-					receivePackageDMA(DEV_UART, DevResponseBuf, VMA_DEV_RESPONSE_LENGTH);
-					DevResponseUpdate(&Q100, DevResponseBuf, TILT);
-				break;
+			else if(numberRx == REQUEST_CONFIG_LENGTH) {
+				ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);
 			}
-			DevTransaction = (DevTransaction + 1) % DEV_DRIVER_NUMBER;
-		//}
-		osDelayUntil(&sysTime, 20);
-  }
-  /* USER CODE END StartDevCommunication */
+
+			ShoreResponse(&Q100, ShoreResponseBuf);
+			xSemaphoreGive(mutDataHandle);
+		}
+		transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
+		HAL_HalfDuplex_EnableReceiver(&huart1);
+		HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
+	}
+	else {
+		shoreCommunicationUpdated = false;
+		uart1PackageReceived = false;
+		counterRx = 0;
+
+		if(numberRx == SHORE_REQUEST_CODE) {
+			nullIntArray(ShoreRequestBuf, numberRx);
+		}
+		else if(numberRx == REQUEST_CONFIG_CODE) {
+			nullIntArray(ShoreRequestConfigBuf, numberRx);
+		}
+	}
+  /* USER CODE END func_tUartTimer */
 }
 
 /* USER CODE BEGIN Application */
-void uartTimerCallback(xTimerHandle xTimer)
-{
-	
-		if (uart1PackageReceived){
-			//HAL_IWDG_Refresh(&hiwdg);
-			shoreCommunicationUpdated = true;
-			uart1PackageReceived = false;
-			
-			int16_t pitchError = 0, rollError = 0;
-			switch(numberRx){
-				case SHORE_REQUEST_LENGTH:
-//					xQueueReceive( pitchErrorQueueHandle, &( pitchError ), 1 );
-//					xQueueReceive( rollErrorQueueHandle, &( rollError ), 1 );
-					ShoreRequest(&Q100, ShoreRequestBuf, &pitchError, &rollError);
-					break;
-				case REQUEST_CONFIG_LENGTH:
-					ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);
-					break;
-			}		
-			
-			ShoreResponse(&Q100, ShoreResponseBuf);
-			transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
-			HAL_HalfDuplex_EnableReceiver(&huart1);
-			HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
-		}
-		else{
-			shoreCommunicationUpdated = false;
-			counterRx = 0;
-			switch(numberRx){
-				case SHORE_REQUEST_CODE:
-					for (uint16_t i = 0; i < numberRx; ++i){
-						ShoreRequestBuf[i] = 0x00;
-					}
-					break;
-				case REQUEST_CONFIG_CODE:
-					for (uint16_t i = 0; i < numberRx; ++i){
-						ShoreRequestConfigBuf[i] = 0x00;
-					}
-					break;
-			}
-		}		
-}
+     
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

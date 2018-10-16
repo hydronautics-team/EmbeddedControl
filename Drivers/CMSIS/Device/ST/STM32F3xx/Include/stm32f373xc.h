@@ -2,8 +2,6 @@
   ******************************************************************************
   * @file    stm32f373xc.h
   * @author  MCD Application Team
-  * @version V2.3.1
-  * @date    16-December-2016
   * @brief   CMSIS STM32F373xC Devices Peripheral Access Layer Header File.
   *
   *          This file contains:
@@ -8374,9 +8372,9 @@ typedef struct
 #define RTC_CR_COSEL_Pos             (19U)                                     
 #define RTC_CR_COSEL_Msk             (0x1U << RTC_CR_COSEL_Pos)                /*!< 0x00080000 */
 #define RTC_CR_COSEL                 RTC_CR_COSEL_Msk                          
-#define RTC_CR_BCK_Pos               (18U)                                     
-#define RTC_CR_BCK_Msk               (0x1U << RTC_CR_BCK_Pos)                  /*!< 0x00040000 */
-#define RTC_CR_BCK                   RTC_CR_BCK_Msk                            
+#define RTC_CR_BKP_Pos               (18U)                                     
+#define RTC_CR_BKP_Msk               (0x1U << RTC_CR_BKP_Pos)                  /*!< 0x00040000 */
+#define RTC_CR_BKP                   RTC_CR_BKP_Msk                            
 #define RTC_CR_SUB1H_Pos             (17U)                                     
 #define RTC_CR_SUB1H_Msk             (0x1U << RTC_CR_SUB1H_Pos)                /*!< 0x00020000 */
 #define RTC_CR_SUB1H                 RTC_CR_SUB1H_Msk                          
@@ -8425,6 +8423,11 @@ typedef struct
 #define RTC_CR_WUCKSEL_0             (0x1U << RTC_CR_WUCKSEL_Pos)              /*!< 0x00000001 */
 #define RTC_CR_WUCKSEL_1             (0x2U << RTC_CR_WUCKSEL_Pos)              /*!< 0x00000002 */
 #define RTC_CR_WUCKSEL_2             (0x4U << RTC_CR_WUCKSEL_Pos)              /*!< 0x00000004 */
+
+/* Legacy defines */
+#define RTC_CR_BCK_Pos               RTC_CR_BKP_Pos
+#define RTC_CR_BCK_Msk               RTC_CR_BKP_Msk
+#define RTC_CR_BCK                   RTC_CR_BKP
 
 /********************  Bits definition for RTC_ISR register  ******************/
 #define RTC_ISR_RECALPF_Pos          (16U)                                     
@@ -11666,7 +11669,7 @@ typedef struct
    ((INSTANCE) == TIM19))
 
 /****************** TIM Instances : supporting Hall interface *****************/
-#define IS_TIM_HALL_INTERFACE_INSTANCE(INSTANCE) (0)
+#define IS_TIM_HALL_SENSOR_INTERFACE_INSTANCE(INSTANCE) (0)
 
 /****************** TIM Instances : supporting input XOR function *************/
 #define IS_TIM_XOR_INSTANCE(INSTANCE)\
@@ -11697,6 +11700,9 @@ typedef struct
    ((INSTANCE) == TIM12)   || \
    ((INSTANCE) == TIM15)   || \
    ((INSTANCE) == TIM19))
+
+/****************** TIM Instances : supporting synchronization ****************/
+#define IS_TIM_SYNCHRO_INSTANCE(INSTANCE)  IS_TIM_MASTER_INSTANCE(INSTANCE)
 
 /****************** TIM Instances : supporting 32 bits counter ****************/
 #define IS_TIM_32B_COUNTER_INSTANCE(INSTANCE)\
@@ -11937,9 +11943,9 @@ typedef struct
 #define USB_LP_CAN_RX0_IRQn     CAN_RX0_IRQn
 #define USB_HP_CAN_TX_IRQn      CAN_TX_IRQn
 #define USBWakeUp_IRQn          CEC_IRQn
-#define COMP1_2_IRQn            COMP_IRQn
 #define COMP1_2_3_IRQn          COMP_IRQn
 #define COMP2_IRQn              COMP_IRQn
+#define COMP1_2_IRQn            COMP_IRQn
 #define ADC4_IRQn               SDADC1_IRQn
 #define TIM8_BRK_IRQn           TIM12_IRQn
 #define TIM8_UP_IRQn            TIM13_IRQn
@@ -11959,9 +11965,9 @@ typedef struct
 #define USB_LP_CAN_RX0_IRQHandler     CAN_RX0_IRQHandler
 #define USB_HP_CAN_TX_IRQHandler      CAN_TX_IRQHandler
 #define USBWakeUp_IRQHandler          CEC_IRQHandler
-#define COMP1_2_IRQHandler            COMP_IRQHandler
 #define COMP1_2_3_IRQHandler          COMP_IRQHandler
 #define COMP2_IRQHandler              COMP_IRQHandler
+#define COMP1_2_IRQHandler            COMP_IRQHandler
 #define ADC4_IRQHandler               SDADC1_IRQHandler
 #define TIM8_BRK_IRQHandler           TIM12_IRQHandler
 #define TIM8_UP_IRQHandler            TIM13_IRQHandler

@@ -4,8 +4,13 @@
   * Description        : This file provides code for the configuration
   *                      of the TIM instances.
   ******************************************************************************
+  * This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether 
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2017 STMicroelectronics International N.V. 
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -46,17 +51,7 @@
 #include "tim.h"
 
 /* USER CODE BEGIN 0 */
-void delayUs(uint16_t delay)
-{
-	uint8_t i;
-	htim7.Instance->ARR = delay;
-	htim7.Instance->EGR = TIM_EGR_UG;
-	htim7.Instance->CR1 = TIM_CR1_CEN|TIM_CR1_OPM;
-	while ((htim7.Instance->CR1 & TIM_CR1_CEN) != 0){
-		++i;
-		--i;
-	}
-}
+
 /* USER CODE END 0 */
 
 TIM_HandleTypeDef htim7;
@@ -73,14 +68,14 @@ void MX_TIM7_Init(void)
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
-    Error_Handler();
+    _Error_Handler(__FILE__, __LINE__);
   }
 
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
   {
-    Error_Handler();
+    _Error_Handler(__FILE__, __LINE__);
   }
 
 }
@@ -93,7 +88,7 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
   /* USER CODE BEGIN TIM7_MspInit 0 */
 
   /* USER CODE END TIM7_MspInit 0 */
-    /* Peripheral clock enable */
+    /* TIM7 clock enable */
     __HAL_RCC_TIM7_CLK_ENABLE();
   /* USER CODE BEGIN TIM7_MspInit 1 */
 
@@ -111,10 +106,10 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
   /* USER CODE END TIM7_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_TIM7_CLK_DISABLE();
-  }
   /* USER CODE BEGIN TIM7_MspDeInit 1 */
 
   /* USER CODE END TIM7_MspDeInit 1 */
+  }
 } 
 
 /* USER CODE BEGIN 1 */

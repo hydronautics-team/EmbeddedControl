@@ -2,8 +2,6 @@
   ******************************************************************************
   * @file    stm32f3xx_ll_rcc.c
   * @author  MCD Application Team
-  * @version V1.4.0
-  * @date    16-December-2016
   * @brief   RCC LL module driver.
   ******************************************************************************
   * @attention
@@ -59,7 +57,7 @@
   * @{
   */
 #if defined(RCC_CFGR2_ADC1PRES) || defined(RCC_CFGR2_ADCPRE12) || defined(RCC_CFGR2_ADCPRE34)
-const uint16_t aADCPrescTable[12]       = {1U, 2U, 4U, 6U, 8U, 10U, 12U, 16U, 32U, 64U, 128U, 256U};
+const uint16_t aADCPrescTable[16]       = {1U, 2U, 4U, 6U, 8U, 10U, 12U, 16U, 32U, 64U, 128U, 256U, 256U, 256U, 256U, 256U};
 #endif /* RCC_CFGR2_ADC1PRES || RCC_CFGR2_ADCPRE12 || RCC_CFGR2_ADCPRE34 */
 #if defined(RCC_CFGR_SDPRE)
 const uint8_t aSDADCPrescTable[16]       = {2U, 4U, 6U, 8U, 10U, 12U, 14U, 16U, 20U, 24U, 28U, 32U, 36U, 40U, 44U, 48U};
@@ -246,6 +244,10 @@ ErrorStatus LL_RCC_DeInit(void)
   /* Set HSION bit */
   LL_RCC_HSI_Enable();
 
+  /* Wait for HSI READY bit */
+  while(LL_RCC_HSI_IsReady() != 1U)
+  {}
+
   /* Set HSITRIM bits to the reset value*/
   LL_RCC_HSI_SetCalibTrimming(0x10U);
 
@@ -254,10 +256,18 @@ ErrorStatus LL_RCC_DeInit(void)
   CLEAR_BIT(vl_mask, (RCC_CFGR_SW | RCC_CFGR_HPRE | RCC_CFGR_PPRE1 | RCC_CFGR_PPRE2 | RCC_CFGR_MCOSEL));
   LL_RCC_WriteReg(CFGR, vl_mask);
 
+  /* Wait till system clock source is ready */
+  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSI)
+  {}
+
   /* Reset HSEON, CSSON, PLLON bits */
   vl_mask = 0xFFFFFFFFU;
   CLEAR_BIT(vl_mask, (RCC_CR_PLLON | RCC_CR_CSSON | RCC_CR_HSEON));
   LL_RCC_WriteReg(CR, vl_mask);
+
+  /* Wait for PLL READY bit to be reset */
+  while(LL_RCC_PLL_IsReady() != 0U)
+  {}
 
   /* Reset HSEBYP bit */
   LL_RCC_HSE_DisableBypass();
@@ -277,6 +287,9 @@ ErrorStatus LL_RCC_DeInit(void)
 
   /* Disable all interrupts */
   LL_RCC_WriteReg(CIR, 0x00000000U);
+
+  /* Clear reset flags */
+  LL_RCC_ClearResetFlags();
 
   return SUCCESS;
 }
@@ -621,7 +634,7 @@ uint32_t LL_RCC_GetI2CClockFreq(uint32_t I2CxSource)
   * @param  I2SxSource This parameter can be one of the following values:
   *         @arg @ref LL_RCC_I2S_CLKSOURCE
   * @retval I2S clock frequency (in Hz)
-  *         @arg @ref LL_RCC_PERIPH_FREQUENCY_NA indicates that external clock is used  */
+  *         @arg @ref LL_RCC_PERIPH_FREQUENCY_NA indicates that external clock is used */
 uint32_t LL_RCC_GetI2SClockFreq(uint32_t I2SxSource)
 {
   uint32_t i2s_frequency = LL_RCC_PERIPH_FREQUENCY_NO;
@@ -675,7 +688,7 @@ uint32_t LL_RCC_GetUSBClockFreq(uint32_t USBxSource)
     default:
       if (LL_RCC_PLL_IsReady())
       {
-        usb_frequency = (RCC_PLL_GetFreqDomain_SYS() * 3) / 2;
+        usb_frequency = (RCC_PLL_GetFreqDomain_SYS() * 3U) / 2U;
       }
       break;
   }
@@ -969,7 +982,7 @@ uint32_t LL_RCC_GetHRTIMClockFreq(uint32_t HRTIMxSource)
   assert_param(IS_LL_RCC_HRTIM_CLKSOURCE(HRTIMxSource));
 
   /* HRTIM1CLK clock frequency */
-  if (LL_RCC_GetTIMClockSource(LL_RCC_HRTIM1_CLKSOURCE) == LL_RCC_HRTIM1_CLKSOURCE_PCLK2)
+  if (LL_RCC_GetHRTIMClockSource(LL_RCC_HRTIM1_CLKSOURCE) == LL_RCC_HRTIM1_CLKSOURCE_PCLK2)
   {
     /* PCLK2 used as HRTIM1 clock source */
     hrtim_frequency = RCC_GetPCLK2ClockFreq(RCC_GetHCLKClockFreq(RCC_GetSystemClockFreq()));
@@ -1080,7 +1093,7 @@ uint32_t RCC_PLL_GetFreqDomain_SYS(void)
       pllinputfreq = HSI_VALUE;
 #else
     case LL_RCC_PLLSOURCE_HSI_DIV_2: /* HSI used as PLL clock source */
-      pllinputfreq = HSI_VALUE / 2;
+      pllinputfreq = HSI_VALUE / 2U;
 #endif /* RCC_PLLSRC_PREDIV1_SUPPORT */
       break;
 
@@ -1092,7 +1105,7 @@ uint32_t RCC_PLL_GetFreqDomain_SYS(void)
 #if defined(RCC_PLLSRC_PREDIV1_SUPPORT)
       pllinputfreq = HSI_VALUE;
 #else
-      pllinputfreq = HSI_VALUE / 2;
+      pllinputfreq = HSI_VALUE / 2U;
 #endif /* RCC_PLLSRC_PREDIV1_SUPPORT */
       break;
   }

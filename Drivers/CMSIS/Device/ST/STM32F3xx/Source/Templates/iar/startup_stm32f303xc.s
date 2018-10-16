@@ -1,8 +1,6 @@
 ;/******************** (C) COPYRIGHT 2016 STMicroelectronics ********************
 ;* File Name          : startup_stm32f303xc.s
 ;* Author             : MCD Application Team
-;* Version            : V2.3.1
-;* Date               : 16-December-2016
 ;* Description        : STM32F303xB/STM32F303xC devices vector table for EWARM toolchain.
 ;*                      This module performs:
 ;*                      - Set the initial SP

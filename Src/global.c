@@ -8,13 +8,14 @@ uint8_t ShoreRequestBuf[SHORE_REQUEST_LENGTH];
 uint8_t ShoreRequestConfigBuf[REQUEST_CONFIG_LENGTH];
 uint8_t ShoreResponseBuf[SHORE_RESPONSE_LENGTH];
 
-uint8_t IMUReceiveBuf[IMU_RECEIVE_PACKET_SIZE*5*2];
+uint8_t ImuRequestBuf[IMU_REQUEST_LENGTH] = { 's', 'n', 'p', 0x00, 0xAE, 0x01, 0xFF };
+uint8_t ImuResetRequestBuf[IMU_REQUEST_LENGTH] = { 's', 'n', 'p', 0x00, 0xAC, 0x01, 0xFD };
+uint8_t ImuResponseBuf[IMU_RESPONSE_LENGTH*IMU_CHECKSUMS];
 
-uint8_t BTReceiveBuf[BT_SIZE];
-uint8_t BTCalls = 0;
+uint8_t VmaRequestBuf[VMA_REQUEST_LENGTH];
+uint8_t VmaResponseBuf[VMA_DRIVER_NUMBER][VMA_RESPONSE_LENGTH];
 
-uint8_t VMARequestBuf[VMA_DEV_REQUEST_LENGTH];
-uint8_t VMAResponseBuf[VMA_DEV_RESPONSE_LENGTH];
+uint8_t DevRequestBuf[DEV_REQUEST_LENGTH];
+uint8_t DevResponseBuf[DEV_DRIVER_NUMBER][DEV_RESPONSE_LENGTH];
 
-uint8_t DevRequestBuf[VMA_DEV_REQUEST_LENGTH];
-uint8_t DevResponseBuf[VMA_DEV_RESPONSE_LENGTH];
+uint8_t SensorsResponseBuf[SENSORS_DEVICES_NUM][SENSORS_PACKAGE_SIZE];

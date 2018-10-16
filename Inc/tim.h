@@ -4,8 +4,13 @@
   * Description        : This file provides code for the configuration
   *                      of the TIM instances.
   ******************************************************************************
+  * This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether 
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2017 STMicroelectronics International N.V. 
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -59,15 +64,14 @@
 extern TIM_HandleTypeDef htim7;
 
 /* USER CODE BEGIN Private defines */
-void delayUs(uint16_t delay);
+
 /* USER CODE END Private defines */
 
-extern void Error_Handler(void);
+extern void _Error_Handler(char *, int);
 
 void MX_TIM7_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-void delayUS(uint16_t delay);
 
 /* USER CODE END Prototypes */
 
