@@ -134,28 +134,27 @@ void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size)
 
 int16_t MergeBytes(uint8_t most, uint8_t least)
 {
-	return ((int16_t) most << 8) | (least & 0x0F);
+	return ((int16_t) most << 8) | least;
 }
 
 uint16_t MergeUBytes(uint8_t most, uint8_t least)
 {
-	return ((uint16_t) most << 8) | (least & 0x0F);
+	return ((uint16_t) most << 8) | least;
 }
 
 float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos)
 {
 	return *(float *) (&buff[high_byte_pos]);
-    //return (float) ((buff[high_byte_pos] << 24) | (buff[high_byte_pos + 1] << 16) | (buff[high_byte_pos + 2] << 8) | buff[high_byte_pos + 3]);
 }
 
 void Uint8FromFloat(float input, uint8_t *outArray)
 {
 	uint8_t *d = (uint8_t *) &input;
 
-	outArray[0] = *d & 0xFF;
-	outArray[1] = (*d >> 8) & 0xFF;
-	outArray[2] = (*d >> 16) & 0xFF;
-	outArray[3] = (*d >> 24) & 0xFF;
+	outArray[0] = *d;
+	outArray[1] = (*d >> 8);
+	outArray[2] = (*d >> 16);
+	outArray[3] = (*d >> 24);
 }
 
 void nullIntArray(uint8_t *array, uint8_t size)
