@@ -152,9 +152,9 @@ void Uint8FromFloat(float input, uint8_t *outArray)
 	uint8_t *d = (uint8_t *) &input;
 
 	outArray[0] = *d;
-	outArray[1] = (*d >> 8);
-	outArray[2] = (*d >> 16);
-	outArray[3] = (*d >> 24);
+	outArray[1] = *(d + 1);
+	outArray[2] = *(d + 2);
+	outArray[3] = *(d + 2);
 }
 
 void nullIntArray(uint8_t *array, uint8_t size)
