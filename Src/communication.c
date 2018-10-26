@@ -273,6 +273,35 @@ void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
     }
 }
 
+void SendByteToRegisterByI2C(uint8_t I2C, uint16_t addr, uint8_t reg_addr, uint8_t byte)
+{
+	I2C_HandleTypeDef i2c;
+	switch(I2C) {
+    case DEV_I2C: i2c = hi2c1; break;
+		case PC_I2C: i2c = hi2c2; break;
+	}
+	
+	uint8_t txBuf[2] = {reg_addr, byte};	
+	HAL_StatusTypeDef hr = HAL_I2C_Master_Transmit(&i2c, addr, txBuf, (uint8_t)2, (uint8_t)2);
+	if (hr != HAL_OK) {/*TODO: Error code*/}
+}
+
+void receiveI2CPackageFromRegisters(uint8_t I2C, uint16_t addr, uint8_t reg_addr, uint8_t *buf, uint8_t length)
+{ 
+	I2C_HandleTypeDef i2c;
+	switch(I2C) {
+    case DEV_I2C: i2c = hi2c1; break;
+		case PC_I2C: i2c = hi2c2; break;
+	}
+	
+	HAL_StatusTypeDef hr = HAL_I2C_Master_Transmit(&i2c, addr, &reg_addr, (uint8_t)1, (uint8_t)2);
+	if (hr != HAL_OK) {/*TODO: Error code*/}
+	else {
+		hr = HAL_I2C_Master_Receive(&i2c, addr, buf, length,(uint8_t)10);
+		if (hr != HAL_OK) {/*TODO: Error code*/}
+	}
+}
+
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	if(hi2c == &hi2c1) {
