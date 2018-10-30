@@ -1,3 +1,4 @@
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * File Name          : freertos.c
@@ -45,12 +46,15 @@
   *
   ******************************************************************************
   */
+/* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
 #include "task.h"
+#include "main.h"
 #include "cmsis_os.h"
 
+/* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
 #include "usart.h"
 #include "i2c.h"
@@ -63,7 +67,33 @@
 #include "checksum.h"
 /* USER CODE END Includes */
 
-/* Variables -----------------------------------------------------------------*/
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+/* USER CODE BEGIN Variables */
+#define SHORE_DELAY	  45
+
+TimerHandle_t UARTTimer;
+extern bool uart1PackageReceived;
+extern uint8_t RxBuffer[1];
+extern uint16_t numberRx;
+extern uint16_t counterRx;
+
+bool shoreCommunicationUpdated = false;
+/* USER CODE END Variables */
 osThreadId tLedBlinkingTaskHandle;
 uint32_t tLedBlinkingTaskBuffer[ 128 ];
 osStaticThreadDef_t tLedBlinkingTaskControlBlock;
@@ -89,19 +119,11 @@ osTimerId tUartTimerHandle;
 osMutexId mutDataHandle;
 osStaticMutexDef_t mutDataControlBlock;
 
-/* USER CODE BEGIN Variables */
-#define SHORE_DELAY	  45
+/* Private function prototypes -----------------------------------------------*/
+/* USER CODE BEGIN FunctionPrototypes */
+void nullIntArray(uint8_t *array, uint8_t size);
+/* USER CODE END FunctionPrototypes */
 
-TimerHandle_t UARTTimer;
-extern bool uart1PackageReceived;
-extern uint8_t RxBuffer[1];
-extern uint16_t numberRx;
-extern uint16_t counterRx;
-
-bool shoreCommunicationUpdated = false;
-/* USER CODE END Variables */
-
-/* Function prototypes -------------------------------------------------------*/
 void func_tLedBlinkingTask(void const * argument);
 void func_tVmaCommTask(void const * argument);
 void func_tImuCommTask(void const * argument);
@@ -113,17 +135,11 @@ void func_tUartTimer(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
-/* USER CODE BEGIN FunctionPrototypes */
-void nullIntArray(uint8_t *array, uint8_t size);
-/* USER CODE END FunctionPrototypes */
-
 /* GetIdleTaskMemory prototype (linked to static allocation support) */
 void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
 
 /* GetTimerTaskMemory prototype (linked to static allocation support) */
 void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize );
-
-/* Hook prototypes */
 
 /* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
 static StaticTask_t xIdleTaskTCBBuffer;
@@ -151,8 +167,11 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, Stack
 }                   
 /* USER CODE END GET_TIMER_TASK_MEMORY */
 
-/* Init FreeRTOS */
-
+/**
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
     variableInit();
@@ -220,7 +239,13 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 }
 
-/* func_tLedBlinkingTask function */
+/* USER CODE BEGIN Header_func_tLedBlinkingTask */
+/**
+  * @brief  Function implementing the tLedBlinkingTask thread.
+  * @param  argument: Not used 
+  * @retval None
+  */
+/* USER CODE END Header_func_tLedBlinkingTask */
 void func_tLedBlinkingTask(void const * argument)
 {
 
@@ -235,7 +260,13 @@ void func_tLedBlinkingTask(void const * argument)
   /* USER CODE END func_tLedBlinkingTask */
 }
 
-/* func_tVmaCommTask function */
+/* USER CODE BEGIN Header_func_tVmaCommTask */
+/**
+* @brief Function implementing the tVmaCommTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_func_tVmaCommTask */
 void func_tVmaCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tVmaCommTask */
@@ -263,7 +294,13 @@ void func_tVmaCommTask(void const * argument)
   /* USER CODE END func_tVmaCommTask */
 }
 
-/* func_tImuCommTask function */
+/* USER CODE BEGIN Header_func_tImuCommTask */
+/**
+* @brief Function implementing the tImuCommTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_func_tImuCommTask */
 void func_tImuCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tImuCommTask */
@@ -290,7 +327,13 @@ void func_tImuCommTask(void const * argument)
   /* USER CODE END func_tImuCommTask */
 }
 
-/* func_tStabilizationTask function */
+/* USER CODE BEGIN Header_func_tStabilizationTask */
+/**
+* @brief Function implementing the tStabilizationTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_func_tStabilizationTask */
 void func_tStabilizationTask(void const * argument)
 {
   /* USER CODE BEGIN func_tStabilizationTask */
@@ -328,7 +371,13 @@ void func_tStabilizationTask(void const * argument)
   /* USER CODE END func_tStabilizationTask */
 }
 
-/* func_tDevCommTask function */
+/* USER CODE BEGIN Header_func_tDevCommTask */
+/**
+* @brief Function implementing the tDevCommTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_func_tDevCommTask */
 void func_tDevCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tDevCommTask */
@@ -356,7 +405,13 @@ void func_tDevCommTask(void const * argument)
   /* USER CODE END func_tDevCommTask */
 }
 
-/* func_tSensCommTask function */
+/* USER CODE BEGIN Header_func_tSensCommTask */
+/**
+* @brief Function implementing the tSensCommTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_func_tSensCommTask */
 void func_tSensCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tSensCommTask */
@@ -377,7 +432,13 @@ void func_tSensCommTask(void const * argument)
   /* USER CODE END func_tSensCommTask */
 }
 
-/* func_tPcCommTask function */
+/* USER CODE BEGIN Header_func_tPcCommTask */
+/**
+* @brief Function implementing the tPcCommTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_func_tPcCommTask */
 void func_tPcCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tPcCommTask */
@@ -428,6 +489,7 @@ void func_tUartTimer(void const * argument)
   /* USER CODE END func_tUartTimer */
 }
 
+/* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
      
 /* USER CODE END Application */
