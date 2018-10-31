@@ -32,8 +32,6 @@ void receiveByte(uint8_t UART, uint8_t *byte);
 void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length);
 void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length);
 void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
-void SendByteToRegisterByI2C(uint8_t I2C, uint16_t addr, uint8_t reg_addr, uint8_t byte);
-void receiveI2CPackageFromRegisters(uint8_t I2C, uint16_t addr, uint8_t reg_addr, uint8_t *buf, uint8_t length);
 
 void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev);
 void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev);

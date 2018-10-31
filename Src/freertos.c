@@ -61,7 +61,6 @@
 #include "communication.h"
 #include "stabilization.h"
 #include "checksum.h"
-#include "Sensors.h"
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
@@ -158,7 +157,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
     variableInit();
     stabilizationInit(&Q100);
-    SensorsInit(&Q100, SENS_IN_PRESSURE);
 	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
   /* USER CODE END Init */
 
@@ -362,7 +360,6 @@ void func_tDevCommTask(void const * argument)
 void func_tSensCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tSensCommTask */
-	uint8_t hr;
 	uint32_t sysTime = osKernelSysTick();
   /* Infinite loop */
   for(;;)
@@ -375,24 +372,6 @@ void func_tSensCommTask(void const * argument)
 		  xSemaphoreGive(mutDataHandle);
 	  }
 	  */
-
-		hr = ReliseMeansurements(&Q100, SENS_IN_PRESSURE);
-		if(hr != S_OK) 
-		{
-			// Error code
-		}
-
-		hr = StartMeansurements(&Q100, SENS_IN_PRESSURE);
-		if(hr != S_OK) 
-		{
-			// Error code
-		}
-
-		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STAB_TASK) == pdTRUE) {
-				CulculationResults(&Q100, SENS_IN_PRESSURE);
-				xSemaphoreGive(mutDataHandle);
-		}
-
 	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
   }
   /* USER CODE END func_tSensCommTask */
