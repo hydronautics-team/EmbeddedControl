@@ -81,6 +81,7 @@ struct Robot {
     bool resetIMU;
     float pressure;
     float in_pressure;
+		float in_temp;
     float leak;
   } f_sensors;
 
@@ -103,7 +104,8 @@ struct Robot {
     int16_t quatD;
     bool resetIMU;
     uint16_t pressure;
-    uint16_t in_pressure;
+    uint32_t in_pressure;
+		uint32_t in_temp;
     uint16_t leak;
   } i_sensors;
 
@@ -197,6 +199,40 @@ struct Robot {
         float joy_iValue;
         float joy_iLastTick;
     } depthStabSt, rollStabSt, pitchStabSt, yawStabSt;
+		
+		struct SensorsConstants {
+			uint8_t sensorsAddr[SENSORS_DEVICES_NUM];
+			uint8_t sensorsDelays[SENSORS_DEVICES_NUM];
+			uint8_t sensorsResponseLength[SENSORS_DEVICES_NUM];
+			uint8_t sensorsRequestAddr[SENSORS_DEVICES_NUM];
+			uint8_t sensorsRequestStartByte[SENSORS_DEVICES_NUM];
+			
+			struct PressureConstants {
+		
+			} PressureCons;
+	
+			struct InPressureConstants {
+				int16_t AC1;
+				int16_t AC2;
+				int16_t AC3;
+				uint16_t AC4;
+				uint16_t AC5; 
+				uint16_t AC6;
+				int16_t B1;
+				int16_t B2;
+				int32_t B3;
+				uint32_t B4;
+				int16_t MB;
+				int16_t MC;
+				int16_t MD;
+				uint8_t oss;
+			} InPressureCons;
+			
+			struct LeakConstants {
+				
+			} LeakCons;
+			
+		} SensCons;
 
 };
 

@@ -18,4 +18,6 @@ uint8_t VmaResponseBuf[VMA_DRIVER_NUMBER][VMA_RESPONSE_LENGTH];
 uint8_t DevRequestBuf[DEV_REQUEST_LENGTH];
 uint8_t DevResponseBuf[DEV_DRIVER_NUMBER][DEV_RESPONSE_LENGTH];
 
+uint8_t SensorsStartMeasurementBuf[SENSORS_START_REQUEST_LENGTH];
+uint8_t SensorsReliseMeasurementByte;
 uint8_t SensorsResponseBuf[SENSORS_DEVICES_NUM][SENSORS_PACKAGE_SIZE];

@@ -360,18 +360,32 @@ void func_tDevCommTask(void const * argument)
 void func_tSensCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tSensCommTask */
+	if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
+        SensorsCalibrate(&Q100);
+        xSemaphoreGive(mutDataHandle);
+    }
+	
+	uint8_t sensor_id = 0;
 	uint32_t sysTime = osKernelSysTick();
   /* Infinite loop */
   for(;;)
   {
-	  // TODO infinite loop starts here
-	  /*
-	  receiveI2cPackageDMA (DEV_I2C, SENSORS_PRESSURE_ADDR, SensorsResponseBuf[0], SENSORS_PACKAGE_SIZE);
-	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
-		  SensorsRequestUpdate(&Q100, DevRequestBuf, DEV_I2C);
-		  xSemaphoreGive(mutDataHandle);
-	  }
-	  */
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
+        SensorsRequestUpdate(&Q100, SensorsStartMeasurementBuf, &SensorsReliseMeasurementByte, sensor_id);
+        xSemaphoreGive(mutDataHandle);
+    }
+
+    transmitI2cPackageDMA(DEV_I2C, Q100.SensCons.sensorsAddr[sensor_id], SensorsStartMeasurementBuf, SENSORS_START_REQUEST_LENGTH);
+		osDelay(Q100.SensCons.sensorsDelays[sensor_id]);
+		transmitI2cPackageDMA(DEV_I2C, Q100.SensCons.sensorsAddr[sensor_id], &SensorsReliseMeasurementByte, 1);
+    receiveI2cPackageDMA(DEV_I2C, Q100.SensCons.sensorsAddr[sensor_id], SensorsResponseBuf[sensor_id], Q100.SensCons.sensorsResponseLength[sensor_id]);
+
+    if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
+        SensorsResponseUpdate(&Q100, SensorsResponseBuf[sensor_id], sensor_id);
+        xSemaphoreGive(mutDataHandle);
+    }
+
+		sensor_id = (sensor_id + 1) % SENSORS_DEVICES_NUM;
 	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
   }
   /* USER CODE END func_tSensCommTask */

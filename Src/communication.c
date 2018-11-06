@@ -49,6 +49,37 @@ void variableInit() {
     Q100.device[GRAB_ROTATION].address = 0x02;
     Q100.device[TILT].address = 0x04;
 
+// Sensors constants	
+		Q100.SensCons.sensorsAddr[SENSORS_IN_PRESSURE] = SENSORS_ADDR_IN_PRESSURE;
+		Q100.SensCons.sensorsAddr[SENSORS_IN_TEMP] = SENSORS_ADDR_IN_TEMP;
+		Q100.SensCons.sensorsAddr[SENSORS_ADC1] = SENSORS_ADDR_ADC1;
+		Q100.SensCons.sensorsAddr[SENSORS_ADC2] = SENSORS_ADDR_ADC2;
+		Q100.SensCons.sensorsAddr[SENSORS_PRESSURE] = SENSORS_ADDR_PRESSURE;
+	
+		Q100.SensCons.sensorsDelays[SENSORS_IN_PRESSURE] = SENSORS_DELAY_IN_PRESSURE;
+		Q100.SensCons.sensorsDelays[SENSORS_IN_TEMP] = SENSORS_DELAY_IN_TEMP;
+		Q100.SensCons.sensorsDelays[SENSORS_ADC1] = SENSORS_DELAY_ADC1;
+		Q100.SensCons.sensorsDelays[SENSORS_ADC2] = SENSORS_DELAY_ADC2;
+		Q100.SensCons.sensorsDelays[SENSORS_PRESSURE] = SENSORS_DELAY_PRESSURE;
+		
+		Q100.SensCons.sensorsResponseLength[SENSORS_IN_PRESSURE] = SENSORS_RESPLEN_IN_PRESSURE;
+		Q100.SensCons.sensorsResponseLength[SENSORS_IN_TEMP] = SENSORS_RESPLEN_IN_TEMP;
+		Q100.SensCons.sensorsResponseLength[SENSORS_ADC1] = SENSORS_RESPLEN_ADC1;
+		Q100.SensCons.sensorsResponseLength[SENSORS_ADC2] = SENSORS_RESPLEN_ADC2;
+		Q100.SensCons.sensorsResponseLength[SENSORS_PRESSURE] = SENSORS_RESPLEN_PRESSURE;
+		
+		Q100.SensCons.sensorsRequestAddr[SENSORS_IN_PRESSURE] = IN_PRESSURE_AND_TEMP_CONTR_REG;
+		Q100.SensCons.sensorsRequestAddr[SENSORS_IN_TEMP] = IN_PRESSURE_AND_TEMP_CONTR_REG;
+		Q100.SensCons.sensorsRequestAddr[SENSORS_ADC1] = 0;
+		Q100.SensCons.sensorsRequestAddr[SENSORS_ADC2] = 0;
+		Q100.SensCons.sensorsRequestAddr[SENSORS_PRESSURE] = 0;
+		
+		Q100.SensCons.sensorsRequestStartByte[SENSORS_IN_PRESSURE] = IN_PRESSURE_START_MEASURMENT;
+		Q100.SensCons.sensorsRequestStartByte[SENSORS_IN_TEMP] = IN_TEMP_START_MEASURMENT;
+		Q100.SensCons.sensorsRequestStartByte[SENSORS_ADC1] = 0;
+		Q100.SensCons.sensorsRequestStartByte[SENSORS_ADC2] = 0;
+		Q100.SensCons.sensorsRequestStartByte[SENSORS_PRESSURE] = 0;
+
     // Pitch stabilization constants
     Q100.pitchStabCons.enable = false;
     // Before PID
@@ -256,24 +287,46 @@ void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
 	TickType_t timeBegin = xTaskGetTickCount();
     switch(I2C) {
         case DEV_I2C:
-            HAL_I2C_Master_Receive_DMA(&hi2c1, SENSORS_PRESSURE_ADDR, buf, length);
-            while (!i2c1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+            HAL_I2C_Master_Receive_DMA(&hi2c1, addr, buf, length);
+            while (!i2c1PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
                 osDelay(DELAY_SENSOR_TASK);
             }
-            i2c1PackageTransmit = false;
+            i2c1PackageReceived = false;
             break;
         case PC_I2C:
         	// TODO what is this?
             //HAL_I2C_Master_Receive_DMA(&hi2c2, SENSORS_PRESSURE_ADDR, buf, length);
-            while (!i2c2PackageTransmit  && xTaskGetTickCount() - timeBegin < WAITING_PC) {
+            while (!i2c2PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_PC) {
                 osDelay(DELAY_PC_TASK);
             }
-            i2c2PackageTransmit = false;
+            i2c2PackageReceived = false;
             break;
     }
 }
 
-void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
+void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
+{
+	TickType_t timeBegin = xTaskGetTickCount();
+	switch (I2C) {
+		case DEV_I2C:
+			HAL_I2C_Master_Transmit_DMA(&hi2c1, addr, buf, length);
+			while (!i2c1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+        osDelay(DELAY_SENSOR_TASK);
+      }
+      i2c1PackageTransmit = false;
+			break;
+		
+		case PC_I2C:
+			HAL_I2C_Master_Transmit_DMA(&hi2c2, addr, buf, length);
+			while (!i2c1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+        osDelay(DELAY_SENSOR_TASK);
+      }
+      i2c1PackageTransmit = false;
+			break;
+	}
+}
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	if(hi2c == &hi2c1) {
 		i2c1PackageTransmit = true;
@@ -283,13 +336,132 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 	}
 }
 
-void SensorsRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id)
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-	switch(Sensor_id) {
-		case DEV_I2C:
-			robot->f_sensors.pressure = FloatFromUint8(buf, 0);
-			break;
+	if(hi2c == &hi2c1) {
+		i2c1PackageReceived = true;
 	}
+	else if(hi2c == &hi2c2) {
+		i2c2PackageReceived = true;
+	}
+}
+
+void SensorsCalibrate(struct Robot *robot)
+{
+	// for in_pressure and in_temp sensors
+	uint8_t buf[22];
+	buf[0] = IN_PRESSURE_AND_TEMP_CALIB_REG;
+	transmitI2cPackageDMA(DEV_I2C, robot->SensCons.sensorsAddr[SENSORS_IN_PRESSURE], buf, 1);
+	receiveI2cPackageDMA(DEV_I2C, robot->SensCons.sensorsAddr[SENSORS_IN_PRESSURE], buf, 22);
+	
+	struct InPressureColibrate colib;
+	memcpy((void*)&colib, (void*)&buf, 22);
+	robot->SensCons.InPressureCons.AC1 = colib.AC1;
+	robot->SensCons.InPressureCons.AC2 = colib.AC2;
+	robot->SensCons.InPressureCons.AC3 = colib.AC3;
+	robot->SensCons.InPressureCons.AC4 = colib.AC4;
+	robot->SensCons.InPressureCons.AC5 = colib.AC5;
+	robot->SensCons.InPressureCons.AC6 = colib.AC6;
+	robot->SensCons.InPressureCons.B1 = colib.B1;
+	robot->SensCons.InPressureCons.B2 = colib.B2;
+	robot->SensCons.InPressureCons.MB = colib.MB;
+	robot->SensCons.InPressureCons.MC = colib.MC;
+	robot->SensCons.InPressureCons.MD = colib.MD;
+	
+	// for leak sensors
+	
+	
+	// for pressure sensor
+	
+}
+
+void SensorsRequestUpdate(struct Robot *robot, uint8_t *start_buf, uint8_t *relise_byte, uint8_t sensor_id)
+{
+	struct SensorsRequest_s req;
+	
+	req.reg_addr = robot->SensCons.sensorsRequestAddr[sensor_id];
+	req.startByte = robot->SensCons.sensorsRequestStartByte[sensor_id];
+	
+	memcpy((void*)start_buf, (void*)&req, VMA_REQUEST_LENGTH);
+	*relise_byte = robot->SensCons.sensorsRequestAddr[sensor_id];
+}
+
+void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t sensor_id)
+{
+		if(sensor_id == SENSORS_IN_PRESSURE)
+		{
+			struct SensorsResponse_InPressure res;
+			memcpy((void*)&res, (void*)buf, robot->SensCons.sensorsResponseLength[sensor_id]);
+			
+			if(res.status == IN_PRESSURE_AND_TEMP_MEASURMENT_COMPLITE)
+			{
+				res.res >>= 16 - robot->SensCons.InPressureCons.oss;
+				
+				uint32_t B7 = ((uint32_t)res.res - robot->SensCons.InPressureCons.B3) * (50000 >> robot->SensCons.InPressureCons.oss);
+		
+				int32_t p;
+				if(B7 < 0x80000000) p = (B7 * 2) / robot->SensCons.InPressureCons.B4;
+				else p = (B7 / robot->SensCons.InPressureCons.B4) * 2;
+				
+				int32_t X1 = (p >> 8) * (p >> 8);
+				X1 = (X1 * 3038) >> 16;
+				int32_t X2 = (7357 * p) >> 16;
+				p = p + ((X1 + X2 + 3791) >> 4);
+				
+				robot->i_sensors.in_pressure = (uint32_t)p;
+				robot->f_sensors.in_pressure = (float)p;
+			}
+			
+			return;
+		}
+		
+		if(sensor_id == SENSORS_IN_TEMP)
+		{
+			struct SensorsResponse_InTemp res;
+			memcpy((void*)&res, (void*)buf, robot->SensCons.sensorsResponseLength[sensor_id]);
+			
+			if(res.status == IN_PRESSURE_AND_TEMP_MEASURMENT_COMPLITE)
+			{
+				int32_t X1 = ((res.res - robot->SensCons.InPressureCons.AC6) * robot->SensCons.InPressureCons.AC5) >> 15;
+				int32_t X2 = (robot->SensCons.InPressureCons.MC << 11) / (X1 + robot->SensCons.InPressureCons.MD);
+				int32_t B5 = X1 + X2;
+				uint32_t t = (B5 + 8) >> 4;
+				int32_t B6 = B5 - 4000;
+				X1 = (robot->SensCons.InPressureCons.B2 * (B6 * (B6 >> 12))) >> 11;
+				X2 = robot->SensCons.InPressureCons.AC2 * (B6 >> 11);
+				int32_t X3 = X1 + X2;
+				robot->SensCons.InPressureCons.B3 = (((robot->SensCons.InPressureCons.AC1 * 4 + X3) << robot->SensCons.InPressureCons.oss) + 2) >> 2;
+				X1 = robot->SensCons.InPressureCons.AC3 * (B6 >> 13);
+				X2 = (robot->SensCons.InPressureCons.B1 * (B6 * (B6 >> 12))) >> 16;
+				X3 = ((X1 + X2) + 2) >> 2;
+				robot->SensCons.InPressureCons.B4 = (robot->SensCons.InPressureCons.AC4 * (uint32_t)(X3 + 32768)) >> 15;
+				robot->i_sensors.in_temp = (uint32_t)(t / 10);
+				robot->f_sensors.in_temp = (float)t / 10;
+			}
+			
+			return;
+		}
+
+		if(sensor_id == SENSORS_ADC1)
+		{
+			
+						
+			return;
+		}
+			
+		if(sensor_id == SENSORS_ADC2)
+		{
+			
+						
+			return;
+		}
+		
+		if(sensor_id == SENSORS_PRESSURE)
+		{
+			
+						
+			return;
+		}
 }
 
 void ShoreReceive()

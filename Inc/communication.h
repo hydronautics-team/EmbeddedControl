@@ -46,6 +46,8 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf);
 
 void ImuReceive(struct Robot *robot, uint8_t *IMUReceiveBuf, uint8_t *ErrCode);
 
-void SensorsRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id);
+void SensorsCalibrate(struct Robot *robot);
+void SensorsRequestUpdate(struct Robot *robot, uint8_t *start_buf, uint8_t* relise_byte, uint8_t sensor_id);
+void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id);
 
 #endif

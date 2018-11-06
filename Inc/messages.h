@@ -308,12 +308,82 @@ struct imuResponse_s
 
 /* --- I2C2 Sensors communication info --- */
 
-#define SENSORS_DEVICES_NUM 		3
-#define SENSORS_PACKAGE_SIZE 		4
+#define SENSORS_DEVICES_NUM 		5
+#define SENSORS_START_REQUEST_LENGTH	2
+#define SENSORS_PACKAGE_SIZE 		11
 
-#define SENSORS_ADC1_ADDR 			0
-#define SENSORS_ADC2_ADDR 			1
-#define SENSORS_PRESSURE_ADDR 		2
+#define SENSORS_IN_PRESSURE 0
+#define SENSORS_IN_TEMP 1
+#define SENSORS_ADC1 			2
+#define SENSORS_ADC2 			3
+#define SENSORS_PRESSURE 		4
+
+#define SENSORS_ADDR_IN_PRESSURE 0xEE
+#define SENSORS_ADDR_IN_TEMP 0xEE
+#define SENSORS_ADDR_ADC1 0			
+#define SENSORS_ADDR_ADC2 	0		
+#define SENSORS_ADDR_PRESSURE 	0	
+
+#define SENSORS_DELAY_IN_PRESSURE 8
+#define SENSORS_DELAY_IN_TEMP 5
+#define SENSORS_DELAY_ADC1 			0
+#define SENSORS_DELAY_ADC2 			0
+#define SENSORS_DELAY_PRESSURE 		0
+
+#define SENSORS_RESPLEN_IN_PRESSURE 4
+#define SENSORS_RESPLEN_IN_TEMP 3
+#define SENSORS_RESPLEN_ADC1 			0
+#define SENSORS_RESPLEN_ADC2 			0
+#define SENSORS_RESPLEN_PRESSURE 		0
+
+struct InPressureColibrate {
+				int16_t AC1;
+				int16_t AC2;
+				int16_t AC3;
+				uint16_t AC4;
+				uint16_t AC5; 
+				uint16_t AC6;
+				int16_t B1;
+				int16_t B2;
+				int16_t MB;
+				int16_t MC;
+				int16_t MD;
+};
+
+struct SensorsRequest_s 
+{
+	uint8_t reg_addr;
+	uint8_t startByte;
+};
+
+struct SensorsResponse_InPressure
+{
+	uint8_t status;
+	uint32_t res;
+};
+
+#define IN_PRESSURE_AND_TEMP_CONTR_REG 0xF4
+#define IN_PRESSURE_AND_TEMP_CALIB_REG 0xAA
+#define IN_PRESSURE_START_MEASURMENT 0x34
+#define IN_PRESSURE_AND_TEMP_MEASURMENT_COMPLITE 0x20
+
+struct SensorsResponse_InTemp
+{
+	uint8_t status;
+	uint16_t res;
+};
+
+#define IN_TEMP_START_MEASURMENT 0x2E
+
+struct SensorsResponse_ADC
+{
+	
+};
+
+struct SensorsResponse_Pressure
+{
+
+};
 
 /* --- Delays and waiting rates --- */
 
