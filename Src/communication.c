@@ -35,13 +35,13 @@ bool i2c1PackageReceived = false;
 bool i2c2PackageReceived = false;
 
 void variableInit() {
-    Q100.VMA[HLB].address = 0;
-    Q100.VMA[HLF].address = 1;
-    Q100.VMA[HRB].address = 2;
-    Q100.VMA[HRF].address = 3;
-    Q100.VMA[VB].address = 4;
-    Q100.VMA[VF].address = 5;
-    Q100.VMA[VL].address = 6;
+    Q100.VMA[HLB].address = 6;
+    Q100.VMA[HLF].address = 5;
+    Q100.VMA[HRB].address = 3;
+    Q100.VMA[HRF].address = 4;
+    Q100.VMA[VB].address = 2;
+    Q100.VMA[VF].address = 1;
+    Q100.VMA[VL].address = 8;
     Q100.VMA[VR].address = 7;
 
     Q100.device[DEV1].address = 0x03;
@@ -110,7 +110,6 @@ void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length) {
     TickType_t timeBegin = xTaskGetTickCount();
     switch(UART) {
         case SHORE_UART:
-            HAL_HalfDuplex_EnableTransmitter(&huart1);
             HAL_UART_Transmit_DMA(&huart1, buf, length);
             while (!uart1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SHORE) {
                 osDelay(DELAY_TIMER_TASK);
@@ -118,15 +117,13 @@ void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length) {
             uart1PackageTransmit = false;
             break;
         case VMA_UART:
-            HAL_HalfDuplex_EnableTransmitter(&huart2);
-            HAL_UART_Transmit_DMA(&huart2, buf, length);
+            HAL_UART_Transmit_IT(&huart2, buf, length);
             while (!uart2PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_VMA) {
                 osDelay(DELAY_VMA_TASK);
             }
             uart2PackageTransmit = false;
             break;
         case DEV_UART:
-            HAL_HalfDuplex_EnableTransmitter(&huart3);
             HAL_UART_Transmit_DMA(&huart3, buf, length);
             while (!uart3PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_DEV) {
                 osDelay(DELAY_DEV_TASK);
@@ -134,7 +131,6 @@ void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length) {
             uart3PackageTransmit = false;
             break;
         case IMU_UART:
-            HAL_UART_Transmit_IT(&huart4, buf, length);
             while (!uart4PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_IMU) {
                 osDelay(DELAY_IMU_TASK);
             }
@@ -148,7 +144,6 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
     TickType_t timeBegin = xTaskGetTickCount();
     switch(UART){
         case SHORE_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart1);
             HAL_UART_Receive_DMA(&huart1, buf, length);
             while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SHORE){
                 osDelay(DELAY_TIMER_TASK);
@@ -156,15 +151,13 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
             uart1PackageReceived = false;
             break;
         case VMA_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart2);
-            HAL_UART_Receive_DMA(&huart2, buf, length);
+            HAL_UART_Receive_IT(&huart2, buf, length);
             while (!uart2PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_VMA){
                 osDelay(DELAY_VMA_TASK);
             }
             uart2PackageReceived = false;
             break;
         case DEV_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart3);
             HAL_UART_Receive_DMA(&huart3, buf, length);
             while (!uart3PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_DEV){
                 osDelay(DELAY_DEV_TASK);
@@ -172,7 +165,6 @@ void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
             uart3PackageReceived = false;
             break;
         case IMU_UART:
-            HAL_UART_Receive_IT(&huart4, buf, length);
             while (!uart4PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_IMU){
                 osDelay(DELAY_IMU_TASK);
             }
@@ -186,7 +178,6 @@ void receiveByte(uint8_t UART, uint8_t *byte)
     TickType_t timeBegin = xTaskGetTickCount();
     switch(UART){
         case SHORE_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart1);
             HAL_UART_Receive_IT(&huart1, byte, 1);
             while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
                 osDelay(DELAY_TIMER_TASK);
@@ -194,7 +185,6 @@ void receiveByte(uint8_t UART, uint8_t *byte)
             uart1PackageReceived = false;
             break;
         case VMA_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart2);
             HAL_UART_Receive_DMA(&huart2, byte, 1);
             while (!uart2PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
                 osDelay(DELAY_VMA_TASK);
@@ -202,7 +192,6 @@ void receiveByte(uint8_t UART, uint8_t *byte)
             uart2PackageReceived = false;
             break;
         case DEV_UART:
-            HAL_HalfDuplex_EnableReceiver(&huart3);
             HAL_UART_Receive_DMA(&huart3, byte, 1);
             while (!uart3PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
                 osDelay(DELAY_DEV_TASK);
@@ -256,22 +245,38 @@ void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
 	TickType_t timeBegin = xTaskGetTickCount();
     switch(I2C) {
         case DEV_I2C:
-            HAL_I2C_Master_Receive_DMA(&hi2c1, SENSORS_PRESSURE_ADDR, buf, length);
+            HAL_I2C_Master_Receive_IT(&hi2c2, addr>>1, buf, length);
+            while (!i2c1PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+                osDelay(DELAY_SENSOR_TASK);
+            }
+            i2c1PackageReceived = false;
+            break;
+        case PC_I2C:
+        	// TODO what is this?
+            HAL_I2C_Master_Receive_DMA(&hi2c2, SENSORS_PRESSURE_ADDR, buf, length);
+            while (!i2c2PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_PC) {
+                osDelay(DELAY_PC_TASK);
+            }
+            i2c2PackageReceived = false;
+            break;
+    }
+}
+
+/*
+void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
+{
+    TickType_t timeBegin = xTaskGetTickCount();
+    switch(I2C) {
+        case DEV_I2C:
+        	HAL_I2C_Master_Transmit_IT(&hi2c1, addr>>1, buf, length);
             while (!i2c1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
                 osDelay(DELAY_SENSOR_TASK);
             }
             i2c1PackageTransmit = false;
             break;
-        case PC_I2C:
-        	// TODO what is this?
-            //HAL_I2C_Master_Receive_DMA(&hi2c2, SENSORS_PRESSURE_ADDR, buf, length);
-            while (!i2c2PackageTransmit  && xTaskGetTickCount() - timeBegin < WAITING_PC) {
-                osDelay(DELAY_PC_TASK);
-            }
-            i2c2PackageTransmit = false;
-            break;
     }
 }
+*/
 
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
@@ -283,7 +288,18 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 	}
 }
 
-void SensorsRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id)
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+	if(hi2c == &hi2c1) {
+		i2c1PackageReceived = true;
+	}
+	else if(hi2c == &hi2c2) {
+		i2c2PackageReceived  = true;
+	}
+}
+
+
+void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id)
 {
 	switch(Sensor_id) {
 		case DEV_I2C:
@@ -378,7 +394,7 @@ void VmaRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
 void VmaResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
 {
 	//TODO errors parsing! and what is all this new stuff means
-    if(IsChecksumm8bCorrectVma(buf, VMA_RESPONSE_LENGTH)) {
+    if(IsChecksumm8bCorrectVma(buf, VMA_RESPONSE_LENGTH) && buf[0] != 0) {
     	struct vmaResponse_s res;
     	memcpy((void*)&res, (void*)buf, VMA_RESPONSE_LENGTH);
 

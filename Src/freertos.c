@@ -416,17 +416,17 @@ void func_tSensCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tSensCommTask */
 	uint32_t sysTime = osKernelSysTick();
+	uint8_t output = 0xAA;
   /* Infinite loop */
   for(;;)
   {
-	  // TODO infinite loop starts here
-	  /*
-	  receiveI2cPackageDMA (DEV_I2C, SENSORS_PRESSURE_ADDR, SensorsResponseBuf[0], SENSORS_PACKAGE_SIZE);
+	  HAL_I2C_Master_Transmit_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1, &output, 1);
+	  receiveI2cPackageDMA (PC_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuf, PRESSURE_SENSOR_SIZE);
 	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
-		  SensorsRequestUpdate(&Q100, DevRequestBuf, DEV_I2C);
+		  SensorsResponseUpdate(&Q100, PressureResponseBuf, DEV_I2C);
 		  xSemaphoreGive(mutDataHandle);
 	  }
-	  */
+
 	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
   }
   /* USER CODE END func_tSensCommTask */
@@ -471,7 +471,6 @@ void func_tUartTimer(void const * argument)
 			xSemaphoreGive(mutDataHandle);
 		}
 		transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
-		HAL_HalfDuplex_EnableReceiver(&huart1);
 		HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
 	}
 	else {

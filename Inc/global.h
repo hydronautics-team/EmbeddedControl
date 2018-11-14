@@ -32,11 +32,11 @@ extern uint8_t ImuResetRequestBuf[IMU_REQUEST_LENGTH];
 extern uint8_t ImuResponseBuf[IMU_RESPONSE_LENGTH*IMU_CHECKSUMS];
 
 extern uint8_t VmaRequestBuf[VMA_REQUEST_LENGTH];
-extern uint8_t VmaResponseBuf[VMA_DRIVER_NUMBER][VMA_RESPONSE_LENGTH];
+extern uint8_t VmaResponseBuf[VMA_DRIVER_NUMBER+1][VMA_RESPONSE_LENGTH];
 
 extern uint8_t DevRequestBuf[DEV_REQUEST_LENGTH];
 extern uint8_t DevResponseBuf[DEV_DRIVER_NUMBER][DEV_RESPONSE_LENGTH];
 
-extern uint8_t SensorsResponseBuf[SENSORS_DEVICES_NUM][SENSORS_PACKAGE_SIZE];
+extern uint8_t PressureResponseBuf[PRESSURE_SENSOR_SIZE];
 
 #endif

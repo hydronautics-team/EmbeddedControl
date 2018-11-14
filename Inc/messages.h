@@ -309,11 +309,11 @@ struct imuResponse_s
 /* --- I2C2 Sensors communication info --- */
 
 #define SENSORS_DEVICES_NUM 		3
-#define SENSORS_PACKAGE_SIZE 		4
+#define PRESSURE_SENSOR_SIZE 		4
 
 #define SENSORS_ADC1_ADDR 			0
 #define SENSORS_ADC2_ADDR 			1
-#define SENSORS_PRESSURE_ADDR 		2
+#define SENSORS_PRESSURE_ADDR 		15
 
 /* --- Delays and waiting rates --- */
 

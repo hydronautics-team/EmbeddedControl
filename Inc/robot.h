@@ -8,7 +8,7 @@
 #include "messages.h"
 
 enum VMA {
-    HLB = 0,
+	HLB = 0,
     HLF,
     HRB,
     HRF,
