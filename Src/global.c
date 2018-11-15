@@ -13,7 +13,7 @@ uint8_t ImuResetRequestBuf[IMU_REQUEST_LENGTH] = { 's', 'n', 'p', 0x00, 0xAC, 0x
 uint8_t ImuResponseBuf[IMU_RESPONSE_LENGTH*IMU_CHECKSUMS];
 
 uint8_t VmaRequestBuf[VMA_REQUEST_LENGTH];
-uint8_t VmaResponseBuf[VMA_DRIVER_NUMBER+1][VMA_RESPONSE_LENGTH];
+uint8_t VmaResponseBuf[VMA_DRIVER_NUMBER][VMA_RESPONSE_LENGTH];
 
 uint8_t DevRequestBuf[DEV_REQUEST_LENGTH];
 uint8_t DevResponseBuf[DEV_DRIVER_NUMBER][DEV_RESPONSE_LENGTH];

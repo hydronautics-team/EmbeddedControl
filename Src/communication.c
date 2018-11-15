@@ -191,6 +191,11 @@ void transmitAndReceive(uint8_t UART, uint8_t *tr_buf, uint8_t tr_length, uint8_
 	while (!uartPackageReceived[UART] && xTaskGetTickCount() - timeBegin < WAITING_SHORE) {
 		osDelay(DELAY_TIMER_TASK);
 	}
+
+	if(UART == VMA_UART) {
+		HAL_UART_AbortReceive_IT(&huart2);
+	}
+
 	uartBuf[UART] = 0;
 	uartLength[UART] = 0;
 }
