@@ -3,15 +3,17 @@
 
 #include "robot.h"
 
+#define UART_NUMBER 4
+
 enum {
-	SHORE_UART = 1,
+	SHORE_UART = 0,
 	VMA_UART,
 	DEV_UART,
 	IMU_UART
 };
 
 enum {
-	DEV_I2C = 1,
+	DEV_I2C = 0,
 	PC_I2C
 };
 
@@ -25,12 +27,17 @@ enum BTErrCodes {
     BT_ERROR_RECEIVED_LESS
 };
 
+extern bool uartPackageReceived[UART_NUMBER];
+extern uint8_t RxBuffer[1];
+extern uint16_t numberRx;
+extern uint16_t counterRx;
+
 // Custom UART DMA receive/transmit functions
 void variableInit(void);
 
-void receiveByte(uint8_t UART, uint8_t *byte);
-void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length);
-void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length);
+void receivePackage(uint8_t UART, uint8_t *buf, uint8_t length);
+void transmitPackage(uint8_t UART, uint8_t *buf, uint8_t length);
+void transmitAndReceive(uint8_t UART, uint8_t *tr_buf, uint8_t tr_length, uint8_t *re_buf, uint8_t re_length);
 void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
 void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
 

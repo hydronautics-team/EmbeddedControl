@@ -20,17 +20,14 @@ uint8_t RxBuffer[1] = {0};
 uint16_t numberRx = 0;
 uint16_t counterRx = 0;
 
-bool uart1PackageTransmit = false;
-bool uart2PackageTransmit = false;
-bool uart3PackageTransmit = false;
-bool uart4PackageTransmit = false;
+uint8_t* uartBuf[UART_NUMBER];
+uint8_t uartLength[UART_NUMBER];
+bool uartPackageTransmit[UART_NUMBER];
+bool uartPackageReceived[UART_NUMBER];
+
 bool i2c1PackageTransmit = false;
 bool i2c2PackageTransmit = false;
 
-bool uart1PackageReceived = false;
-bool uart2PackageReceived = false;
-bool uart3PackageReceived = false;
-bool uart4PackageReceived = false;
 bool i2c1PackageReceived = false;
 bool i2c2PackageReceived = false;
 
@@ -104,140 +101,150 @@ void variableInit() {
     Q100.depthStabCons.pid_iMax = 32768;
     // Feedback
     Q100.depthStabCons.pSpeedFback = 1;
+
+    for(uint8_t i=0; i<UART_NUMBER; i++) {
+    	uartBuf[i] = 0;
+    	uartLength[i] = 0;
+    }
 }
 
-void transmitPackageDMA(uint8_t UART, uint8_t *buf, uint8_t length) {
+void transmitPackage(uint8_t UART, uint8_t *buf, uint8_t length)
+{
     TickType_t timeBegin = xTaskGetTickCount();
+
+	uartPackageTransmit[UART] = false;
     switch(UART) {
         case SHORE_UART:
             HAL_UART_Transmit_DMA(&huart1, buf, length);
-            while (!uart1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SHORE) {
-                osDelay(DELAY_TIMER_TASK);
-            }
-            uart1PackageTransmit = false;
             break;
         case VMA_UART:
             HAL_UART_Transmit_IT(&huart2, buf, length);
-            while (!uart2PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_VMA) {
-                osDelay(DELAY_VMA_TASK);
-            }
-            uart2PackageTransmit = false;
             break;
         case DEV_UART:
             HAL_UART_Transmit_DMA(&huart3, buf, length);
-            while (!uart3PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_DEV) {
-                osDelay(DELAY_DEV_TASK);
-            }
-            uart3PackageTransmit = false;
             break;
         case IMU_UART:
-            while (!uart4PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_IMU) {
-                osDelay(DELAY_IMU_TASK);
-            }
-            uart4PackageTransmit = false;
+        	//TODO what is this?
             break;
+        default:
+            	return;
+    }
+	// TODO different waiting time
+    while (!uartPackageTransmit[UART] && xTaskGetTickCount() - timeBegin < WAITING_SHORE) {
+    	osDelay(DELAY_TIMER_TASK);
     }
 }
 
-void receivePackageDMA(uint8_t UART, uint8_t *buf, uint8_t length)
+void receivePackage(uint8_t UART, uint8_t *buf, uint8_t length)
 {
     TickType_t timeBegin = xTaskGetTickCount();
+
+    uartPackageReceived[UART] = false;
     switch(UART){
-        case SHORE_UART:
-            HAL_UART_Receive_DMA(&huart1, buf, length);
-            while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SHORE){
-                osDelay(DELAY_TIMER_TASK);
-            }
-            uart1PackageReceived = false;
-            break;
-        case VMA_UART:
-            HAL_UART_Receive_IT(&huart2, buf, length);
-            while (!uart2PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_VMA){
-                osDelay(DELAY_VMA_TASK);
-            }
-            uart2PackageReceived = false;
-            break;
-        case DEV_UART:
-            HAL_UART_Receive_DMA(&huart3, buf, length);
-            while (!uart3PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_DEV){
-                osDelay(DELAY_DEV_TASK);
-            }
-            uart3PackageReceived = false;
-            break;
-        case IMU_UART:
-            while (!uart4PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_IMU){
-                osDelay(DELAY_IMU_TASK);
-            }
-            uart4PackageReceived = false;
-            break;
+    case SHORE_UART:
+    	HAL_UART_Receive_DMA(&huart1, buf, length);
+    	break;
+    case VMA_UART:
+    	HAL_UART_Receive_IT(&huart2, buf, length);
+    	break;
+    case DEV_UART:
+    	HAL_UART_Receive_DMA(&huart3, buf, length);
+    	break;
+    case IMU_UART:
+    	// TODO again
+		break;
+    default:
+    	return;
+    }
+    // TODO again
+    while (!uartPackageReceived[UART] && xTaskGetTickCount() - timeBegin < WAITING_SHORE) {
+        osDelay(DELAY_TIMER_TASK);
     }
 }
 
-void receiveByte(uint8_t UART, uint8_t *byte)
+void transmitAndReceive(uint8_t UART, uint8_t *tr_buf, uint8_t tr_length, uint8_t *re_buf, uint8_t re_length)
 {
-    TickType_t timeBegin = xTaskGetTickCount();
-    switch(UART){
-        case SHORE_UART:
-            HAL_UART_Receive_IT(&huart1, byte, 1);
-            while (!uart1PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
-                osDelay(DELAY_TIMER_TASK);
-            }
-            uart1PackageReceived = false;
-            break;
-        case VMA_UART:
-            HAL_UART_Receive_DMA(&huart2, byte, 1);
-            while (!uart2PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
-                osDelay(DELAY_VMA_TASK);
-            }
-            uart2PackageReceived = false;
-            break;
-        case DEV_UART:
-            HAL_UART_Receive_DMA(&huart3, byte, 1);
-            while (!uart3PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
-                osDelay(DELAY_DEV_TASK);
-            }
-            uart3PackageReceived = false;
-            break;
-        case IMU_UART:
-            HAL_UART_Receive_IT(&huart4, byte, 1);
-            while (!uart4PackageReceived && xTaskGetTickCount() - timeBegin < 1) {
-                osDelay(DELAY_IMU_TASK);
-            }
-            uart4PackageReceived = false;
-            break;
-    }
+	TickType_t timeBegin = xTaskGetTickCount();
+
+	uartPackageReceived[UART] = false;
+	uartPackageTransmit[UART] = false;
+	switch(UART) {
+	case SHORE_UART:
+		HAL_UART_Transmit_DMA(&huart1, tr_buf, tr_length);
+		break;
+	case VMA_UART:
+		HAL_UART_Transmit_IT(&huart2, tr_buf, tr_length);
+		break;
+	case DEV_UART:
+		HAL_UART_Transmit_DMA(&huart3, tr_buf, tr_length);
+		break;
+	case IMU_UART:
+		//TODO what is this?
+		break;
+	default:
+	    	return;
+	}
+
+	uartBuf[UART] = re_buf;
+	uartLength[UART] = re_length;
+	// TODO again
+	while (!uartPackageReceived[UART] && xTaskGetTickCount() - timeBegin < WAITING_SHORE) {
+		osDelay(DELAY_TIMER_TASK);
+	}
+	uartBuf[UART] = 0;
+	uartLength[UART] = 0;
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-    if(huart == &huart1) {
-        uart1PackageTransmit = true;
-    }
-    else if(huart == &huart2) {
-        uart2PackageTransmit = true;
-    }
-    else if(huart == &huart3) {
-        uart3PackageTransmit = true;
-    }
-    else if(huart == &huart4) {
-        uart4PackageTransmit = true;
-    }
+	// TODO do this smarter pls
+	uint8_t UART = 0;
+	if(huart == &huart1) {
+		UART = SHORE_UART;
+	}
+	else if(huart == &huart2) {
+		UART = VMA_UART;
+	}
+	else if(huart == &huart3) {
+		UART = DEV_UART;
+	}
+	else if(huart == &huart4) {
+		UART = IMU_UART;
+	}
+
+	uartPackageTransmit[UART] = true;
+	if(uartLength[UART] > 0) {
+		switch(UART) {
+		case SHORE_UART:
+			HAL_UART_Receive_IT(&huart1, uartBuf[UART], uartLength[UART]);
+			break;
+		case VMA_UART:
+			HAL_UART_Receive_IT(&huart2, uartBuf[UART], uartLength[UART]);
+			break;
+		case DEV_UART:
+			HAL_UART_Receive_IT(&huart3, uartBuf[UART], uartLength[UART]);
+			break;
+		case IMU_UART:
+			HAL_UART_Receive_IT(&huart4, uartBuf[UART], uartLength[UART]);
+			break;
+		}
+	}
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    if(huart == &huart1){
-        ShoreReceive();
-    }
-    else if(huart == &huart2){
-        uart2PackageReceived = true;
-    }
-    else if(huart == &huart3){
-        uart3PackageReceived = true;
-    }
-    else if(huart == &huart4){
-        uart4PackageReceived = true;
-    }
+	if(huart == &huart1) {
+		ShoreReceive();
+	}
+	else if(huart == &huart2) {
+		uartPackageReceived[SHORE_UART] = true;
+	}
+	else if(huart == &huart3) {
+		uartPackageReceived[DEV_UART] = true;
+	}
+	else if(huart == &huart4) {
+		uartPackageReceived[IMU_UART] = true;
+	}
 }
 
 void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
@@ -262,7 +269,7 @@ void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
     }
 }
 
-/*
+
 void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
 {
     TickType_t timeBegin = xTaskGetTickCount();
@@ -276,7 +283,7 @@ void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
             break;
     }
 }
-*/
+
 
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
@@ -332,7 +339,7 @@ void ShoreReceive()
     ++counterRx;
 
     if (counterRx == numberRx) {
-    	uart1PackageReceived = true;
+    	uartPackageReceived[SHORE_UART] = true;
     	counterRx = 0;
     }
     else {

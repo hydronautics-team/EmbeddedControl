@@ -87,10 +87,6 @@
 #define SHORE_DELAY	  45
 
 TimerHandle_t UARTTimer;
-extern bool uart1PackageReceived;
-extern uint8_t RxBuffer[1];
-extern uint16_t numberRx;
-extern uint16_t counterRx;
 
 bool shoreCommunicationUpdated = false;
 /* USER CODE END Variables */
@@ -280,8 +276,7 @@ void func_tVmaCommTask(void const * argument)
             xSemaphoreGive(mutDataHandle);
         }
 
-        transmitPackageDMA(VMA_UART, VmaRequestBuf, VMA_REQUEST_LENGTH);
-        receivePackageDMA(VMA_UART, VmaResponseBuf[VmaTransaction], VMA_RESPONSE_LENGTH);
+        transmitAndReceive(VMA_UART, VmaRequestBuf, VMA_REQUEST_LENGTH, VmaResponseBuf[VmaTransaction], VMA_RESPONSE_LENGTH);
 
         if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_VMA_TASK) == pdTRUE) {
         	VmaResponseUpdate(&Q100, VmaResponseBuf[VmaTransaction], VmaTransaction);
@@ -310,12 +305,12 @@ void func_tImuCommTask(void const * argument)
   for(;;)
   {
 	  	if(Q100.i_sensors.resetIMU) {
-	  		transmitPackageDMA(IMU_UART, ImuResetRequestBuf, IMU_REQUEST_LENGTH);
+	  		transmitPackage(IMU_UART, ImuResetRequestBuf, IMU_REQUEST_LENGTH);
 	  		Q100.i_sensors.resetIMU = false;
 	  	}
 	  	else {
-	  		transmitPackageDMA(IMU_UART, ImuRequestBuf, IMU_REQUEST_LENGTH);
-	  		receivePackageDMA(IMU_UART, ImuResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
+	  		transmitPackage(IMU_UART, ImuRequestBuf, IMU_REQUEST_LENGTH);
+	  		receivePackage(IMU_UART, ImuResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
 	  		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_IMU_TASK) == pdTRUE) {
 	  			ImuReceive(&Q100, ImuResponseBuf, &ErrorCode);
 	        	xSemaphoreGive(mutDataHandle);
@@ -391,8 +386,8 @@ void func_tDevCommTask(void const * argument)
             xSemaphoreGive(mutDataHandle);
         }
 
-        transmitPackageDMA(DEV_UART, DevRequestBuf, DEV_REQUEST_LENGTH);
-        receivePackageDMA(DEV_UART, DevResponseBuf[DevTransaction], DEV_RESPONSE_LENGTH);
+        transmitPackage(DEV_UART, DevRequestBuf, DEV_REQUEST_LENGTH);
+        receivePackage(DEV_UART, DevResponseBuf[DevTransaction], DEV_RESPONSE_LENGTH);
 
         if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_DEV_TASK) == pdTRUE) {
             DevResponseUpdate(&Q100, DevResponseBuf[DevTransaction], DevTransaction);
@@ -455,9 +450,9 @@ void func_tPcCommTask(void const * argument)
 void func_tUartTimer(void const * argument)
 {
   /* USER CODE BEGIN func_tUartTimer */
-	if (uart1PackageReceived) {
+	if (uartPackageReceived[SHORE_UART]) {
 		shoreCommunicationUpdated = true;
-		uart1PackageReceived = false;
+		uartPackageReceived[SHORE_UART] = false;
 
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_TIMER_TASK) == pdTRUE) {
 			if(numberRx == SHORE_REQUEST_LENGTH) {
@@ -470,12 +465,12 @@ void func_tUartTimer(void const * argument)
 			ShoreResponse(&Q100, ShoreResponseBuf);
 			xSemaphoreGive(mutDataHandle);
 		}
-		transmitPackageDMA(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
+		transmitPackage(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
 		HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
 	}
 	else {
 		shoreCommunicationUpdated = false;
-		uart1PackageReceived = false;
+		uartPackageReceived[SHORE_UART] = false;
 		counterRx = 0;
 
 		if(numberRx == SHORE_REQUEST_CODE) {
