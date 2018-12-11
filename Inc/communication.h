@@ -28,7 +28,7 @@ enum BTErrCodes {
 };
 
 extern bool uartPackageReceived[UART_NUMBER];
-extern uint8_t RxBuffer[1];
+extern uint8_t RxBuffer;
 extern uint16_t numberRx;
 extern uint16_t counterRx;
 

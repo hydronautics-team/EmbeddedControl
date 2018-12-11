@@ -16,7 +16,7 @@
 
 extern TimerHandle_t UARTTimer;
 
-uint8_t RxBuffer[1] = {0};
+uint8_t RxBuffer = 0;
 uint16_t numberRx = 0;
 uint16_t counterRx = 0;
 
@@ -124,7 +124,7 @@ void transmitPackage(uint8_t UART, uint8_t *buf, uint8_t length)
             HAL_UART_Transmit_DMA(&huart3, buf, length);
             break;
         case IMU_UART:
-        	//TODO what is this?
+        	HAL_UART_Transmit_IT(&huart4, buf, length);
             break;
         default:
             	return;
@@ -151,7 +151,7 @@ void receivePackage(uint8_t UART, uint8_t *buf, uint8_t length)
     	HAL_UART_Receive_DMA(&huart3, buf, length);
     	break;
     case IMU_UART:
-    	// TODO again
+    	HAL_UART_Receive_IT(&huart4, buf, length);
 		break;
     default:
     	return;
@@ -179,7 +179,8 @@ void transmitAndReceive(uint8_t UART, uint8_t *tr_buf, uint8_t tr_length, uint8_
 		HAL_UART_Transmit_DMA(&huart3, tr_buf, tr_length);
 		break;
 	case IMU_UART:
-		//TODO what is this?
+		HAL_UART_Receive_IT(&huart4, re_buf, re_length);
+		HAL_UART_Transmit_IT(&huart4, tr_buf, tr_length);
 		break;
 	default:
 	    	return;
@@ -194,6 +195,9 @@ void transmitAndReceive(uint8_t UART, uint8_t *tr_buf, uint8_t tr_length, uint8_
 
 	if(UART == VMA_UART) {
 		HAL_UART_AbortReceive_IT(&huart2);
+	}
+	else if(UART == IMU_UART) {
+		HAL_UART_AbortReceive_IT(&huart4);
 	}
 
 	uartBuf[UART] = 0;
@@ -230,7 +234,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 			HAL_UART_Receive_IT(&huart3, uartBuf[UART], uartLength[UART]);
 			break;
 		case IMU_UART:
-			HAL_UART_Receive_IT(&huart4, uartBuf[UART], uartLength[UART]);
+
 			break;
 		}
 	}
@@ -325,31 +329,27 @@ void ShoreReceive()
     static portBASE_TYPE xHigherPriorityTaskWoken;
     xHigherPriorityTaskWoken = pdFALSE;
 
-    if (counterRx == 0) {
+    if(counterRx == 0) {
         xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
-        if(RxBuffer[0] == SHORE_REQUEST_CODE) {
+        if(RxBuffer == SHORE_REQUEST_CODE) {
         	numberRx = SHORE_REQUEST_LENGTH;
+        	HAL_UART_Receive_DMA(&huart1, &ShoreRequestBuf[1], SHORE_REQUEST_LENGTH-1);
+        	ShoreRequestBuf[0] = RxBuffer;
         }
-        else if(RxBuffer[0] == REQUEST_CONFIG_CODE) {
+        else if(RxBuffer == REQUEST_CONFIG_CODE) {
         	numberRx = REQUEST_CONFIG_LENGTH;
+        	HAL_UART_Receive_DMA(&huart1, &ShoreRequestConfigBuf[1], REQUEST_CONFIG_LENGTH-1);
+        	ShoreRequestConfigBuf[0] = RxBuffer;
         }
+        uartPackageReceived[SHORE_UART] = false;
+        counterRx++;
     }
-
-    if(numberRx == SHORE_REQUEST_LENGTH) {
-    	ShoreRequestBuf[counterRx] = RxBuffer[0];
-    }
-    else if(numberRx == REQUEST_CONFIG_LENGTH) {
-    	ShoreRequestConfigBuf[counterRx] = RxBuffer[0];
-    }
-    ++counterRx;
-
-    if (counterRx == numberRx) {
+    else {
     	uartPackageReceived[SHORE_UART] = true;
     	counterRx = 0;
     }
-    else {
-    	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
-    }
+
+    //HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
 
     if (xHigherPriorityTaskWoken == pdTRUE) {
     	xHigherPriorityTaskWoken = pdFALSE;
@@ -391,13 +391,7 @@ void VmaRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
     res.AA = 0xAA;
     res.type = 0x01;
     res.address = robot->VMA[vma].address;
-    res.update_base_vector = false;
-    res.position_setting = 0;
-    res.angle = 0;
-    res.velocity = robot->VMA[vma].desiredSpeed*0.2;
-    res.frequency = 0;
-    res.outrunning_angle = 0;
-    res.speed_k = 0;
+    res.velocity = robot->VMA[vma].desiredSpeed*0.4;
 
     memcpy((void*)buf, (void*)&res, VMA_REQUEST_LENGTH);
     AddChecksumm8bVma(buf, VMA_REQUEST_LENGTH);
@@ -537,6 +531,13 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 
         tempCameraNum = req.cameras;
         robot->pc.reset = req.pc_reset;
+
+        if(robot->pc.reset == PC_ON_CODE) {
+        	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+        }
+        else if(robot->pc.reset == PC_OFF_CODE) {
+        	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+        }
 
         if(tempCameraNum != robot->cameraNum) {
         	robot->cameraNum = tempCameraNum;

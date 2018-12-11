@@ -172,7 +172,10 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
     variableInit();
     stabilizationInit(&Q100);
-	HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
+    HAL_UART_Receive_IT(&huart1, &RxBuffer, 1);
+
+    HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
+    HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -309,8 +312,7 @@ void func_tImuCommTask(void const * argument)
 	  		Q100.i_sensors.resetIMU = false;
 	  	}
 	  	else {
-	  		transmitPackage(IMU_UART, ImuRequestBuf, IMU_REQUEST_LENGTH);
-	  		receivePackage(IMU_UART, ImuResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
+	  		transmitAndReceive(IMU_UART, ImuRequestBuf, IMU_REQUEST_LENGTH, ImuResponseBuf, IMU_RESPONSE_LENGTH*IMU_CHECKSUMS);
 	  		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_IMU_TASK) == pdTRUE) {
 	  			ImuReceive(&Q100, ImuResponseBuf, &ErrorCode);
 	        	xSemaphoreGive(mutDataHandle);
@@ -466,9 +468,9 @@ void func_tUartTimer(void const * argument)
 			xSemaphoreGive(mutDataHandle);
 		}
 		transmitPackage(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
-		HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
 	}
 	else {
+		HAL_UART_AbortReceive_IT(&huart1);
 		shoreCommunicationUpdated = false;
 		uartPackageReceived[SHORE_UART] = false;
 		counterRx = 0;
@@ -480,6 +482,7 @@ void func_tUartTimer(void const * argument)
 			nullIntArray(ShoreRequestConfigBuf, numberRx);
 		}
 	}
+	HAL_UART_Receive_IT(&huart1, &RxBuffer, 1);
   /* USER CODE END func_tUartTimer */
 }
 

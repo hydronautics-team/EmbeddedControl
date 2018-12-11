@@ -10,25 +10,19 @@
 #define VMA_NUMBER              	8
 #define VMA_DRIVER_NUMBER       	8
 
-#define VMA_REQUEST_LENGTH   		14
+#define VMA_REQUEST_LENGTH   		5
 #define VMA_CONFIG_REQUEST_LENGTH  	13
-#define VMA_RESPONSE_LENGTH  		12
+#define VMA_RESPONSE_LENGTH  		9
 
 #define VMA_NORMAL_REQUEST_TYPE 	0x01
 #define VMA_CONFIG_REQUEST_TYPE 	0x02
 
 struct vmaRequest_s
 {
-	uint8_t AA; // 0xAA doesn't include in CRC calculation
+	uint8_t AA;
 	uint8_t type; // 0x01
 	uint8_t address;
-	uint8_t update_base_vector; // true or false
-	uint8_t position_setting; // enabling of position_setting
-	uint16_t angle; // angle - 0..359;
 	int8_t velocity;
-	uint8_t frequency;
-	int16_t outrunning_angle;
-	uint16_t speed_k;
 	uint8_t crc;
 };
 
@@ -49,11 +43,9 @@ struct vmaConfigRequest_s
 struct vmaResponse_s
 {
 	uint8_t AA;
-	uint8_t type;
+	uint8_t type; // 0x01
 	uint8_t address;
 	uint8_t state;
-	uint8_t position_code;
-	uint16_t cur_angle;
 	uint16_t current;
 	uint16_t speed_period;
 	uint8_t crc;
@@ -102,6 +94,9 @@ struct devResponse_s
 #define SHORE_STABILIZE_IMU_BIT 		4
 
 #define SHORE_DEVICE_AC_BIT 			0
+
+#define PC_ON_CODE 0xAA
+#define PC_OFF_CODE 0x00
 
 struct shoreRequest_s
 {
