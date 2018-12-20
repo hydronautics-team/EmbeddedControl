@@ -16,9 +16,14 @@
 
 extern TimerHandle_t UARTTimer;
 
-uint8_t RxBuffer = 0;
-uint16_t numberRx = 0;
 uint16_t counterRx = 0;
+uint32_t brokenRxCounter = 0;
+uint32_t outdatedRxCounter = 0;
+uint32_t successRxCounter = 0;
+uint8_t brokenRxTolerance = 0;
+
+const uint16_t ShoreLength[SHORE_REQUEST_MODES_NUMBER] = {SHORE_REQUEST_LENGTH, REQUEST_CONFIG_LENGTH};
+const uint8_t ShoreCodes[SHORE_REQUEST_MODES_NUMBER] = {SHORE_REQUEST_CODE, REQUEST_CONFIG_CODE};
 
 uint8_t* uartBuf[UART_NUMBER];
 uint8_t uartLength[UART_NUMBER];
@@ -330,26 +335,23 @@ void ShoreReceive()
     xHigherPriorityTaskWoken = pdFALSE;
 
     if(counterRx == 0) {
-        xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
-        if(RxBuffer == SHORE_REQUEST_CODE) {
-        	numberRx = SHORE_REQUEST_LENGTH;
-        	HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[1], SHORE_REQUEST_LENGTH-1);
-        	ShoreRequestBuf[0] = RxBuffer;
-        }
-        else if(RxBuffer == REQUEST_CONFIG_CODE) {
-        	numberRx = REQUEST_CONFIG_LENGTH;
-        	HAL_UART_Receive_IT(&huart5, &ShoreRequestConfigBuf[1], REQUEST_CONFIG_LENGTH-1);
-        	ShoreRequestConfigBuf[0] = RxBuffer;
-        }
-        uartPackageReceived[SHORE_UART] = false;
-        counterRx++;
+    	for(uint8_t i=0; i<SHORE_REQUEST_MODES_NUMBER; ++i) {
+    		if(ShoreRequestBuf[0] == ShoreCodes[i]) {
+    			xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
+    			++counterRx;
+    			HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[1], ShoreLength[i]-1);
+    			break;
+    		}
+
+    		if(i == SHORE_REQUEST_MODES_NUMBER-1) {
+    			HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[0], 1);
+    		}
+    	}
     }
     else {
     	uartPackageReceived[SHORE_UART] = true;
-    	counterRx = 0;
+    	++counterRx;
     }
-
-    //HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
 
     if (xHigherPriorityTaskWoken == pdTRUE) {
     	xHigherPriorityTaskWoken = pdFALSE;
@@ -485,6 +487,11 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
         robot->VMA[VF].kBackward = req.kbackward_vf;
         robot->VMA[VL].kBackward = req.kbackward_vl;
         robot->VMA[VR].kBackward = req.kbackward_vr;
+
+        ++successRxCounter;
+    }
+    else {
+    	++brokenRxCounter;
     }
 }
 
@@ -496,7 +503,6 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
     	memcpy((void*)&req, (void*)requestBuf, SHORE_REQUEST_LENGTH);
 
     	uint8_t tempCameraNum = 0;
-        shorePackageError = 0;
 
         robot->i_joySpeed.march = req.march;
         robot->i_joySpeed.lag = req.lag;
@@ -609,28 +615,33 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
                 robot->VMA[i].desiredSpeed = -127;
             }
         }
+
+        ++successRxCounter;
     }
     else {
-        ++shorePackageError;
-    }
+        ++brokenRxCounter;
+        ++brokenRxTolerance;
 
-    if (shorePackageError == PACKAGE_TOLLERANCE) {
-        robot->i_joySpeed.march = 0;
-        robot->i_joySpeed.lag = 0;
-        robot->i_joySpeed.depth = 0;
-        robot->i_joySpeed.pitch = 0;
-        robot->i_joySpeed.roll = 0;
-        robot->i_joySpeed.yaw = 0;
+        if (brokenRxTolerance == PACKAGE_TOLLERANCE) {
+        	robot->i_joySpeed.march = 0;
+        	robot->i_joySpeed.lag = 0;
+        	robot->i_joySpeed.depth = 0;
+        	robot->i_joySpeed.pitch = 0;
+        	robot->i_joySpeed.roll = 0;
+        	robot->i_joySpeed.yaw = 0;
 
-        robot->device[LIGHT].force = 0;
-        robot->device[DEV1].force = 0;
-        robot->device[DEV2].force = 0;
-        robot->device[GRAB].force = 0;
-        robot->device[GRAB_ROTATION].force  = 0;
-        robot->device[TILT].force = 0;
+        	robot->device[LIGHT].force = 0;
+        	robot->device[DEV1].force = 0;
+        	robot->device[DEV2].force = 0;
+        	robot->device[GRAB].force = 0;
+        	robot->device[GRAB_ROTATION].force  = 0;
+        	robot->device[TILT].force = 0;
 
-        for (uint8_t i = 0; i < VMA_DRIVER_NUMBER; ++i){
-            robot->VMA[i].desiredSpeed = 0;
+        	for (uint8_t i = 0; i < VMA_DRIVER_NUMBER; ++i){
+        		robot->VMA[i].desiredSpeed = 0;
+        	}
+
+        	brokenRxTolerance = 0;
         }
     }
 }

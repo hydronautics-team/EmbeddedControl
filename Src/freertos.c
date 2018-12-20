@@ -88,7 +88,6 @@
 
 TimerHandle_t UARTTimer;
 
-bool shoreCommunicationUpdated = false;
 /* USER CODE END Variables */
 osThreadId tLedBlinkingTaskHandle;
 uint32_t tLedBlinkingTaskBuffer[ 128 ];
@@ -174,7 +173,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
     variableInit();
     stabilizationInit(&Q100);
-    HAL_UART_Receive_IT(&huart5, &RxBuffer, 1);
+    HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[0], 1);
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -200,7 +199,7 @@ void MX_FREERTOS_Init(void) {
   tSilenceHandle = osTimerCreate(osTimer(tSilence), osTimerOnce, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
-  UARTTimer = xTimerCreate("timer", SHORE_DELAY/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) func_tUartTimer);
+  UARTTimer = xTimerCreate("timer", DELAY_TIMER_TASK/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) func_tUartTimer);
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the thread(s) */
@@ -456,17 +455,14 @@ void func_tUartTimer(void const * argument)
 {
   /* USER CODE BEGIN func_tUartTimer */
 	if (uartPackageReceived[SHORE_UART]) {
-		shoreCommunicationUpdated = true;
-		uartPackageReceived[SHORE_UART] = false;
-
-		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_TIMER_TASK) == pdTRUE) {
-			if(numberRx == SHORE_REQUEST_LENGTH) {
-				ShoreRequest(&Q100, ShoreRequestBuf);
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
+			switch(ShoreRequestBuf[0]) {
+				case SHORE_REQUEST_CODE:
+					ShoreRequest(&Q100, ShoreRequestBuf);
+					break;
+				case REQUEST_CONFIG_CODE:
+					ShoreConfigRequest(&Q100, ShoreRequestBuf);
 			}
-			else if(numberRx == REQUEST_CONFIG_LENGTH) {
-				ShoreConfigRequest(&Q100, ShoreRequestConfigBuf);
-			}
-
 			ShoreResponse(&Q100, ShoreResponseBuf);
 			xSemaphoreGive(mutDataHandle);
 		}
@@ -474,18 +470,11 @@ void func_tUartTimer(void const * argument)
 	}
 	else {
 		HAL_UART_AbortReceive_IT(&huart5);
-		shoreCommunicationUpdated = false;
-		uartPackageReceived[SHORE_UART] = false;
-		counterRx = 0;
-
-		if(numberRx == SHORE_REQUEST_CODE) {
-			nullIntArray(ShoreRequestBuf, numberRx);
-		}
-		else if(numberRx == REQUEST_CONFIG_CODE) {
-			nullIntArray(ShoreRequestConfigBuf, numberRx);
-		}
+		++outdatedRxCounter;
 	}
-	HAL_UART_Receive_IT(&huart5, &RxBuffer, 1);
+	counterRx = 0;
+	uartPackageReceived[SHORE_UART] = false;
+	HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[0], 1);
   /* USER CODE END func_tUartTimer */
 }
 

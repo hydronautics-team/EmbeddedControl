@@ -2,10 +2,7 @@
 
 struct Robot Q100;
 
-uint8_t shorePackageError = 0;
-
-uint8_t ShoreRequestBuf[SHORE_REQUEST_LENGTH];
-uint8_t ShoreRequestConfigBuf[REQUEST_CONFIG_LENGTH];
+uint8_t ShoreRequestBuf[REQUEST_CONFIG_LENGTH];
 uint8_t ShoreResponseBuf[SHORE_RESPONSE_LENGTH];
 
 uint8_t ImuRequestBuf[IMU_REQUEST_LENGTH] = { 's', 'n', 'p', 0x00, 0xAE, 0x01, 0xFF };

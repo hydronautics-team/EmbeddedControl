@@ -28,9 +28,11 @@ enum BTErrCodes {
 };
 
 extern bool uartPackageReceived[UART_NUMBER];
-extern uint8_t RxBuffer;
-extern uint16_t numberRx;
-extern uint16_t counterRx;
+extern uint16_t counterRx; // TODO structure for every communication protocol which includes all these things
+extern uint32_t brokenRxCounter;
+extern uint32_t outdatedRxCounter;
+extern uint32_t successRxCounter;
+extern uint8_t brokenRxTolerance;
 
 // Custom UART DMA receive/transmit functions
 void variableInit(void);

@@ -255,6 +255,14 @@ struct shoreResponse_s
     uint16_t checksum;
 };
 
+#define SHORE_REQUEST_MODES_NUMBER 2
+
+enum ShoreRequestModes {
+	SHORE_REQUEST_NORMAL = 0,
+	SHORE_REQUEST_CONFIG,
+	SHORE_REQUEST_DIRECT
+};
+
 /* --- IMU package and parsing info  --- */
 #define IMU_REQUEST_LENGTH 11 // size of transmit package
 #define IMU_RESPONSE_LENGTH 15 // size of receive package
@@ -319,7 +327,7 @@ struct imuResponse_s
 #define DELAY_PC_TASK 				10
 #define DELAY_SENSOR_TASK 			10
 #define DELAY_STAB_TASK 			10
-#define DELAY_TIMER_TASK 			10
+#define DELAY_TIMER_TASK 			5
 
 #define WAITING_DEV 				10
 #define WAITING_IMU 				10
@@ -327,6 +335,7 @@ struct imuResponse_s
 #define WAITING_VMA 				10
 #define WAITING_SENSORS				10
 #define WAITING_PC					10
+#define WAITING_TIMER				10
 
 
 #pragma pack(pop)

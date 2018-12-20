@@ -9,10 +9,7 @@
 
 extern struct Robot Q100;
 
-extern uint8_t shorePackageError;
-
-extern uint8_t ShoreRequestBuf[SHORE_REQUEST_LENGTH];
-extern uint8_t ShoreRequestConfigBuf[REQUEST_CONFIG_LENGTH];
+extern uint8_t ShoreRequestBuf[REQUEST_CONFIG_LENGTH];
 extern uint8_t ShoreResponseBuf[SHORE_RESPONSE_LENGTH];
 
 extern uint8_t ImuRequestBuf[IMU_REQUEST_LENGTH];
