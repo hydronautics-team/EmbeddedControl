@@ -59,7 +59,7 @@ TIM_HandleTypeDef htim7;
 /* TIM7 init function */
 void MX_TIM7_Init(void)
 {
-  TIM_MasterConfigTypeDef sMasterConfig;
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
 
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 0;
@@ -68,14 +68,13 @@ void MX_TIM7_Init(void)
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
 
 }
@@ -115,13 +114,5 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

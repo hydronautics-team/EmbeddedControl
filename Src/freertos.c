@@ -112,6 +112,7 @@ osThreadId tPcCommTaskHandle;
 uint32_t tPcCommTaskBuffer[ 128 ];
 osStaticThreadDef_t tPcCommTaskControlBlock;
 osTimerId tUartTimerHandle;
+osTimerId tSilenceHandle;
 osMutexId mutDataHandle;
 osStaticMutexDef_t mutDataControlBlock;
 
@@ -128,6 +129,7 @@ void func_tDevCommTask(void const * argument);
 void func_tSensCommTask(void const * argument);
 void func_tPcCommTask(void const * argument);
 void func_tUartTimer(void const * argument);
+void tSilence_func(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -172,10 +174,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
     variableInit();
     stabilizationInit(&Q100);
-    HAL_UART_Receive_IT(&huart1, &RxBuffer, 1);
-
-    HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
-    HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+    HAL_UART_Receive_IT(&huart5, &RxBuffer, 1);
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -195,6 +194,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of tUartTimer */
   osTimerDef(tUartTimer, func_tUartTimer);
   tUartTimerHandle = osTimerCreate(osTimer(tUartTimer), osTimerOnce, NULL);
+
+  /* definition and creation of tSilence */
+  osTimerDef(tSilence, tSilence_func);
+  tSilenceHandle = osTimerCreate(osTimer(tSilence), osTimerOnce, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   UARTTimer = xTimerCreate("timer", SHORE_DELAY/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) func_tUartTimer);
@@ -470,7 +473,7 @@ void func_tUartTimer(void const * argument)
 		transmitPackage(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
 	}
 	else {
-		HAL_UART_AbortReceive_IT(&huart1);
+		HAL_UART_AbortReceive_IT(&huart5);
 		shoreCommunicationUpdated = false;
 		uartPackageReceived[SHORE_UART] = false;
 		counterRx = 0;
@@ -482,8 +485,16 @@ void func_tUartTimer(void const * argument)
 			nullIntArray(ShoreRequestConfigBuf, numberRx);
 		}
 	}
-	HAL_UART_Receive_IT(&huart1, &RxBuffer, 1);
+	HAL_UART_Receive_IT(&huart5, &RxBuffer, 1);
   /* USER CODE END func_tUartTimer */
+}
+
+/* tSilence_func function */
+void tSilence_func(void const * argument)
+{
+  /* USER CODE BEGIN tSilence_func */
+  
+  /* USER CODE END tSilence_func */
 }
 
 /* Private application code --------------------------------------------------*/

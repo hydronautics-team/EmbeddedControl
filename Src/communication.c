@@ -115,7 +115,7 @@ void transmitPackage(uint8_t UART, uint8_t *buf, uint8_t length)
 	uartPackageTransmit[UART] = false;
     switch(UART) {
         case SHORE_UART:
-            HAL_UART_Transmit_DMA(&huart1, buf, length);
+            HAL_UART_Transmit_IT(&huart5, buf, length);
             break;
         case VMA_UART:
             HAL_UART_Transmit_IT(&huart2, buf, length);
@@ -142,7 +142,7 @@ void receivePackage(uint8_t UART, uint8_t *buf, uint8_t length)
     uartPackageReceived[UART] = false;
     switch(UART){
     case SHORE_UART:
-    	HAL_UART_Receive_DMA(&huart1, buf, length);
+    	HAL_UART_Receive_IT(&huart5, buf, length);
     	break;
     case VMA_UART:
     	HAL_UART_Receive_IT(&huart2, buf, length);
@@ -170,7 +170,7 @@ void transmitAndReceive(uint8_t UART, uint8_t *tr_buf, uint8_t tr_length, uint8_
 	uartPackageTransmit[UART] = false;
 	switch(UART) {
 	case SHORE_UART:
-		HAL_UART_Transmit_DMA(&huart1, tr_buf, tr_length);
+		HAL_UART_Transmit_IT(&huart5, tr_buf, tr_length);
 		break;
 	case VMA_UART:
 		HAL_UART_Transmit_IT(&huart2, tr_buf, tr_length);
@@ -208,7 +208,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	// TODO do this smarter pls
 	uint8_t UART = 0;
-	if(huart == &huart1) {
+	if(huart == &huart5) {
 		UART = SHORE_UART;
 	}
 	else if(huart == &huart2) {
@@ -225,7 +225,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 	if(uartLength[UART] > 0) {
 		switch(UART) {
 		case SHORE_UART:
-			HAL_UART_Receive_IT(&huart1, uartBuf[UART], uartLength[UART]);
+			HAL_UART_Receive_IT(&huart5, uartBuf[UART], uartLength[UART]);
 			break;
 		case VMA_UART:
 			HAL_UART_Receive_IT(&huart2, uartBuf[UART], uartLength[UART]);
@@ -242,7 +242,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart == &huart1) {
+	if(huart == &huart5) {
 		ShoreReceive();
 	}
 	else if(huart == &huart2) {
@@ -333,12 +333,12 @@ void ShoreReceive()
         xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
         if(RxBuffer == SHORE_REQUEST_CODE) {
         	numberRx = SHORE_REQUEST_LENGTH;
-        	HAL_UART_Receive_DMA(&huart1, &ShoreRequestBuf[1], SHORE_REQUEST_LENGTH-1);
+        	HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[1], SHORE_REQUEST_LENGTH-1);
         	ShoreRequestBuf[0] = RxBuffer;
         }
         else if(RxBuffer == REQUEST_CONFIG_CODE) {
         	numberRx = REQUEST_CONFIG_LENGTH;
-        	HAL_UART_Receive_DMA(&huart1, &ShoreRequestConfigBuf[1], REQUEST_CONFIG_LENGTH-1);
+        	HAL_UART_Receive_IT(&huart5, &ShoreRequestConfigBuf[1], REQUEST_CONFIG_LENGTH-1);
         	ShoreRequestConfigBuf[0] = RxBuffer;
         }
         uartPackageReceived[SHORE_UART] = false;
@@ -533,10 +533,10 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
         robot->pc.reset = req.pc_reset;
 
         if(robot->pc.reset == PC_ON_CODE) {
-        	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+        	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
         }
         else if(robot->pc.reset == PC_OFF_CODE) {
-        	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+        	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
         }
 
         if(tempCameraNum != robot->cameraNum) {
