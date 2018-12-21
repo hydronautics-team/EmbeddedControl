@@ -46,6 +46,15 @@ void variableInit() {
     Q100.VMA[VL].address = 8;
     Q100.VMA[VR].address = 7;
 
+    Q100.VMA[HLB].coef = 1;
+    Q100.VMA[HLF].coef = 1;
+    Q100.VMA[HRB].coef = -1;
+    Q100.VMA[HRF].coef = -1;
+    Q100.VMA[VB].coef = 1;
+    Q100.VMA[VF].coef = 1;
+    Q100.VMA[VL].coef = 1;
+    Q100.VMA[VR].coef = 1;
+
     Q100.device[DEV1].address = 0x03;
     Q100.device[GRAB].address = 0x01;
     Q100.device[GRAB_ROTATION].address = 0x02;
@@ -393,7 +402,7 @@ void VmaRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
     res.AA = 0xAA;
     res.type = 0x01;
     res.address = robot->VMA[vma].address;
-    res.velocity = robot->VMA[vma].desiredSpeed*0.4;
+    res.velocity = robot->VMA[vma].desiredSpeed*0.4*robot->VMA[vma].coef;
 
     memcpy((void*)buf, (void*)&res, VMA_REQUEST_LENGTH);
     AddChecksumm8bVma(buf, VMA_REQUEST_LENGTH);

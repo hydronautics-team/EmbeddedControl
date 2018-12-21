@@ -487,7 +487,7 @@ void tSilence_func(void const * argument)
 {
   /* USER CODE BEGIN tSilence_func */
 	//if(huart5.RxState != )
-	//xTimerStart(SilenceTimer, DELAY_SILENCE);
+	xTimerStart(SilenceTimer, DELAY_SILENCE);
 	HAL_UART_AbortReceive_IT(&huart5);
 	counterRx = 0;
 	uartPackageReceived[SHORE_UART] = false;

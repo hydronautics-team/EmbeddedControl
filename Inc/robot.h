@@ -50,6 +50,7 @@ struct Robot {
         int8_t desiredSpeed;
         int8_t realSpeed;
         int8_t speedError;
+        int8_t coef;
 
         uint8_t errors;
 
