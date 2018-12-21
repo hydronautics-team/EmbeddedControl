@@ -87,6 +87,7 @@
 #define SHORE_DELAY	  45
 
 TimerHandle_t UARTTimer;
+TimerHandle_t SilenceTimer;
 
 /* USER CODE END Variables */
 osThreadId tLedBlinkingTaskHandle;
@@ -173,7 +174,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
     variableInit();
     stabilizationInit(&Q100);
-    HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[0], 1);
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -199,6 +199,7 @@ void MX_FREERTOS_Init(void) {
   tSilenceHandle = osTimerCreate(osTimer(tSilence), osTimerOnce, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
+  SilenceTimer = xTimerCreate("silence", DELAY_SILENCE/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) tSilence_func);
   UARTTimer = xTimerCreate("timer", DELAY_TIMER_TASK/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) func_tUartTimer);
   /* USER CODE END RTOS_TIMERS */
 
@@ -273,6 +274,8 @@ void func_tVmaCommTask(void const * argument)
   /* USER CODE BEGIN func_tVmaCommTask */
     uint32_t sysTime = osKernelSysTick();
     uint8_t VmaTransaction = 0;
+
+    xTimerStart(SilenceTimer, DELAY_SILENCE);
   /* Infinite loop */
   for(;;)
   {
@@ -462,6 +465,7 @@ void func_tUartTimer(void const * argument)
 					break;
 				case REQUEST_CONFIG_CODE:
 					ShoreConfigRequest(&Q100, ShoreRequestBuf);
+					break;
 			}
 			ShoreResponse(&Q100, ShoreResponseBuf);
 			xSemaphoreGive(mutDataHandle);
@@ -482,7 +486,12 @@ void func_tUartTimer(void const * argument)
 void tSilence_func(void const * argument)
 {
   /* USER CODE BEGIN tSilence_func */
-  
+	//if(huart5.RxState != )
+	//xTimerStart(SilenceTimer, DELAY_SILENCE);
+	HAL_UART_AbortReceive_IT(&huart5);
+	counterRx = 0;
+	uartPackageReceived[SHORE_UART] = false;
+	HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[0], 1);
   /* USER CODE END tSilence_func */
 }
 

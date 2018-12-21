@@ -321,13 +321,14 @@ struct imuResponse_s
 /* --- Delays and waiting rates --- */
 
 #define DELAY_LED_TASK 				1000
-#define DELAY_VMA_TASK 				10
+#define DELAY_VMA_TASK 				20
 #define DELAY_DEV_TASK 				10
 #define DELAY_IMU_TASK 				10
 #define DELAY_PC_TASK 				10
 #define DELAY_SENSOR_TASK 			10
 #define DELAY_STAB_TASK 			10
-#define DELAY_TIMER_TASK 			5
+#define DELAY_TIMER_TASK 			10
+#define DELAY_SILENCE    			20000
 
 #define WAITING_DEV 				10
 #define WAITING_IMU 				10

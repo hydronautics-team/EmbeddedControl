@@ -338,7 +338,7 @@ void ShoreReceive()
     	for(uint8_t i=0; i<SHORE_REQUEST_MODES_NUMBER; ++i) {
     		if(ShoreRequestBuf[0] == ShoreCodes[i]) {
     			xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
-    			++counterRx;
+    			counterRx = 1;
     			HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[1], ShoreLength[i]-1);
     			break;
     		}
@@ -348,9 +348,9 @@ void ShoreReceive()
     		}
     	}
     }
-    else {
+    else if(counterRx == 1) {
     	uartPackageReceived[SHORE_UART] = true;
-    	++counterRx;
+    	counterRx = 2;
     }
 
     if (xHigherPriorityTaskWoken == pdTRUE) {
