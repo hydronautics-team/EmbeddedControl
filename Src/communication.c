@@ -22,6 +22,8 @@ uint32_t outdatedRxCounter = 0;
 uint32_t successRxCounter = 0;
 uint8_t brokenRxTolerance = 0;
 
+uint8_t VMAbrokenRxTolerance = 0;
+
 const uint16_t ShoreLength[SHORE_REQUEST_MODES_NUMBER] = {SHORE_REQUEST_LENGTH, REQUEST_CONFIG_LENGTH};
 const uint8_t ShoreCodes[SHORE_REQUEST_MODES_NUMBER] = {SHORE_REQUEST_CODE, REQUEST_CONFIG_CODE};
 
@@ -402,7 +404,13 @@ void VmaRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
     res.AA = 0xAA;
     res.type = 0x01;
     res.address = robot->VMA[vma].address;
-    res.velocity = robot->VMA[vma].desiredSpeed*0.4*robot->VMA[vma].coef;
+    if(robot->VMA[vma].desiredSpeed > 10) { // TODO FIXME
+    	robot->VMA[vma].desiredSpeed = 10;
+    }
+    else if(robot->VMA[vma].desiredSpeed < -10) {
+    	robot->VMA[vma].desiredSpeed = -10;
+    }
+    res.velocity = robot->VMA[vma].desiredSpeed*robot->VMA[vma].coef;
 
     memcpy((void*)buf, (void*)&res, VMA_REQUEST_LENGTH);
     AddChecksumm8bVma(buf, VMA_REQUEST_LENGTH);

@@ -276,6 +276,7 @@ void func_tVmaCommTask(void const * argument)
     uint8_t VmaTransaction = 0;
 
     xTimerStart(SilenceTimer, DELAY_SILENCE);
+    HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[0], 1);
   /* Infinite loop */
   for(;;)
   {
@@ -467,10 +468,10 @@ void func_tUartTimer(void const * argument)
 					ShoreConfigRequest(&Q100, ShoreRequestBuf);
 					break;
 			}
-			ShoreResponse(&Q100, ShoreResponseBuf);
+			//ShoreResponse(&Q100, ShoreResponseBuf);
 			xSemaphoreGive(mutDataHandle);
 		}
-		transmitPackage(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
+		//transmitPackage(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
 	}
 	else {
 		HAL_UART_AbortReceive_IT(&huart5);
