@@ -36,11 +36,28 @@ enum LOGDEV {
 	ACOUSTIC = 0
 };
 
+#define STABILIZATION_AMOUNT 4
+
+enum STAB_CIRCUITS {
+	STAB_DEPTH = 0,
+	STAB_YAW,
+	STAB_ROLL,
+	STAB_PITCH
+};
+
+#define STABILIZATION_FILTERS 2
+
+enum STAB_FILTERS {
+	POS_FILTER = 0,
+	SPEED_FILTER
+};
+
 enum I2C {
 	I2C_SENSORS = 0,
 	I2C_PC
 };
 
+//TODO i don't think that you really need this structure (do you have second robot or what?)
 struct Robot
 {
 	// Current camera ID (controls multiplexor)
@@ -176,33 +193,46 @@ struct Robot
 		uint8_t errors;
 	} logdevice[LOGDEV_AMOUNT];
 
-	// TODO u need something like structure in structure for that (settings will be inside)
 	struct RobotStabilizationConstants {
 		bool enable;
 		// Before P
-		uint8_t cameras;
-		float iJoySpeed;
+		float pJoyUnitCast;
 		float pSpeedDyn;
 		float pErrGain;
-		// Feedback
-		float pSpeedFback;
+		// Feedback aperiodic filters
+		struct AperiodicFilter {
+			float T;
+			float K;
+		} aFilter[STABILIZATION_FILTERS];
 		// PID
-		float pid_pGain;
-		float pid_iGain;
-		float pid_iMax;
-		float pid_iMin;
-	} depthStabCons, rollStabCons, pitchStabCons, yawStabCons;
+		struct PidConstants {
+			float pGain;
+			float iGain;
+			float iMax;
+			float iMin;
+		} pid;
+	} stabConstants[STABILIZATION_AMOUNT];
 
 	struct RobotStabilizationState {
+		float *inputSignal; 		// Link to input signal. You need to set this on initialization
+		float *speedSignal;			// Link to speed signal. You need to set this on initialization
+		float *posSignal;			// Link to position signal. You need to set this on initialization
+
+		float oldSpeed;
+		float oldPos;
+
+		float joyUnitCasted;
+		float joy_iValue;
 		float posError;
 		float speedError;
 		float dynSummator;
 		float pidValue;
 		float posErrorAmp;
+		float speedFiltered;
+		float posFiltered;
 
-		float joy_iValue;
-		float joy_iLastTick;
-	} depthStabSt, rollStabSt, pitchStabSt, yawStabSt;
+		float LastTick;
+	} stabState[STABILIZATION_AMOUNT];
 
 };
 

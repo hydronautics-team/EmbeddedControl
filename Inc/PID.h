@@ -20,18 +20,6 @@ struct PIDRegulator{
 
 void PIDRegulatorInit(struct PIDRegulator *PID, float pGain, float iGain, float iMax, float iMin, float dGain);
 
-TickType_t getLastUpdateTick(struct PIDRegulator *PID);
-void setLastUpdateTick(struct PIDRegulator *PID, TickType_t lastUpdateTick);
-
-float getIGain(struct PIDRegulator *PID);
-void setIGain(struct PIDRegulator *PID, float gain);
-
-float getPGain(struct PIDRegulator *PID);
-void setPGain(struct PIDRegulator *PID, float gain);
-
-float getDGain(struct PIDRegulator *PID);
-void setDGain(struct PIDRegulator *PID, float gain);
-
 float update(struct PIDRegulator *PID, float error, float deltaTime);
 
 void reset(struct PIDRegulator *PID);

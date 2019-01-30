@@ -15,11 +15,10 @@
 extern struct PIDRegulator rollPID;
 extern struct PIDRegulator pitchPID;
 extern struct PIDRegulator yawPID;
+extern struct PIDRegulator depthsPID;
 
 void stabilizationInit(struct Robot *robot);
 void computeVmaValues(struct Robot *robot);
-void stabilizeRoll(struct Robot *robot);
-void stabilizePitch(struct Robot *robot);
-void stabilizeYaw(struct Robot *robot);
+void stabilizationUpdate(uint8_t contour);
 
 #endif

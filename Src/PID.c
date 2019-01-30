@@ -16,15 +16,8 @@ void PIDRegulatorInit(struct PIDRegulator *PID, float pGain, float iGain, float 
 	PID->lastUpdateTick = xTaskGetTickCount();
 }
 
-TickType_t getLastUpdateTick(struct PIDRegulator *PID){
-	return PID->lastUpdateTick;
-}
-
-void setLastUpdateTick(struct PIDRegulator *PID, TickType_t lastUpdateTick) {
-	PID->lastUpdateTick = lastUpdateTick;
-}
-
-float update(struct PIDRegulator *PID, float error, float deltaTime_ms) {
+float update(struct PIDRegulator *PID, float error, float deltaTime_ms)
+{
 
 	float pTerm, dTerm, iTerm;
 	pTerm = PID->pGain * error; //proportional term
@@ -57,31 +50,8 @@ float update(struct PIDRegulator *PID, float error, float deltaTime_ms) {
 	return pTerm + dTerm + iTerm;
 }
 
-float getDGain(struct PIDRegulator *PID) {
-	return PID->dGain;
-}
-
-void setDGain(struct PIDRegulator *PID, float gain) {
-	PID->dGain = gain;
-}
-
-float getIGain(struct PIDRegulator *PID) {
-	return PID->iGain;
-}
-
-void setIGain(struct PIDRegulator *PID, float gain) {
-	PID->iGain = gain;
-}
-
-float getPGain(struct PIDRegulator *PID) {
-	return PID->pGain;
-}
-
-void setPGain(struct PIDRegulator *PID, float gain) {
-	PID->pGain = gain;
-}
-
-void reset(struct PIDRegulator *PID) {
+void reset(struct PIDRegulator *PID)
+{
 	PID->iState = 0;
 	PID->dState = 0;
 }

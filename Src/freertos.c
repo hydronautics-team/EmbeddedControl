@@ -353,39 +353,46 @@ void func_tImuCommTask(void const * argument)
 /* USER CODE END Header_func_tStabilizationTask */
 void func_tStabilizationTask(void const * argument)
 {
-  /* USER CODE BEGIN func_tStabilizationTask */
-    uint32_t sysTime = osKernelSysTick();
-  /* Infinite loop */
-  for(;;)
-  {
-	  	if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STABILIZATION_TASK) == pdTRUE) {
-            if (Q100.pitchStabCons.enable) {
-                stabilizePitch(&Q100);
-            }
-            else {
-                Q100.pitchStabSt.speedError = 0;
-            }
+	/* USER CODE BEGIN func_tStabilizationTask */
+	uint32_t sysTime = osKernelSysTick();
+	/* Infinite loop */
+	for(;;)
+	{
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STABILIZATION_TASK) == pdTRUE) {
+			if (Q100.stabConstants[STAB_PITCH].enable) {
+				stabilizationUpdate(STAB_PITCH);
+			}
+			else {
+				Q100.stabState[STAB_PITCH].speedError = 0;
+			}
 
-            if (Q100.rollStabCons.enable) {
-                stabilizeRoll(&Q100);
-            }
-            else {
-                Q100.rollStabSt.speedError = 0;
-            }
+			if (Q100.stabConstants[STAB_ROLL].enable) {
+				stabilizationUpdate(STAB_ROLL);
+			}
+			else {
+				Q100.stabState[STAB_ROLL].speedError = 0;
+			}
 
-            if (Q100.yawStabCons.enable) {
-                stabilizeYaw(&Q100);
-            }
-            else {
-                Q100.yawStabSt.speedError = 0;
-            }
+			if (Q100.stabConstants[STAB_YAW].enable) {
+				stabilizationUpdate(STAB_YAW);
+			}
+			else {
+				Q100.stabState[STAB_YAW].speedError = 0;
+			}
 
-            xSemaphoreGive(mutDataHandle);
-        }
+			if (Q100.stabConstants[STAB_DEPTH].enable) {
+				stabilizationUpdate(STAB_DEPTH);
+			}
+			else {
+				Q100.stabState[STAB_DEPTH].speedError = 0;
+			}
 
-        osDelayUntil(&sysTime, DELAY_STABILIZATION_TASK);
-  }
-  /* USER CODE END func_tStabilizationTask */
+			xSemaphoreGive(mutDataHandle);
+		}
+
+		osDelayUntil(&sysTime, DELAY_STABILIZATION_TASK);
+	}
+	/* USER CODE END func_tStabilizationTask */
 }
 
 /* USER CODE BEGIN Header_func_tDevCommTask */
@@ -438,17 +445,18 @@ void func_tSensCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tSensCommTask */
 	uint32_t sysTime = osKernelSysTick();
-	uint8_t output = 0xAA;
+	//uint8_t output = 0xAA;
   /* Infinite loop */
   for(;;)
   {
+	  /*
 	  HAL_I2C_Master_Transmit_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1, &output, 1);
 	  receiveI2cPackageDMA (PC_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
 	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
 		  SensorsResponseUpdate(&Q100, PressureResponseBuffer, DEV_I2C);
 		  xSemaphoreGive(mutDataHandle);
 	  }
-
+		*/
 	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
   }
   /* USER CODE END func_tSensCommTask */
@@ -487,10 +495,13 @@ void func_tUartTimer(void const * argument)
 					ShoreConfigRequest(&Q100, ShoreRequestBuffer);
 					break;
 			}
-			//ShoreResponse(&Q100, ShoreResponseBuf);
+			ShoreResponse(&Q100, ShoreResponseBuffer);
 			xSemaphoreGive(mutDataHandle);
 		}
-		//transmitPackage(SHORE_UART, ShoreResponseBuf, SHORE_RESPONSE_LENGTH);
+		uartBus[SHORE_UART].huart = &huart1;
+		uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
+		uartBus[SHORE_UART].txLength = SHORE_RESPONSE_LENGTH;
+		transmitPackage(&uartBus[SHORE_UART], false);
 	}
 	else {
 		HAL_UART_AbortReceive_IT(&huart5);

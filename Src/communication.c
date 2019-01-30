@@ -18,21 +18,12 @@ extern TimerHandle_t UARTTimer;
 
 struct uartBus_s uartBus[UART_NUMBER];
 
-uint16_t counterRx = 0;
-uint32_t brokenRxCounter = 0;
-uint32_t outdatedRxCounter = 0;
-uint32_t successRxCounter = 0;
-uint8_t brokenRxTolerance = 0;
-
 uint8_t VMAbrokenRxTolerance = 0;
 
 const uint16_t ShoreLength[SHORE_REQUEST_MODES_NUMBER] = {SHORE_REQUEST_LENGTH, REQUEST_CONFIG_LENGTH};
 const uint8_t ShoreCodes[SHORE_REQUEST_MODES_NUMBER] = {SHORE_REQUEST_CODE, REQUEST_CONFIG_CODE};
 
-uint8_t* uartBuf[UART_NUMBER];
-uint8_t uartLength[UART_NUMBER];
-bool uartPackageTransmit[UART_NUMBER];
-bool uartPackageReceived[UART_NUMBER];
+uint16_t counterRx = 0;
 
 bool i2c1PackageTransmit = false;
 bool i2c2PackageTransmit = false;
@@ -81,67 +72,6 @@ void variableInit() {
     Q100.device[GRAB].address = 0x01;
     Q100.device[GRAB_ROTATION].address = 0x02;
     Q100.device[TILT].address = 0x04;
-
-    // Pitch stabilization constants
-    Q100.pitchStabCons.enable = false;
-    // Before PID
-    Q100.pitchStabCons.iJoySpeed = 1;
-    Q100.pitchStabCons.pSpeedDyn = 1;
-    Q100.pitchStabCons.pErrGain = 1;
-    // PID
-    Q100.pitchStabCons.pid_pGain = 1;
-    Q100.pitchStabCons.pid_iGain = 1;
-    Q100.pitchStabCons.pid_iMin = 0;
-    Q100.pitchStabCons.pid_iMax = 32768;
-    // Feedback
-    Q100.pitchStabCons.pSpeedFback = 1;
-
-    // Roll stabilization constants
-    Q100.rollStabCons.enable = false;
-    // Before PID
-    Q100.rollStabCons.iJoySpeed = 1;
-    Q100.rollStabCons.pSpeedDyn = 1;
-    Q100.rollStabCons.pErrGain = 1;
-    // PID
-    Q100.rollStabCons.pid_pGain = 1;
-    Q100.rollStabCons.pid_iGain = 1;
-    Q100.rollStabCons.pid_iMin = 0;
-    Q100.rollStabCons.pid_iMax = 32768;
-    // Feedback
-    Q100.rollStabCons.pSpeedFback = 1;
-
-    // Yaw stabilization constants
-    Q100.yawStabCons.enable = false;
-    // Before PID
-    Q100.yawStabCons.iJoySpeed = 1;
-    Q100.yawStabCons.pSpeedDyn = 1;
-    Q100.yawStabCons.pErrGain = 1;
-    // PID
-    Q100.yawStabCons.pid_pGain = 1;
-    Q100.yawStabCons.pid_iGain = 1;
-    Q100.yawStabCons.pid_iMin = 0;
-    Q100.yawStabCons.pid_iMax = 32768;
-    // Feedback
-    Q100.yawStabCons.pSpeedFback = 1;
-
-    // Depth stabilization constants
-    Q100.depthStabCons.enable = false;
-    // Before PID
-    Q100.depthStabCons.iJoySpeed = 1;
-    Q100.depthStabCons.pSpeedDyn = 1;
-    Q100.depthStabCons.pErrGain = 1;
-    // PID
-    Q100.depthStabCons.pid_pGain = 1;
-    Q100.depthStabCons.pid_iGain = 1;
-    Q100.depthStabCons.pid_iMin = 0;
-    Q100.depthStabCons.pid_iMax = 32768;
-    // Feedback
-    Q100.depthStabCons.pSpeedFback = 1;
-
-    for(uint8_t i=0; i<UART_NUMBER; i++) {
-    	uartBuf[i] = 0;
-    	uartLength[i] = 0;
-    }
 }
 
 void uartBusesInit()
@@ -192,7 +122,7 @@ void uartBusesInit()
 	uartBus[IMU_UART].timeoutRxTolerance = 0; // There is no special event on this bus
 	uartBus[IMU_UART].receiveTimeout = 100;
 	uartBus[IMU_UART].transmitTimeout = 100;
-	uartBus[IMU_UART].txrxType = TXRX_DMA;
+	uartBus[IMU_UART].txrxType = TXRX_IT;
 
 	for(uint8_t i=0; i<UART_NUMBER; i++) {
 		uartBus[i].packageReceived = false;
@@ -238,7 +168,6 @@ bool receivePackage(struct uartBus_s *bus, bool isrMode)
 	HAL_UART_AbortReceive_IT(bus->huart);
 	switch(bus->txrxType) {
 		case TXRX_DMA:
-
 			HAL_UART_Receive_DMA(bus->huart, bus->rxBuffer, bus->rxLength);
 			break;
 		case TXRX_IT:
@@ -406,7 +335,7 @@ void ShoreReceive()
     	}
     }
     else if(counterRx == 1) {
-    	uartPackageReceived[SHORE_UART] = true;
+    	uartBus[SHORE_UART].packageReceived = true;
     	counterRx = 2;
     }
 
@@ -496,6 +425,7 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
     	struct shoreConfigRequest_s req;
     	memcpy((void*)&req, (void*)requestBuf, SHORE_REQUEST_LENGTH);
     	// TODO my eyes are bleeding, really
+    	/*
         robot->depthStabCons.iJoySpeed = req.depth_k1;
         robot->depthStabCons.pSpeedDyn = req.depth_k2;
         robot->depthStabCons.pErrGain = req.depth_k3;
@@ -567,7 +497,7 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
         robot->thrusters[VF].kBackward = req.kbackward_vf;
         robot->thrusters[VL].kBackward = req.kbackward_vl;
         robot->thrusters[VR].kBackward = req.kbackward_vr;
-
+		*/
         ++uartBus[SHORE_UART].successRxCounter;;
     }
     else {
@@ -609,10 +539,10 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
         robot->device[DEV2].force = req.dev2;
 
         // TODO POMENYAL MESTAMI YAW I DEPTH
-        robot->depthStabCons.enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
-        robot->rollStabCons.enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_ROLL_BIT);
-        robot->pitchStabCons.enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
-        robot->yawStabCons.enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
+        robot->stabConstants[STAB_DEPTH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
+        robot->stabConstants[STAB_ROLL].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_ROLL_BIT);
+        robot->stabConstants[STAB_PITCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
+        robot->stabConstants[STAB_YAW].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
         robot->i_sensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
 
         tempCameraNum = req.cameras;
@@ -652,22 +582,22 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 
         // TODO KOEF OSHIBOK VRUCHNUU POMENYAL
         int16_t bYaw, bRoll, bPitch;
-        if(robot->rollStabCons.enable) {
-            bRoll = (int16_t) robot->rollStabSt.speedError*50;
+        if(robot->stabConstants[STAB_ROLL].enable) {
+            bRoll = (int16_t) robot->stabState[STAB_ROLL].speedError*50;
         }
         else {
             bRoll = robot->i_joySpeed.roll;
         }
 
-        if(robot->pitchStabCons.enable) {
-            bPitch = (int16_t) robot->pitchStabSt.speedError*50;
+        if(robot->stabConstants[STAB_PITCH].enable) {
+            bPitch = (int16_t) robot->stabState[STAB_PITCH].speedError*50;
         }
         else {
             bPitch = robot->i_joySpeed.pitch;
         }
 
-        if(robot->yawStabCons.enable) {
-            bYaw = (int16_t) robot->yawStabSt.speedError*50;
+        if(robot->stabConstants[STAB_YAW].enable) {
+            bYaw = (int16_t) robot->stabState[STAB_YAW].speedError*50;
         }
         else {
             bYaw = robot->i_joySpeed.yaw;
@@ -702,6 +632,7 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
     	++uartBus[SHORE_UART].brokenRxCounter;
 
     	//TODO tolerance!
+    	/*
         if (brokenRxTolerance == PACKAGE_TOLLERANCE) {
         	robot->i_joySpeed.march = 0;
         	robot->i_joySpeed.lag = 0;
@@ -723,6 +654,7 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 
         	brokenRxTolerance = 0;
         }
+        */
     }
 }
 
