@@ -57,12 +57,7 @@ struct uartBus_s {
 
 extern struct uartBus_s uartBus[UART_NUMBER];
 
-extern bool uartPackageReceived[UART_NUMBER];
-extern uint16_t counterRx; // TODO structure for every communication protocol which includes all these things
-extern uint32_t brokenRxCounter;
-extern uint32_t outdatedRxCounter;
-extern uint32_t successRxCounter;
-extern uint8_t brokenRxTolerance;
+extern uint16_t counterRx; // TODO this needs to be refactored as shorestage or smth
 
 // Initialization of user variables
 void variableInit(void);
@@ -86,7 +81,7 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf);
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf);
 void ShoreResponse(struct Robot *robot, uint8_t *responseBuf);
 
-void ImuReceive(struct Robot *robot, uint8_t *IMUReceiveBuf, uint8_t *ErrCode);
+void ImuReceive(struct Robot *robot, uint8_t *IMUReceiveBuf);
 
 void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id);
 

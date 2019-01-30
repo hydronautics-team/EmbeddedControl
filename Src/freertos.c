@@ -175,6 +175,8 @@ void MX_FREERTOS_Init(void) {
     variableInit();
     uartBusesInit();
     stabilizationInit(&Q100);
+
+    HAL_UART_Receive_IT(&huart5, &ShoreRequestBuffer[0], 1);
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -275,10 +277,6 @@ void func_tVmaCommTask(void const * argument)
 	/* USER CODE BEGIN func_tVmaCommTask */
 	uint32_t sysTime = osKernelSysTick();
 	uint8_t transaction = 0;
-
-	//TODO i don't need that anymore (i think)
-	xTimerStart(SilenceTimer, DELAY_SILENCE);
-	HAL_UART_Receive_IT(&huart5, &ShoreRequestBuffer[0], 1);
 	/* Infinite loop */
 	for(;;)
 	{
@@ -287,10 +285,10 @@ void func_tVmaCommTask(void const * argument)
 			xSemaphoreGive(mutDataHandle);
 		}
 
-		uartBus[THRUSTERS_UART].txBuffer = &ThrustersRequestBuffer;
+		uartBus[THRUSTERS_UART].txBuffer = ThrustersRequestBuffer;
 		uartBus[THRUSTERS_UART].txLength = THRUSTERS_REQUEST_LENGTH;
 
-		uartBus[THRUSTERS_UART].rxBuffer = &ThrustersResponseBuffer[transaction];
+		uartBus[THRUSTERS_UART].rxBuffer = ThrustersResponseBuffer[transaction];
 		uartBus[THRUSTERS_UART].rxLength = THRUSTERS_RESPONSE_LENGTH;
 
 		transmitAndReceive(&uartBus[THRUSTERS_UART], false);
@@ -317,27 +315,26 @@ void func_tImuCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tImuCommTask */
   uint32_t sysTime = osKernelSysTick();
-  uint8_t ErrorCode = 0;
   /* Infinite loop */
   for(;;)
   {
 	  	if(Q100.i_sensors.resetIMU) {
-			uartBus[IMU_UART].txBuffer = &ImuResetRequestBuffer;
+			uartBus[IMU_UART].txBuffer = ImuResetRequestBuffer;
 			uartBus[IMU_UART].txLength = IMU_REQUEST_LENGTH;
 	  		transmitPackage(&uartBus[IMU_UART], false);
 
 	  		Q100.i_sensors.resetIMU = false;
 	  	}
 	  	else {
-			uartBus[IMU_UART].txBuffer = &ImuRequestBuffer;
+			uartBus[IMU_UART].txBuffer = ImuRequestBuffer;
 			uartBus[IMU_UART].txLength = IMU_REQUEST_LENGTH;
 
-			uartBus[IMU_UART].rxBuffer = &ImuResponseBuffer;
+			uartBus[IMU_UART].rxBuffer = ImuResponseBuffer;
 			uartBus[IMU_UART].rxLength = IMU_RESPONSE_LENGTH*IMU_CHECKSUMS;
 
 	  		transmitAndReceive(&uartBus[IMU_UART], false);
 	  		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_IMU_TASK) == pdTRUE) {
-	  			ImuReceive(&Q100, ImuResponseBuffer, &ErrorCode);
+	  			ImuReceive(&Q100, ImuResponseBuffer);
 	        	xSemaphoreGive(mutDataHandle);
 	  		}
 	  	}
@@ -411,10 +408,10 @@ void func_tDevCommTask(void const * argument)
             xSemaphoreGive(mutDataHandle);
         }
 
-		uartBus[DEVICES_UART].txBuffer = &DevicesRequestBuffer;
+		uartBus[DEVICES_UART].txBuffer = DevicesRequestBuffer;
 		uartBus[DEVICES_UART].txLength = DEVICES_REQUEST_LENGTH;
 
-		uartBus[DEVICES_UART].rxBuffer = &DevicesResponseBuffer[transaction];
+		uartBus[DEVICES_UART].rxBuffer = DevicesResponseBuffer[transaction];
 		uartBus[DEVICES_UART].rxLength = DEVICES_RESPONSE_LENGTH;
 
 		transmitAndReceive(&uartBus[DEVICES_UART], false);
@@ -480,7 +477,7 @@ void func_tPcCommTask(void const * argument)
 void func_tUartTimer(void const * argument)
 {
   /* USER CODE BEGIN func_tUartTimer */
-	if (uartPackageReceived[SHORE_UART]) {
+	if (uartBus[SHORE_UART].packageReceived) {
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
 			switch(ShoreRequestBuffer[0]) {
 				case SHORE_REQUEST_CODE:
@@ -497,10 +494,10 @@ void func_tUartTimer(void const * argument)
 	}
 	else {
 		HAL_UART_AbortReceive_IT(&huart5);
-		++outdatedRxCounter;
+		++uartBus[SHORE_UART].outdatedRxCounter;
 	}
 	counterRx = 0;
-	uartPackageReceived[SHORE_UART] = false;
+	uartBus[SHORE_UART].packageReceived = false;
 	HAL_UART_Receive_IT(&huart5, &ShoreRequestBuffer[0], 1);
   /* USER CODE END func_tUartTimer */
 }
@@ -509,12 +506,7 @@ void func_tUartTimer(void const * argument)
 void tSilence_func(void const * argument)
 {
   /* USER CODE BEGIN tSilence_func */
-	//if(huart5.RxState != )
-	xTimerStart(SilenceTimer, DELAY_SILENCE);
-	HAL_UART_AbortReceive_IT(&huart5);
-	counterRx = 0;
-	uartPackageReceived[SHORE_UART] = false;
-	HAL_UART_Receive_IT(&huart5, &ShoreRequestBuffer[0], 1);
+
   /* USER CODE END tSilence_func */
 }
 

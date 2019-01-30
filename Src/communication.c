@@ -440,6 +440,11 @@ void DevicesResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
         robot->device[dev].current = res.current1;
         // TODO make errors work pls
         //writeBit(&(robot->device[dev].errors), res.errors, AGAR);
+
+        ++uartBus[DEVICES_UART].successRxCounter;
+    }
+    else {
+    	++uartBus[DEVICES_UART].brokenRxCounter;
     }
 }
 
@@ -477,6 +482,11 @@ void ThrustersResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster
     	memcpy((void*)&res, (void*)buf, THRUSTERS_RESPONSE_LENGTH);
 
         robot->thrusters[thruster].current = res.current;
+
+        ++uartBus[THRUSTERS_UART].successRxCounter;
+    }
+    else {
+    	++uartBus[THRUSTERS_UART].brokenRxCounter;
     }
 }
 
@@ -558,10 +568,10 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
         robot->thrusters[VL].kBackward = req.kbackward_vl;
         robot->thrusters[VR].kBackward = req.kbackward_vr;
 
-        ++successRxCounter;
+        ++uartBus[SHORE_UART].successRxCounter;;
     }
     else {
-    	++brokenRxCounter;
+    	++uartBus[SHORE_UART].brokenRxCounter;
     }
 }
 
@@ -686,12 +696,12 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
             }
         }
 
-        ++successRxCounter;
+        ++uartBus[SHORE_UART].successRxCounter;
     }
     else {
-        ++brokenRxCounter;
-        ++brokenRxTolerance;
+    	++uartBus[SHORE_UART].brokenRxCounter;
 
+    	//TODO tolerance!
         if (brokenRxTolerance == PACKAGE_TOLLERANCE) {
         	robot->i_joySpeed.march = 0;
         	robot->i_joySpeed.lag = 0;
@@ -776,12 +786,11 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
     AddChecksumm16b(responseBuf, SHORE_RESPONSE_LENGTH);
 }
 
-
-void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
+void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf)
 {
     for(uint8_t i = 0; i < IMU_CHECKSUMS; ++i) {
         if(!IsChecksum16bSCorrect(&ReceiveBuf[i*IMU_RESPONSE_LENGTH], IMU_RESPONSE_LENGTH)) {
-            *ErrCode = 1;
+            ++uartBus[IMU_UART].brokenRxCounter;
             return;
         }
     }
@@ -827,4 +836,6 @@ void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf, uint8_t *ErrCode)
     robot->f_sensors.quatB = ((double) MergeBytes(ReceiveBuf[QUAT_B], ReceiveBuf[QUAT_B+1])) * 0.0000335693;
     robot->f_sensors.quatC = ((double) MergeBytes(ReceiveBuf[QUAT_C], ReceiveBuf[QUAT_C+1])) * 0.0000335693;
     robot->f_sensors.quatD = ((double) MergeBytes(ReceiveBuf[QUAT_D], ReceiveBuf[QUAT_D+1])) * 0.0000335693;
+
+    ++uartBus[IMU_UART].successRxCounter;
 }
