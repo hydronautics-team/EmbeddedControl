@@ -7,17 +7,16 @@
 
 /* STM send requests and VMA send responses */
 
-#define VMA_NUMBER              	8
-#define VMA_DRIVER_NUMBER       	8
+#define THRUSTERS_NUMBER             		8
 
-#define VMA_REQUEST_LENGTH   		5
-#define VMA_CONFIG_REQUEST_LENGTH  	13
-#define VMA_RESPONSE_LENGTH  		9
+#define THRUSTERS_REQUEST_LENGTH   			5
+#define THRUSTERS_CONFIG_REQUEST_LENGTH  	13
+#define THRUSTERS_RESPONSE_LENGTH  			9
 
-#define VMA_NORMAL_REQUEST_TYPE 	0x01
-#define VMA_CONFIG_REQUEST_TYPE 	0x02
+#define THRUSTERS_NORMAL_REQUEST_TYPE 		0x01
+#define THRUSTERS_CONFIG_REQUEST_TYPE 		0x02
 
-struct vmaRequest_s
+struct thrustersRequest_s
 {
 	uint8_t AA;
 	uint8_t type; // 0x01
@@ -26,7 +25,7 @@ struct vmaRequest_s
 	uint8_t crc;
 };
 
-struct vmaConfigRequest_s
+struct thrustersConfigRequest_s
 {
 	uint8_t AA;
 	uint8_t type; // 0x02
@@ -40,7 +39,7 @@ struct vmaConfigRequest_s
 	uint8_t crc;
 };
 
-struct vmaResponse_s
+struct thrustersResponse_s
 {
 	uint8_t AA;
 	uint8_t type; // 0x01
@@ -53,12 +52,12 @@ struct vmaResponse_s
 
 /* STM send requests and DEV send responses */
 
-#define DEV_REQUEST_LENGTH 			7
-#define DEV_NULL					-1
-#define DEV_RESPONSE_LENGTH			10
-#define DEV_DRIVER_NUMBER      		4
+#define DEVICES_REQUEST_LENGTH 			7
+#define DEVICES_NULL					-1
+#define DEVICES_RESPONSE_LENGTH			10
+#define DEVICES_NUMBER      			4
 
-struct devRequest_s
+struct devicesRequest_s
 {
 	uint8_t AA1;
 	uint8_t AA2;
@@ -69,7 +68,7 @@ struct devRequest_s
 	uint8_t checksum;
 };
 
-struct devResponse_s
+struct devicesResponse_s
 {
     uint8_t AA;
     uint8_t address;
@@ -321,19 +320,20 @@ struct imuResponse_s
 /* --- Delays and waiting rates --- */
 
 #define DELAY_LED_TASK 				1000
-#define DELAY_VMA_TASK 				20
-#define DELAY_DEV_TASK 				10
+#define DELAY_THRUSTERS_TASK 		20
+#define DELAY_DEVICES_TASK 			10
 #define DELAY_IMU_TASK 				10
 #define DELAY_PC_TASK 				10
 #define DELAY_SENSOR_TASK 			10
-#define DELAY_STAB_TASK 			10
+#define DELAY_STABILIZATION_TASK 	10
 #define DELAY_TIMER_TASK 			10
 #define DELAY_SILENCE    			20000
+#define DELAY_UART_TIMEOUT    		5
 
-#define WAITING_DEV 				10
+#define WAITING_DEVICES 			10
 #define WAITING_IMU 				10
 #define WAITING_SHORE 				10
-#define WAITING_VMA 				10
+#define WAITING_THRUSTERS 			10
 #define WAITING_SENSORS				10
 #define WAITING_PC					10
 #define WAITING_TIMER				10

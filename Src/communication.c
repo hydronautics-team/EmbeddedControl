@@ -16,6 +16,8 @@
 
 extern TimerHandle_t UARTTimer;
 
+struct uartBus_s uartBus[UART_NUMBER];
+
 uint16_t counterRx = 0;
 uint32_t brokenRxCounter = 0;
 uint32_t outdatedRxCounter = 0;
@@ -39,23 +41,41 @@ bool i2c1PackageReceived = false;
 bool i2c2PackageReceived = false;
 
 void variableInit() {
-    Q100.VMA[HLB].address = 6;
-    Q100.VMA[HLF].address = 5;
-    Q100.VMA[HRB].address = 3;
-    Q100.VMA[HRF].address = 4;
-    Q100.VMA[VB].address = 2;
-    Q100.VMA[VF].address = 1;
-    Q100.VMA[VL].address = 8;
-    Q100.VMA[VR].address = 7;
+    Q100.thrusters[HLB].address = 6;
+    Q100.thrusters[HLF].address = 5;
+    Q100.thrusters[HRB].address = 3;
+    Q100.thrusters[HRF].address = 4;
+    Q100.thrusters[VB].address = 2;
+    Q100.thrusters[VF].address = 1;
+    Q100.thrusters[VL].address = 8;
+    Q100.thrusters[VR].address = 7;
 
-    Q100.VMA[HLB].coef = 1;
-    Q100.VMA[HLF].coef = 1;
-    Q100.VMA[HRB].coef = -1;
-    Q100.VMA[HRF].coef = -1;
-    Q100.VMA[VB].coef = 1;
-    Q100.VMA[VF].coef = 1;
-    Q100.VMA[VL].coef = 1;
-    Q100.VMA[VR].coef = 1;
+    Q100.thrusters[HLB].kForward = 1;
+    Q100.thrusters[HLF].kForward = 1;
+    Q100.thrusters[HRB].kForward = -1;
+    Q100.thrusters[HRF].kForward = -1;
+    Q100.thrusters[VB].kForward = 1;
+    Q100.thrusters[VF].kForward = 1;
+    Q100.thrusters[VL].kForward = 1;
+    Q100.thrusters[VR].kForward = 1;
+
+    Q100.thrusters[HLB].kForward = 1;
+    Q100.thrusters[HLF].kForward = 1;
+    Q100.thrusters[HRB].kForward = -1;
+    Q100.thrusters[HRF].kForward = -1;
+    Q100.thrusters[VB].kForward = 1;
+    Q100.thrusters[VF].kForward = 1;
+    Q100.thrusters[VL].kForward = 1;
+    Q100.thrusters[VR].kForward = 1;
+
+    Q100.thrusters[HLB].inverse = false;
+    Q100.thrusters[HLF].inverse = false;
+    Q100.thrusters[HRB].inverse = true;
+    Q100.thrusters[HRF].inverse = true;
+    Q100.thrusters[VB].inverse = false;
+    Q100.thrusters[VF].inverse = false;
+    Q100.thrusters[VL].inverse = false;
+    Q100.thrusters[VR].inverse = false;
 
     Q100.device[DEV1].address = 0x03;
     Q100.device[GRAB].address = 0x01;
@@ -124,152 +144,178 @@ void variableInit() {
     }
 }
 
-void transmitPackage(uint8_t UART, uint8_t *buf, uint8_t length)
+void uartBusesInit()
 {
-    TickType_t timeBegin = xTaskGetTickCount();
+	// Shore UART configuration
+	uartBus[SHORE_UART].huart = 0; // Link to huart will be set before receiving
+	uartBus[SHORE_UART].rxBuffer = ShoreRequestBuffer;
+	uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
+	uartBus[SHORE_UART].rxLength = 0; // Length of the received message will be determined when first byte will be received
+	uartBus[SHORE_UART].txLength = 0; // Length of the transmitted message will be determined before transmit
+	uartBus[SHORE_UART].brokenRxTolerance = 20;
+	uartBus[SHORE_UART].timeoutRxTolerance = 500;
+	uartBus[SHORE_UART].receiveTimeout = 100;
+	uartBus[SHORE_UART].transmitTimeout = 100;
+	uartBus[SHORE_UART].txrxType = TXRX_IT;
 
-	uartPackageTransmit[UART] = false;
-    switch(UART) {
-        case SHORE_UART:
-            HAL_UART_Transmit_IT(&huart5, buf, length);
+	// Thrusters UART configuration
+	uartBus[THRUSTERS_UART].huart = &huart2;
+	uartBus[THRUSTERS_UART].rxBuffer = 0; // Receive bugger will be set before receive
+	uartBus[THRUSTERS_UART].txBuffer = 0; // Transmit bugger will be set before transmit
+	uartBus[THRUSTERS_UART].rxLength = 0; // Receive length will be set before transmit
+	uartBus[THRUSTERS_UART].txLength = 0; // Transmit length will be set before transmit
+	uartBus[THRUSTERS_UART].brokenRxTolerance = 0; // There is no special event on this bus
+	uartBus[THRUSTERS_UART].timeoutRxTolerance = 0; // There is no special event on this bus
+	uartBus[THRUSTERS_UART].receiveTimeout = 100;
+	uartBus[THRUSTERS_UART].transmitTimeout = 100;
+	uartBus[THRUSTERS_UART].txrxType = TXRX_DMA;
+
+	// Devices UART configuration
+	uartBus[DEVICES_UART].huart = &huart3;
+	uartBus[DEVICES_UART].rxBuffer = 0; // Receive bugger will be set before receive
+	uartBus[DEVICES_UART].txBuffer = 0; // Transmit bugger will be set before transmit
+	uartBus[DEVICES_UART].rxLength = DEVICES_REQUEST_LENGTH;
+	uartBus[DEVICES_UART].txLength = DEVICES_RESPONSE_LENGTH;
+	uartBus[DEVICES_UART].brokenRxTolerance = 0; // There is no special event on this bus
+	uartBus[DEVICES_UART].timeoutRxTolerance = 0; // There is no special event on this bus
+	uartBus[DEVICES_UART].receiveTimeout = 100;
+	uartBus[DEVICES_UART].transmitTimeout = 100;
+	uartBus[DEVICES_UART].txrxType = TXRX_DMA;
+
+	// IMU UART configuration
+	uartBus[IMU_UART].huart = &huart4;
+	uartBus[IMU_UART].rxBuffer = ImuResponseBuffer;
+	uartBus[IMU_UART].txBuffer = 0; // Buffer will be set before transmit
+	uartBus[IMU_UART].rxLength = 0; // Receive length will be set before transmit
+	uartBus[IMU_UART].txLength = 0; // Transmit length will be set before transmit
+	uartBus[IMU_UART].brokenRxTolerance = 0; // There is no special event on this bus
+	uartBus[IMU_UART].timeoutRxTolerance = 0; // There is no special event on this bus
+	uartBus[IMU_UART].receiveTimeout = 100;
+	uartBus[IMU_UART].transmitTimeout = 100;
+	uartBus[IMU_UART].txrxType = TXRX_DMA;
+
+	for(uint8_t i=0; i<UART_NUMBER; i++) {
+		uartBus[i].packageReceived = false;
+		uartBus[i].packageTransmitted = false;
+		uartBus[i].successRxCounter = 0;
+		uartBus[i].brokenRxCounter = 0;
+		uartBus[i].outdatedRxCounter = 0;
+		uartBus[i].timeoutCounter = 0;
+	}
+}
+
+bool transmitPackage(struct uartBus_s *bus, bool isrMode)
+{
+    bus->timeoutCounter = xTaskGetTickCount();
+    bus->packageTransmitted = false;
+
+    HAL_UART_AbortTransmit_IT(bus->huart);
+    switch(bus->txrxType) {
+        case TXRX_DMA:
+            HAL_UART_Transmit_DMA(bus->huart, bus->txBuffer, bus->txLength);
             break;
-        case VMA_UART:
-            HAL_UART_Transmit_IT(&huart2, buf, length);
-            break;
-        case DEV_UART:
-            HAL_UART_Transmit_DMA(&huart3, buf, length);
-            break;
-        case IMU_UART:
-        	HAL_UART_Transmit_IT(&huart4, buf, length);
+        case TXRX_IT:
+        	HAL_UART_Transmit_IT(bus->huart, bus->txBuffer, bus->txLength);
             break;
         default:
-            	return;
+            return false;
     }
-	// TODO different waiting time
-    while (!uartPackageTransmit[UART] && xTaskGetTickCount() - timeBegin < WAITING_SHORE) {
-    	osDelay(DELAY_TIMER_TASK);
+
+    while (!bus->packageTransmitted && !isrMode) {
+    	if(xTaskGetTickCount() - bus->timeoutCounter > bus->transmitTimeout) {
+    		return false;
+    	}
+    	osDelay(DELAY_UART_TIMEOUT);
     }
+    return true;
 }
 
-void receivePackage(uint8_t UART, uint8_t *buf, uint8_t length)
+bool receivePackage(struct uartBus_s *bus, bool isrMode)
 {
-    TickType_t timeBegin = xTaskGetTickCount();
+	bus->timeoutCounter = xTaskGetTickCount();
+	bus->packageReceived = false;
 
-    uartPackageReceived[UART] = false;
-    switch(UART){
-    case SHORE_UART:
-    	HAL_UART_Receive_IT(&huart5, buf, length);
-    	break;
-    case VMA_UART:
-    	HAL_UART_Receive_IT(&huart2, buf, length);
-    	break;
-    case DEV_UART:
-    	HAL_UART_Receive_DMA(&huart3, buf, length);
-    	break;
-    case IMU_UART:
-    	HAL_UART_Receive_IT(&huart4, buf, length);
-		break;
-    default:
-    	return;
-    }
-    // TODO again
-    while (!uartPackageReceived[UART] && xTaskGetTickCount() - timeBegin < WAITING_SHORE) {
-        osDelay(DELAY_TIMER_TASK);
-    }
+	HAL_UART_AbortReceive_IT(bus->huart);
+	switch(bus->txrxType) {
+		case TXRX_DMA:
+
+			HAL_UART_Receive_DMA(bus->huart, bus->rxBuffer, bus->rxLength);
+			break;
+		case TXRX_IT:
+			HAL_UART_Receive_IT(bus->huart, bus->rxBuffer, bus->rxLength);
+			break;
+		default:
+			return false;
+	}
+
+	while (!bus->packageReceived && !isrMode) {
+		if(xTaskGetTickCount() - bus->timeoutCounter > bus->receiveTimeout) {
+			return false;
+		}
+		osDelay(DELAY_UART_TIMEOUT);
+	}
+	return true;
 }
 
-void transmitAndReceive(uint8_t UART, uint8_t *tr_buf, uint8_t tr_length, uint8_t *re_buf, uint8_t re_length)
+bool transmitAndReceive(struct uartBus_s *bus, bool isrMode)
 {
-	TickType_t timeBegin = xTaskGetTickCount();
+	bus->timeoutCounter = xTaskGetTickCount();
+	bus->packageReceived = false;
+	bus->packageTransmitted = false;
 
-	uartPackageReceived[UART] = false;
-	uartPackageTransmit[UART] = false;
-	switch(UART) {
-	case SHORE_UART:
-		HAL_UART_Transmit_IT(&huart5, tr_buf, tr_length);
-		break;
-	case VMA_UART:
-		HAL_UART_Transmit_IT(&huart2, tr_buf, tr_length);
-		break;
-	case DEV_UART:
-		HAL_UART_Transmit_DMA(&huart3, tr_buf, tr_length);
-		break;
-	case IMU_UART:
-		HAL_UART_Receive_IT(&huart4, re_buf, re_length);
-		HAL_UART_Transmit_IT(&huart4, tr_buf, tr_length);
-		break;
-	default:
-	    	return;
+	HAL_UART_AbortReceive_IT(bus->huart);
+	HAL_UART_AbortTransmit_IT(bus->huart);
+	switch(bus->txrxType) {
+		case TXRX_DMA:
+			HAL_UART_Receive_DMA(bus->huart, bus->rxBuffer, bus->rxLength);
+			HAL_UART_Transmit_DMA(bus->huart, bus->txBuffer, bus->txLength);
+			break;
+		case TXRX_IT:
+			HAL_UART_Receive_IT(bus->huart, bus->rxBuffer, bus->rxLength);
+			HAL_UART_Transmit_IT(bus->huart, bus->txBuffer, bus->txLength);
+			break;
+		default:
+			return false;
 	}
 
-	uartBuf[UART] = re_buf;
-	uartLength[UART] = re_length;
-	// TODO again
-	while (!uartPackageReceived[UART] && xTaskGetTickCount() - timeBegin < WAITING_SHORE) {
-		osDelay(DELAY_TIMER_TASK);
+	while (!bus->packageTransmitted && !isrMode) {
+		if(xTaskGetTickCount() - bus->timeoutCounter > bus->transmitTimeout) {
+			return false;
+		}
+		osDelay(DELAY_UART_TIMEOUT);
 	}
-
-	if(UART == VMA_UART) {
-		HAL_UART_AbortReceive_IT(&huart2);
-	}
-	else if(UART == IMU_UART) {
-		HAL_UART_AbortReceive_IT(&huart4);
-	}
-
-	uartBuf[UART] = 0;
-	uartLength[UART] = 0;
+	return true;
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	// TODO do this smarter pls
-	uint8_t UART = 0;
-	if(huart == &huart5) {
-		UART = SHORE_UART;
-	}
-	else if(huart == &huart2) {
-		UART = VMA_UART;
-	}
-	else if(huart == &huart3) {
-		UART = DEV_UART;
-	}
-	else if(huart == &huart4) {
-		UART = IMU_UART;
-	}
-
-	uartPackageTransmit[UART] = true;
-	if(uartLength[UART] > 0) {
-		switch(UART) {
-		case SHORE_UART:
-			HAL_UART_Receive_IT(&huart5, uartBuf[UART], uartLength[UART]);
-			break;
-		case VMA_UART:
-			HAL_UART_Receive_IT(&huart2, uartBuf[UART], uartLength[UART]);
-			break;
-		case DEV_UART:
-			HAL_UART_Receive_IT(&huart3, uartBuf[UART], uartLength[UART]);
-			break;
-		case IMU_UART:
-
+	struct uartBus_s *bus = 0;
+	for(uint8_t i=0; i<UART_NUMBER; i++) {
+		if(uartBus[i].huart == huart) {
+			bus = &uartBus[i];
 			break;
 		}
 	}
+
+	bus->packageTransmitted = true;
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart5) {
 		ShoreReceive();
+		return;
 	}
-	else if(huart == &huart2) {
-		uartPackageReceived[SHORE_UART] = true;
+
+	struct uartBus_s *bus = 0;
+	for(uint8_t i=0; i<UART_NUMBER; i++) {
+		if(uartBus[i].huart == huart) {
+			bus = &uartBus[i];
+			break;
+		}
 	}
-	else if(huart == &huart3) {
-		uartPackageReceived[DEV_UART] = true;
-	}
-	else if(huart == &huart4) {
-		uartPackageReceived[IMU_UART] = true;
-	}
+
+	bus->packageReceived = true;
 }
 
 void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
@@ -347,15 +393,15 @@ void ShoreReceive()
 
     if(counterRx == 0) {
     	for(uint8_t i=0; i<SHORE_REQUEST_MODES_NUMBER; ++i) {
-    		if(ShoreRequestBuf[0] == ShoreCodes[i]) {
+    		if(ShoreRequestBuffer[0] == ShoreCodes[i]) {
     			xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
     			counterRx = 1;
-    			HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[1], ShoreLength[i]-1);
+    			HAL_UART_Receive_IT(&huart5, &ShoreRequestBuffer[1], ShoreLength[i]-1);
     			break;
     		}
 
     		if(i == SHORE_REQUEST_MODES_NUMBER-1) {
-    			HAL_UART_Receive_IT(&huart5, &ShoreRequestBuf[0], 1);
+    			HAL_UART_Receive_IT(&huart5, &ShoreRequestBuffer[0], 1);
     		}
     	}
     }
@@ -370,9 +416,9 @@ void ShoreReceive()
     }
 }
 
-void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
+void DevicesRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
 {
-	struct devRequest_s req;
+	struct devicesRequest_s req;
 
     req.AA1 = 0xAA;
     req.AA2 = 0xAA;
@@ -381,15 +427,15 @@ void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
     req.velocity1 = 0;
     req.velocity2 = robot->device[dev].force;
 
-    memcpy((void*)buf, (void*)&req, DEV_REQUEST_LENGTH);
-    AddChecksumm8b(buf, DEV_REQUEST_LENGTH);
+    memcpy((void*)buf, (void*)&req, DEVICES_REQUEST_LENGTH);
+    AddChecksumm8b(buf, DEVICES_REQUEST_LENGTH);
 }
 
-void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
+void DevicesResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
 {
-    if(IsChecksumm8bCorrect(buf, DEV_RESPONSE_LENGTH)) {
-    	struct devResponse_s res;
-    	memcpy((void*)&res, (void*)buf, DEV_RESPONSE_LENGTH);
+    if(IsChecksumm8bCorrect(buf, DEVICES_RESPONSE_LENGTH)) {
+    	struct devicesResponse_s res;
+    	memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
 
         robot->device[dev].current = res.current1;
         // TODO make errors work pls
@@ -397,33 +443,40 @@ void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
     }
 }
 
-void VmaRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
+void ThrustersRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster)
 {
-    struct vmaRequest_s res;
+    struct thrustersRequest_s res;
 
     res.AA = 0xAA;
     res.type = 0x01;
-    res.address = robot->VMA[vma].address;
-    if(robot->VMA[vma].desiredSpeed > 10) { // TODO FIXME
-    	robot->VMA[vma].desiredSpeed = 10;
-    }
-    else if(robot->VMA[vma].desiredSpeed < -10) {
-    	robot->VMA[vma].desiredSpeed = -10;
-    }
-    res.velocity = robot->VMA[vma].desiredSpeed*robot->VMA[vma].coef;
+    res.address = robot->thrusters[thruster].address;
+    res.velocity = robot->thrusters[thruster].desiredSpeed;
 
-    memcpy((void*)buf, (void*)&res, VMA_REQUEST_LENGTH);
-    AddChecksumm8bVma(buf, VMA_REQUEST_LENGTH);
+    // Inverting
+    if(robot->thrusters[thruster].inverse) {
+    	res.velocity *= -1;
+    }
+
+    // Multiplier constants
+    if(robot->thrusters[thruster].desiredSpeed > 0) {
+    	res.velocity *= robot->thrusters[thruster].kForward;
+    }
+    else if(robot->thrusters[thruster].desiredSpeed < 0) {
+    	res.velocity *= robot->thrusters[thruster].kBackward;
+    }
+
+    memcpy((void*)buf, (void*)&res, THRUSTERS_REQUEST_LENGTH);
+    AddChecksumm8bVma(buf, THRUSTERS_REQUEST_LENGTH);
 }
 
-void VmaResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma)
+void ThrustersResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster)
 {
 	//TODO errors parsing! and what is all this new stuff means
-    if(IsChecksumm8bCorrectVma(buf, VMA_RESPONSE_LENGTH) && buf[0] != 0) {
-    	struct vmaResponse_s res;
-    	memcpy((void*)&res, (void*)buf, VMA_RESPONSE_LENGTH);
+    if(IsChecksumm8bCorrectVma(buf, THRUSTERS_RESPONSE_LENGTH) && buf[0] != 0) {
+    	struct thrustersResponse_s res;
+    	memcpy((void*)&res, (void*)buf, THRUSTERS_RESPONSE_LENGTH);
 
-        robot->VMA[vma].current = res.current;
+        robot->thrusters[thruster].current = res.current;
     }
 }
 
@@ -432,7 +485,7 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
     if(IsChecksumm16bCorrect(requestBuf, REQUEST_CONFIG_LENGTH)) {
     	struct shoreConfigRequest_s req;
     	memcpy((void*)&req, (void*)requestBuf, SHORE_REQUEST_LENGTH);
-
+    	// TODO my eyes are bleeding, really
         robot->depthStabCons.iJoySpeed = req.depth_k1;
         robot->depthStabCons.pSpeedDyn = req.depth_k2;
         robot->depthStabCons.pErrGain = req.depth_k3;
@@ -469,41 +522,41 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
         robot->yawStabCons.pid_pGain = req.yaw_pgain;
         robot->yawStabCons.pid_iGain = req.yaw_igain;
 
-        robot->VMA[HLB].address = req.position_hlb;
-        robot->VMA[HLF].address = req.position_hlf;
-        robot->VMA[HRB].address = req.position_hrb;
-        robot->VMA[HRF].address = req.position_hrf;
-        robot->VMA[VB].address = req.position_vb;
-        robot->VMA[VF].address = req.position_vf;
-        robot->VMA[VL].address = req.position_vl;
-        robot->VMA[VR].address = req.position_vr;
+        robot->thrusters[HLB].address = req.position_hlb;
+        robot->thrusters[HLF].address = req.position_hlf;
+        robot->thrusters[HRB].address = req.position_hrb;
+        robot->thrusters[HRF].address = req.position_hrf;
+        robot->thrusters[VB].address = req.position_vb;
+        robot->thrusters[VF].address = req.position_vf;
+        robot->thrusters[VL].address = req.position_vl;
+        robot->thrusters[VR].address = req.position_vr;
 
-        robot->VMA[HLB].settings = req.setting_hlb;
-        robot->VMA[HLF].settings = req.setting_hlf;
-        robot->VMA[HRB].settings = req.setting_hrb;
-        robot->VMA[HRF].settings = req.setting_hrf;
-        robot->VMA[VB].settings = req.setting_vb;
-        robot->VMA[VF].settings = req.setting_vf;
-        robot->VMA[VL].settings = req.setting_vl;
-        robot->VMA[VR].settings = req.setting_vr;
+        robot->thrusters[HLB].settings = req.setting_hlb;
+        robot->thrusters[HLF].settings = req.setting_hlf;
+        robot->thrusters[HRB].settings = req.setting_hrb;
+        robot->thrusters[HRF].settings = req.setting_hrf;
+        robot->thrusters[VB].settings = req.setting_vb;
+        robot->thrusters[VF].settings = req.setting_vf;
+        robot->thrusters[VL].settings = req.setting_vl;
+        robot->thrusters[VR].settings = req.setting_vr;
 
-        robot->VMA[HLB].kForward = req.kforward_hlb;
-        robot->VMA[HLF].kForward = req.kforward_hlf;
-        robot->VMA[HRB].kForward = req.kforward_hrb;
-        robot->VMA[HRF].kForward = req.kforward_hrf;
-        robot->VMA[VB].kForward = req.kforward_vb;
-        robot->VMA[VF].kForward = req.kforward_vf;
-        robot->VMA[VL].kForward = req.kforward_vl;
-        robot->VMA[VR].kForward = req.kforward_vr;
+        robot->thrusters[HLB].kForward = req.kforward_hlb;
+        robot->thrusters[HLF].kForward = req.kforward_hlf;
+        robot->thrusters[HRB].kForward = req.kforward_hrb;
+        robot->thrusters[HRF].kForward = req.kforward_hrf;
+        robot->thrusters[VB].kForward = req.kforward_vb;
+        robot->thrusters[VF].kForward = req.kforward_vf;
+        robot->thrusters[VL].kForward = req.kforward_vl;
+        robot->thrusters[VR].kForward = req.kforward_vr;
 
-        robot->VMA[HLB].kBackward = req.kbackward_hlb;
-        robot->VMA[HLF].kBackward = req.kbackward_hlf;
-        robot->VMA[HRB].kBackward = req.kbackward_hrb;
-        robot->VMA[HRF].kBackward = req.kbackward_hrf;
-        robot->VMA[VB].kBackward = req.kbackward_vb;
-        robot->VMA[VF].kBackward = req.kbackward_vf;
-        robot->VMA[VL].kBackward = req.kbackward_vl;
-        robot->VMA[VR].kBackward = req.kbackward_vr;
+        robot->thrusters[HLB].kBackward = req.kbackward_hlb;
+        robot->thrusters[HLF].kBackward = req.kbackward_hlf;
+        robot->thrusters[HRB].kBackward = req.kbackward_hrb;
+        robot->thrusters[HRF].kBackward = req.kbackward_hrf;
+        robot->thrusters[VB].kBackward = req.kbackward_vb;
+        robot->thrusters[VF].kBackward = req.kbackward_vf;
+        robot->thrusters[VL].kBackward = req.kbackward_vl;
+        robot->thrusters[VR].kBackward = req.kbackward_vr;
 
         ++successRxCounter;
     }
@@ -610,7 +663,7 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
             bYaw = robot->i_joySpeed.yaw;
         }
 
-        int16_t velocity[VMA_DRIVER_NUMBER];
+        int16_t velocity[THRUSTERS_NUMBER];
         velocity[HLB] = - robot->i_joySpeed.march + robot->i_joySpeed.lag - bYaw;
         velocity[HLF] = + robot->i_joySpeed.march + robot->i_joySpeed.lag + bYaw;
         velocity[HRB] = + robot->i_joySpeed.march + robot->i_joySpeed.lag - bYaw;
@@ -620,16 +673,16 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
         velocity[VL] = - robot->i_joySpeed.depth + bRoll;
         velocity[VR] = - robot->i_joySpeed.depth - bRoll;
 
-        for (uint8_t i = 0; i < VMA_DRIVER_NUMBER; ++i) {
+        for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
             velocity[i] = (int8_t)(velocity[i] / 0xFF);
             if (velocity[i] > 127) {
-                robot->VMA[i].desiredSpeed = 127;
+                robot->thrusters[i].desiredSpeed = 127;
             }
             else if( velocity[i] > -127) {
-                robot->VMA[i].desiredSpeed = velocity[i];
+                robot->thrusters[i].desiredSpeed = velocity[i];
             }
             else {
-                robot->VMA[i].desiredSpeed = -127;
+                robot->thrusters[i].desiredSpeed = -127;
             }
         }
 
@@ -654,8 +707,8 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
         	robot->device[GRAB_ROTATION].force  = 0;
         	robot->device[TILT].force = 0;
 
-        	for (uint8_t i = 0; i < VMA_DRIVER_NUMBER; ++i){
-        		robot->VMA[i].desiredSpeed = 0;
+        	for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i){
+        		robot->thrusters[i].desiredSpeed = 0;
         	}
 
         	brokenRxTolerance = 0;
@@ -687,24 +740,24 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 
     res.wf_y = robot->i_sensors.leak;
     res.wf_y = robot->i_sensors.in_pressure;
+    // TODO eyes bleeding again
+    res.vma_current_hlb = robot->thrusters[HLB].current;
+    res.vma_current_hlf = robot->thrusters[HLF].current;
+    res.vma_current_hrb = robot->thrusters[HRB].current;
+    res.vma_current_hrf = robot->thrusters[HRF].current;
+    res.vma_current_vb = robot->thrusters[VB].current;
+    res.vma_current_vf = robot->thrusters[VF].current;
+    res.vma_current_vl = robot->thrusters[VL].current;
+    res.vma_current_vr = robot->thrusters[VR].current;
 
-    res.vma_current_hlb = robot->VMA[HLB].current;
-    res.vma_current_hlf = robot->VMA[HLF].current;
-    res.vma_current_hrb = robot->VMA[HRB].current;
-    res.vma_current_hrf = robot->VMA[HRF].current;
-    res.vma_current_vb = robot->VMA[VB].current;
-    res.vma_current_vf = robot->VMA[VF].current;
-    res.vma_current_vl = robot->VMA[VL].current;
-    res.vma_current_vr = robot->VMA[VR].current;
-
-    res.vma_velocity_hlb = robot->VMA[HLB].desiredSpeed;
-    res.vma_velocity_hlf = robot->VMA[HLF].desiredSpeed;
-    res.vma_velocity_hrb = robot->VMA[HRB].desiredSpeed;
-    res.vma_velocity_hrf = robot->VMA[HRF].desiredSpeed;
-    res.vma_velocity_vb = robot->VMA[VB].desiredSpeed;
-    res.vma_velocity_vf = robot->VMA[VF].desiredSpeed;
-    res.vma_velocity_vl = robot->VMA[VL].desiredSpeed;
-    res.vma_velocity_vr = robot->VMA[VR].desiredSpeed;
+    res.vma_velocity_hlb = robot->thrusters[HLB].desiredSpeed;
+    res.vma_velocity_hlf = robot->thrusters[HLF].desiredSpeed;
+    res.vma_velocity_hrb = robot->thrusters[HRB].desiredSpeed;
+    res.vma_velocity_hrf = robot->thrusters[HRF].desiredSpeed;
+    res.vma_velocity_vb = robot->thrusters[VB].desiredSpeed;
+    res.vma_velocity_vf = robot->thrusters[VF].desiredSpeed;
+    res.vma_velocity_vl = robot->thrusters[VL].desiredSpeed;
+    res.vma_velocity_vr = robot->thrusters[VR].desiredSpeed;
 
     res.dev_current_light = robot->device[LIGHT].current;
     res.dev_current_tilt = robot->device[TILT].current;
