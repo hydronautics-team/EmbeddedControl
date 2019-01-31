@@ -176,7 +176,7 @@ void MX_FREERTOS_Init(void) {
     uartBusesInit();
     stabilizationInit(&Q100);
 
-    HAL_UART_Receive_IT(&huart5, &ShoreRequestBuffer[0], 1);
+    HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[0], 1);
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -502,12 +502,12 @@ void func_tUartTimer(void const * argument)
 		transmitPackage(&uartBus[SHORE_UART], false);
 	}
 	else {
-		HAL_UART_AbortReceive_IT(&huart5);
+		HAL_UART_AbortReceive_IT(&huart1);
 		++uartBus[SHORE_UART].outdatedRxCounter;
 	}
 	counterRx = 0;
 	uartBus[SHORE_UART].packageReceived = false;
-	HAL_UART_Receive_IT(&huart5, &ShoreRequestBuffer[0], 1);
+	HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[0], 1);
   /* USER CODE END func_tUartTimer */
 }
 

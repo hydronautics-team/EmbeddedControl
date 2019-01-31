@@ -231,7 +231,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart == &huart5) {
+	if(huart == &huart1) {
 		ShoreReceive();
 		return;
 	}
@@ -317,12 +317,12 @@ void ShoreReceive()
     		if(ShoreRequestBuffer[0] == ShoreCodes[i]) {
     			xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
     			counterRx = 1;
-    			HAL_UART_Receive_IT(&huart5, &ShoreRequestBuffer[1], ShoreLength[i]-1);
+    			HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[1], ShoreLength[i]-1);
     			break;
     		}
 
     		if(i == SHORE_REQUEST_MODES_NUMBER-1) {
-    			HAL_UART_Receive_IT(&huart5, &ShoreRequestBuffer[0], 1);
+    			HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[0], 1);
     		}
     	}
     }
