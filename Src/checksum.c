@@ -144,7 +144,7 @@ uint16_t MergeUBytes(uint8_t most, uint8_t least)
 
 float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos)
 {
-	return *(float *) (&buff[high_byte_pos]);
+	return (float) ((buff[high_byte_pos] << 24) | (buff[high_byte_pos + 1] << 16) | (buff[high_byte_pos + 2] << 8) | buff[high_byte_pos + 3]);
 }
 
 void Uint8FromFloat(float input, uint8_t *outArray)

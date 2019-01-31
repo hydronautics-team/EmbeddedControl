@@ -47,6 +47,9 @@ void stabilizationInit(struct Robot *robot)
     Q100.stabConstants[STAB_ROLL].pid.iGain = 1;
     Q100.stabConstants[STAB_ROLL].pid.iMax = 500;
     Q100.stabConstants[STAB_ROLL].pid.iMin = -500;
+    Q100.stabConstants[STAB_ROLL].pThrustersCast = 1;
+    Q100.stabConstants[STAB_ROLL].pThrustersMax = 127;
+    Q100.stabConstants[STAB_ROLL].pThrustersMin = -127;
 
     Q100.stabState[STAB_ROLL].inputSignal = &Q100.f_joySpeed.roll;
     Q100.stabState[STAB_ROLL].speedSignal = &Q100.f_sensors.rollSpeed;
@@ -77,6 +80,9 @@ void stabilizationInit(struct Robot *robot)
     Q100.stabConstants[STAB_PITCH].pid.iGain = 1;
     Q100.stabConstants[STAB_PITCH].pid.iMax = 500;
     Q100.stabConstants[STAB_PITCH].pid.iMin = -500;
+    Q100.stabConstants[STAB_PITCH].pThrustersCast = 1;
+    Q100.stabConstants[STAB_PITCH].pThrustersMax = 127;
+    Q100.stabConstants[STAB_PITCH].pThrustersMin = -127;
 
     Q100.stabState[STAB_PITCH].inputSignal = &Q100.f_joySpeed.roll;
     Q100.stabState[STAB_PITCH].speedSignal = &Q100.f_sensors.rollSpeed;
@@ -107,6 +113,9 @@ void stabilizationInit(struct Robot *robot)
     Q100.stabConstants[STAB_YAW].pid.iGain = 1;
     Q100.stabConstants[STAB_YAW].pid.iMax = 500;
     Q100.stabConstants[STAB_YAW].pid.iMin = -500;
+    Q100.stabConstants[STAB_YAW].pThrustersCast = 1;
+    Q100.stabConstants[STAB_YAW].pThrustersMax = 127;
+    Q100.stabConstants[STAB_YAW].pThrustersMin = -127;
 
     Q100.stabState[STAB_YAW].inputSignal = &Q100.f_joySpeed.roll;
     Q100.stabState[STAB_YAW].speedSignal = &Q100.f_sensors.rollSpeed;
@@ -137,6 +146,9 @@ void stabilizationInit(struct Robot *robot)
     Q100.stabConstants[STAB_DEPTH].pid.iGain = 1;
     Q100.stabConstants[STAB_DEPTH].pid.iMax = 500;
     Q100.stabConstants[STAB_DEPTH].pid.iMin = -500;
+    Q100.stabConstants[STAB_DEPTH].pThrustersCast = 1;
+    Q100.stabConstants[STAB_DEPTH].pThrustersMax = 127;
+    Q100.stabConstants[STAB_DEPTH].pThrustersMin = -127;
 
     Q100.stabState[STAB_DEPTH].inputSignal = &Q100.f_joySpeed.roll;
     Q100.stabState[STAB_DEPTH].speedSignal = &Q100.f_sensors.rollSpeed;
@@ -193,4 +205,13 @@ void stabilizationUpdate(uint8_t contour)
 
     // Speed feedback
     state->speedError = state->dynSummator - state->speedFiltered;
+
+    // Thrusters unit cast
+    state->speedError *= constants->pThrustersCast;
+    if(state->speedError > constants->pThrustersMax) {
+    	state->speedError = constants->pThrustersMax;
+    }
+    else if(state->speedError < constants->pThrustersMin) {
+    	state->speedError = constants->pThrustersMin;
+    }
 }

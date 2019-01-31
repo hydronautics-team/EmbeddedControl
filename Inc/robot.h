@@ -211,6 +211,10 @@ struct Robot
 			float iMax;
 			float iMin;
 		} pid;
+		// Thrusters unit cast
+		float pThrustersCast;
+		float pThrustersMin;
+		float pThrustersMax;
 	} stabConstants[STABILIZATION_AMOUNT];
 
 	struct RobotStabilizationState {

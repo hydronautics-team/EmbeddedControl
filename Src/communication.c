@@ -258,14 +258,6 @@ void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
             }
             i2c1PackageReceived = false;
             break;
-        case PC_I2C:
-        	// TODO what is this?
-            HAL_I2C_Master_Receive_DMA(&hi2c2, SENSORS_PRESSURE_ADDR, buf, length);
-            while (!i2c2PackageReceived  && xTaskGetTickCount() - timeBegin < WAITING_PC) {
-                osDelay(DELAY_PC_TASK);
-            }
-            i2c2PackageReceived = false;
-            break;
     }
 }
 
