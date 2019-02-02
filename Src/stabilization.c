@@ -9,6 +9,9 @@ struct PIDRegulator pitchPID;
 struct PIDRegulator yawPID;
 struct PIDRegulator depthPID;
 
+float depthSpeed = 0;
+float oldDepthSpeed = 0;
+
 void stabilizationInit(struct Robot *robot)
 {
     PIDRegulatorInit(&rollPID,
@@ -51,9 +54,9 @@ void stabilizationInit(struct Robot *robot)
     Q100.stabConstants[STAB_ROLL].pThrustersMax = 127;
     Q100.stabConstants[STAB_ROLL].pThrustersMin = -127;
 
-    Q100.stabState[STAB_ROLL].inputSignal = &Q100.f_joySpeed.roll;
-    Q100.stabState[STAB_ROLL].speedSignal = &Q100.f_sensors.rollSpeed;
-    Q100.stabState[STAB_ROLL].posSignal = &Q100.f_sensors.roll;
+    Q100.stabState[STAB_ROLL].inputSignal = &Q100.joySpeed.roll;
+    Q100.stabState[STAB_ROLL].speedSignal = &Q100.sensors.rollSpeed;
+    Q100.stabState[STAB_ROLL].posSignal = &Q100.sensors.roll;
     Q100.stabState[STAB_ROLL].oldSpeed = 0;
     Q100.stabState[STAB_ROLL].oldPos = 0;
 
@@ -84,9 +87,9 @@ void stabilizationInit(struct Robot *robot)
     Q100.stabConstants[STAB_PITCH].pThrustersMax = 127;
     Q100.stabConstants[STAB_PITCH].pThrustersMin = -127;
 
-    Q100.stabState[STAB_PITCH].inputSignal = &Q100.f_joySpeed.roll;
-    Q100.stabState[STAB_PITCH].speedSignal = &Q100.f_sensors.rollSpeed;
-    Q100.stabState[STAB_PITCH].posSignal = &Q100.f_sensors.roll;
+    Q100.stabState[STAB_PITCH].inputSignal = &Q100.joySpeed.pitch;
+    Q100.stabState[STAB_PITCH].speedSignal = &Q100.sensors.pitchSpeed;
+    Q100.stabState[STAB_PITCH].posSignal = &Q100.sensors.pitch;
     Q100.stabState[STAB_PITCH].oldSpeed = 0;
     Q100.stabState[STAB_PITCH].oldPos = 0;
 
@@ -117,9 +120,9 @@ void stabilizationInit(struct Robot *robot)
     Q100.stabConstants[STAB_YAW].pThrustersMax = 127;
     Q100.stabConstants[STAB_YAW].pThrustersMin = -127;
 
-    Q100.stabState[STAB_YAW].inputSignal = &Q100.f_joySpeed.roll;
-    Q100.stabState[STAB_YAW].speedSignal = &Q100.f_sensors.rollSpeed;
-    Q100.stabState[STAB_YAW].posSignal = &Q100.f_sensors.roll;
+    Q100.stabState[STAB_YAW].inputSignal = &Q100.joySpeed.yaw;
+    Q100.stabState[STAB_YAW].speedSignal = &Q100.sensors.yawSpeed;
+    Q100.stabState[STAB_YAW].posSignal = &Q100.sensors.yaw;
     Q100.stabState[STAB_YAW].oldSpeed = 0;
     Q100.stabState[STAB_YAW].oldPos = 0;
 
@@ -150,9 +153,9 @@ void stabilizationInit(struct Robot *robot)
     Q100.stabConstants[STAB_DEPTH].pThrustersMax = 127;
     Q100.stabConstants[STAB_DEPTH].pThrustersMin = -127;
 
-    Q100.stabState[STAB_DEPTH].inputSignal = &Q100.f_joySpeed.roll;
-    Q100.stabState[STAB_DEPTH].speedSignal = &Q100.f_sensors.rollSpeed;
-    Q100.stabState[STAB_DEPTH].posSignal = &Q100.f_sensors.roll;
+    Q100.stabState[STAB_DEPTH].inputSignal = &Q100.joySpeed.depth;
+    Q100.stabState[STAB_DEPTH].speedSignal = &depthSpeed;
+    Q100.stabState[STAB_DEPTH].posSignal = &Q100.sensors.pressure;
     Q100.stabState[STAB_DEPTH].oldSpeed = 0;
     Q100.stabState[STAB_DEPTH].oldPos = 0;
 
@@ -166,6 +169,25 @@ void stabilizationInit(struct Robot *robot)
     Q100.stabState[STAB_DEPTH].speedFiltered = 0;
     Q100.stabState[STAB_DEPTH].posFiltered = 0;
     Q100.stabState[STAB_DEPTH].LastTick = 0;
+}
+
+void stabilizationStart(uint8_t contour)
+{
+	Q100.stabConstants[contour].enable = true;
+
+	Q100.stabState[contour].oldSpeed = *Q100.stabState[contour].speedSignal;
+	Q100.stabState[contour].oldPos = *Q100.stabState[contour].posSignal;
+
+	Q100.stabState[contour].joyUnitCasted = 0;
+	Q100.stabState[contour].joy_iValue = 0;
+	Q100.stabState[contour].posError = 0;
+	Q100.stabState[contour].speedError = 0;
+	Q100.stabState[contour].dynSummator = 0;
+	Q100.stabState[contour].pidValue = 0;
+	Q100.stabState[contour].posErrorAmp = 0;
+	Q100.stabState[contour].speedFiltered = 0;
+	Q100.stabState[contour].posFiltered = 0;
+	Q100.stabState[contour].LastTick = xTaskGetTickCount();
 }
 
 void stabilizationUpdate(uint8_t contour)
@@ -200,6 +222,10 @@ void stabilizationUpdate(uint8_t contour)
 
     // Speed feedback filtering
     filter = &constants->aFilter[SPEED_FILTER];
+    if(contour == STAB_DEPTH) {
+    	depthSpeed = (depthSpeed - oldDepthSpeed) / diffTime;
+    	oldDepthSpeed = depthSpeed;
+    }
     state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T) + state->oldSpeed*filter->K*(1-exp(-diffTime/filter->T));
     state->oldSpeed = *state->speedSignal;
 

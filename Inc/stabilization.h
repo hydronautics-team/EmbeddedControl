@@ -19,6 +19,7 @@ extern struct PIDRegulator depthsPID;
 
 void stabilizationInit(struct Robot *robot);
 void computeVmaValues(struct Robot *robot);
+void stabilizationStart(uint8_t contour);
 void stabilizationUpdate(uint8_t contour);
 
 #endif

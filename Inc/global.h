@@ -10,7 +10,7 @@
 extern struct Robot Q100;
 
 extern uint8_t ShoreRequestBuffer[REQUEST_CONFIG_LENGTH];
-extern uint8_t ShoreResponseBuffer[SHORE_RESPONSE_LENGTH];
+extern uint8_t ShoreResponseBuffer[SHORE_CONFIG_RESPONSE_LENGTH];
 
 extern uint8_t ImuRequestBuffer[IMU_REQUEST_LENGTH];
 extern uint8_t ImuResetRequestBuffer[IMU_REQUEST_LENGTH];
@@ -23,5 +23,7 @@ extern uint8_t DevicesRequestBuffer[DEVICES_REQUEST_LENGTH];
 extern uint8_t DevicesResponseBuffer[DEVICES_NUMBER][DEVICES_RESPONSE_LENGTH];
 
 extern uint8_t PressureResponseBuffer[PRESSURE_SENSOR_SIZE];
+
+extern uint8_t ContourSelected;
 
 #endif

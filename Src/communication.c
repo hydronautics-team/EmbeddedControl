@@ -11,6 +11,8 @@
 #include "global.h"
 #include "messages.h"
 #include "checksum.h"
+#include "robot.h"
+#include "stabilization.h"
 
 #define PACKAGE_TOLLERANCE 	20
 
@@ -77,15 +79,15 @@ void variableInit() {
 void uartBusesInit()
 {
 	// Shore UART configuration
-	uartBus[SHORE_UART].huart = 0; // Link to huart will be set before receiving
+	uartBus[SHORE_UART].huart = &huart5; // Link to huart will be set before receiving
 	uartBus[SHORE_UART].rxBuffer = ShoreRequestBuffer;
 	uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
 	uartBus[SHORE_UART].rxLength = 0; // Length of the received message will be determined when first byte will be received
 	uartBus[SHORE_UART].txLength = 0; // Length of the transmitted message will be determined before transmit
 	uartBus[SHORE_UART].brokenRxTolerance = 20;
 	uartBus[SHORE_UART].timeoutRxTolerance = 500;
-	uartBus[SHORE_UART].receiveTimeout = 100;
-	uartBus[SHORE_UART].transmitTimeout = 100;
+	uartBus[SHORE_UART].receiveTimeout = 200;
+	uartBus[SHORE_UART].transmitTimeout = 200;
 	uartBus[SHORE_UART].txrxType = TXRX_IT;
 
 	// Thrusters UART configuration
@@ -136,6 +138,10 @@ void uartBusesInit()
 
 bool transmitPackage(struct uartBus_s *bus, bool isrMode)
 {
+	if(bus == &uartBus[SHORE_UART]) {
+		return false;
+	}
+
     bus->timeoutCounter = xTaskGetTickCount();
     bus->packageTransmitted = false;
 
@@ -162,6 +168,10 @@ bool transmitPackage(struct uartBus_s *bus, bool isrMode)
 
 bool receivePackage(struct uartBus_s *bus, bool isrMode)
 {
+	if(bus == &uartBus[SHORE_UART]) {
+		return false;
+	}
+
 	bus->timeoutCounter = xTaskGetTickCount();
 	bus->packageReceived = false;
 
@@ -188,6 +198,10 @@ bool receivePackage(struct uartBus_s *bus, bool isrMode)
 
 bool transmitAndReceive(struct uartBus_s *bus, bool isrMode)
 {
+	if(bus == &uartBus[SHORE_UART]) {
+		return false;
+	}
+
 	bus->timeoutCounter = xTaskGetTickCount();
 	bus->packageReceived = false;
 	bus->packageTransmitted = false;
@@ -218,6 +232,11 @@ bool transmitAndReceive(struct uartBus_s *bus, bool isrMode)
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
+	if(huart == &huart1) {
+		uartBus[SHORE_UART].packageTransmitted = true;
+		return;
+	}
+
 	struct uartBus_s *bus = 0;
 	for(uint8_t i=0; i<UART_NUMBER; i++) {
 		if(uartBus[i].huart == huart) {
@@ -302,7 +321,7 @@ void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id)
 {
 	switch(Sensor_id) {
 		case DEV_I2C:
-			robot->f_sensors.pressure = FloatFromUint8(buf, 0);
+			robot->sensors.pressure = FloatFromUint8(buf, 0);
 			break;
 	}
 }
@@ -313,18 +332,21 @@ void ShoreReceive()
     xHigherPriorityTaskWoken = pdFALSE;
 
     if(counterRx == 0) {
-    	for(uint8_t i=0; i<SHORE_REQUEST_MODES_NUMBER; ++i) {
-    		if(ShoreRequestBuffer[0] == ShoreCodes[i]) {
-    			xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
-    			counterRx = 1;
-    			HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[1], ShoreLength[i]-1);
-    			break;
-    		}
-
-    		if(i == SHORE_REQUEST_MODES_NUMBER-1) {
-    			HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[0], 1);
-    		}
+    	switch(ShoreRequestBuffer[0]) {
+    	case SHORE_REQUEST_CODE:
+    		xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
+    		counterRx = 1;
+    		HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[1], SHORE_REQUEST_LENGTH-1);
+    		break;
+    	case REQUEST_CONFIG_CODE:
+    		xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
+    		counterRx = 1;
+    		HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[1], REQUEST_CONFIG_LENGTH-1);
+    		break;
+    	default:
+    		HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[0], 1);
     	}
+
     }
     else if(counterRx == 1) {
     	uartBus[SHORE_UART].packageReceived = true;
@@ -415,81 +437,40 @@ void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 {
     if(IsChecksumm16bCorrect(requestBuf, REQUEST_CONFIG_LENGTH)) {
     	struct shoreConfigRequest_s req;
-    	memcpy((void*)&req, (void*)requestBuf, SHORE_REQUEST_LENGTH);
-    	// TODO my eyes are bleeding, really
-    	/*
-        robot->depthStabCons.iJoySpeed = req.depth_k1;
-        robot->depthStabCons.pSpeedDyn = req.depth_k2;
-        robot->depthStabCons.pErrGain = req.depth_k3;
-        robot->depthStabCons.pSpeedFback = req.depth_k4;
-        robot->depthStabCons.pid_iMax = req.depth_iborders;
-        robot->depthStabCons.pid_iMin = -req.depth_iborders;
-        robot->depthStabCons.pid_pGain = req.depth_pgain;
-        robot->depthStabCons.pid_iGain = req.depth_igain;
+    	memcpy((void*)&req, (void*)requestBuf, REQUEST_CONFIG_LENGTH);
 
-        robot->rollStabCons.iJoySpeed = req.roll_k1;
-        robot->rollStabCons.pSpeedDyn = req.roll_k2;
-        robot->rollStabCons.pErrGain = req.roll_k3;
-        robot->rollStabCons.pSpeedFback = req.roll_k4;
-        robot->rollStabCons.pid_iMax = req.roll_iborders;
-        robot->rollStabCons.pid_iMin = -req.roll_iborders;
-        robot->rollStabCons.pid_pGain = req.roll_pgain;
-        robot->rollStabCons.pid_iGain = req.roll_igain;
+        robot->joySpeed.march = req.march;
+        robot->joySpeed.lag = req.lag;
+        robot->joySpeed.depth = req.depth;
+        robot->joySpeed.roll = req.roll;
+        robot->joySpeed.pitch = req.pitch;
+        robot->joySpeed.yaw = req.yaw;
 
-        robot->pitchStabCons.iJoySpeed = req.pitch_k1;
-        robot->pitchStabCons.pSpeedDyn = req.pitch_k2;
-        robot->pitchStabCons.pErrGain = req.pitch_k3;
-        robot->pitchStabCons.pSpeedFback = req.pitch_k4;
-        robot->pitchStabCons.pid_iMax = req.pitch_iborders;
-        robot->pitchStabCons.pid_iMin = -req.pitch_iborders;
-        robot->pitchStabCons.pid_pGain = req.pitch_pgain;
-        robot->pitchStabCons.pid_iGain = req.pitch_igain;
+        robot->stabConstants[req.contour].pJoyUnitCast = req.pJoyUnitCast;
+        robot->stabConstants[req.contour].pSpeedDyn = req.pSpeedDyn;
+        robot->stabConstants[req.contour].pErrGain = req.pErrGain;
 
-        robot->yawStabCons.iJoySpeed = req.yaw_k1;
-        robot->yawStabCons.pSpeedDyn = req.yaw_k2;
-        robot->yawStabCons.pErrGain = req.yaw_k3;
-        robot->yawStabCons.pSpeedFback = req.yaw_k4;
-        robot->yawStabCons.pid_iMax = req.yaw_iborders;
-        robot->yawStabCons.pid_iMin = -req.yaw_iborders;
-        robot->yawStabCons.pid_pGain = req.yaw_pgain;
-        robot->yawStabCons.pid_iGain = req.yaw_igain;
+        robot->stabConstants[req.contour].aFilter[POS_FILTER].T = req.posFilterT;
+        robot->stabConstants[req.contour].aFilter[POS_FILTER].K = req.posFilterK;
+        robot->stabConstants[req.contour].aFilter[SPEED_FILTER].T = req.speedFilterT;
+        robot->stabConstants[req.contour].aFilter[SPEED_FILTER].K = req.speedFilterK;
 
-        robot->thrusters[HLB].address = req.position_hlb;
-        robot->thrusters[HLF].address = req.position_hlf;
-        robot->thrusters[HRB].address = req.position_hrb;
-        robot->thrusters[HRF].address = req.position_hrf;
-        robot->thrusters[VB].address = req.position_vb;
-        robot->thrusters[VF].address = req.position_vf;
-        robot->thrusters[VL].address = req.position_vl;
-        robot->thrusters[VR].address = req.position_vr;
+        robot->stabConstants[req.contour].pid.pGain = req.pid_pGain;
+        robot->stabConstants[req.contour].pid.iGain = req.pid_iGain;
+        robot->stabConstants[req.contour].pid.iMax = req.pid_iMax;
+        robot->stabConstants[req.contour].pid.iMin = req.pid_iMin;
 
-        robot->thrusters[HLB].settings = req.setting_hlb;
-        robot->thrusters[HLF].settings = req.setting_hlf;
-        robot->thrusters[HRB].settings = req.setting_hrb;
-        robot->thrusters[HRF].settings = req.setting_hrf;
-        robot->thrusters[VB].settings = req.setting_vb;
-        robot->thrusters[VF].settings = req.setting_vf;
-        robot->thrusters[VL].settings = req.setting_vl;
-        robot->thrusters[VR].settings = req.setting_vr;
+        robot->stabConstants[req.contour].pThrustersCast = req.pThrustersCast;
+        robot->stabConstants[req.contour].pThrustersMin = req.pThrustersMin;
+        robot->stabConstants[req.contour].pThrustersMax = req.pThrustersMax;
 
-        robot->thrusters[HLB].kForward = req.kforward_hlb;
-        robot->thrusters[HLF].kForward = req.kforward_hlf;
-        robot->thrusters[HRB].kForward = req.kforward_hrb;
-        robot->thrusters[HRF].kForward = req.kforward_hrf;
-        robot->thrusters[VB].kForward = req.kforward_vb;
-        robot->thrusters[VF].kForward = req.kforward_vf;
-        robot->thrusters[VL].kForward = req.kforward_vl;
-        robot->thrusters[VR].kForward = req.kforward_vr;
+        ContourSelected = req.contour;
 
-        robot->thrusters[HLB].kBackward = req.kbackward_hlb;
-        robot->thrusters[HLF].kBackward = req.kbackward_hlf;
-        robot->thrusters[HRB].kBackward = req.kbackward_hrb;
-        robot->thrusters[HRF].kBackward = req.kbackward_hrf;
-        robot->thrusters[VB].kBackward = req.kbackward_vb;
-        robot->thrusters[VF].kBackward = req.kbackward_vf;
-        robot->thrusters[VL].kBackward = req.kbackward_vl;
-        robot->thrusters[VR].kBackward = req.kbackward_vr;
-		*/
+        for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+        	robot->stabConstants[i].enable = false;
+        }
+        robot->stabConstants[req.contour].enable = true;
+
         ++uartBus[SHORE_UART].successRxCounter;;
     }
     else {
@@ -506,12 +487,12 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 
     	uint8_t tempCameraNum = 0;
 
-        robot->i_joySpeed.march = req.march;
-        robot->i_joySpeed.lag = req.lag;
-        robot->i_joySpeed.depth = req.depth;
-        robot->i_joySpeed.roll = req.roll;
-        robot->i_joySpeed.pitch = req.pitch;
-        robot->i_joySpeed.yaw = req.yaw;
+        robot->joySpeed.march = req.march;
+        robot->joySpeed.lag = req.lag;
+        robot->joySpeed.depth = req.depth;
+        robot->joySpeed.roll = req.roll;
+        robot->joySpeed.pitch = req.pitch;
+        robot->joySpeed.yaw = req.yaw;
 
         robot->device[LIGHT].force = req.light;
         robot->device[GRAB].force = req.grab;
@@ -530,12 +511,34 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
         robot->device[DEV1].force = req.dev1;
         robot->device[DEV2].force = req.dev2;
 
-        // TODO POMENYAL MESTAMI YAW I DEPTH
-        robot->stabConstants[STAB_DEPTH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
+        bool wasEnabled;
+
+        //TODO govnokod
+        wasEnabled = robot->stabConstants[STAB_YAW].enable;
+        robot->stabConstants[STAB_YAW].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
+        if(wasEnabled == false && robot->stabConstants[STAB_YAW].enable == true) {
+        	stabilizationStart(STAB_YAW);
+        }
+
+        wasEnabled = robot->stabConstants[STAB_ROLL].enable;
         robot->stabConstants[STAB_ROLL].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_ROLL_BIT);
+        if(wasEnabled == false && robot->stabConstants[STAB_ROLL].enable == true) {
+        	stabilizationStart(STAB_ROLL);
+        }
+
+        wasEnabled = robot->stabConstants[STAB_PITCH].enable;
         robot->stabConstants[STAB_PITCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
-        robot->stabConstants[STAB_YAW].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
-        robot->i_sensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
+        if(wasEnabled == false && robot->stabConstants[STAB_PITCH].enable == true) {
+        	stabilizationStart(STAB_PITCH);
+        }
+
+        wasEnabled = robot->stabConstants[STAB_DEPTH].enable;
+        robot->stabConstants[STAB_DEPTH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
+        if(wasEnabled == false && robot->stabConstants[STAB_DEPTH].enable == true) {
+        	stabilizationStart(STAB_DEPTH);
+        }
+
+        robot->sensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
 
         tempCameraNum = req.cameras;
         robot->pc.reset = req.pc_reset;
@@ -572,38 +575,44 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
         	}
         }
 
-        // TODO KOEF OSHIBOK VRUCHNUU POMENYAL
-        int16_t bYaw, bRoll, bPitch;
+        float bYaw, bRoll, bPitch, bDepth;
         if(robot->stabConstants[STAB_ROLL].enable) {
-            bRoll = (int16_t) robot->stabState[STAB_ROLL].speedError*50;
+            bRoll = robot->stabState[STAB_ROLL].speedError;
         }
         else {
-            bRoll = robot->i_joySpeed.roll;
+            bRoll = robot->joySpeed.roll;
         }
 
         if(robot->stabConstants[STAB_PITCH].enable) {
-            bPitch = (int16_t) robot->stabState[STAB_PITCH].speedError*50;
+            bPitch = robot->stabState[STAB_PITCH].speedError;
         }
         else {
-            bPitch = robot->i_joySpeed.pitch;
+            bPitch = robot->joySpeed.pitch;
         }
 
         if(robot->stabConstants[STAB_YAW].enable) {
-            bYaw = (int16_t) robot->stabState[STAB_YAW].speedError*50;
+            bYaw = robot->stabState[STAB_YAW].speedError;
         }
         else {
-            bYaw = robot->i_joySpeed.yaw;
+            bYaw = robot->joySpeed.yaw;
+        }
+
+        if(robot->stabConstants[STAB_DEPTH].enable) {
+        	bDepth = robot->stabState[STAB_DEPTH].speedError;
+        }
+        else {
+        	bDepth = robot->joySpeed.depth;
         }
 
         int16_t velocity[THRUSTERS_NUMBER];
-        velocity[HLB] = - robot->i_joySpeed.march + robot->i_joySpeed.lag - bYaw;
-        velocity[HLF] = + robot->i_joySpeed.march + robot->i_joySpeed.lag + bYaw;
-        velocity[HRB] = + robot->i_joySpeed.march + robot->i_joySpeed.lag - bYaw;
-        velocity[HRF] = + robot->i_joySpeed.march - robot->i_joySpeed.lag - bYaw;
-        velocity[VB] = - robot->i_joySpeed.depth - bPitch;
-        velocity[VF] = + robot->i_joySpeed.depth - bPitch;
-        velocity[VL] = - robot->i_joySpeed.depth + bRoll;
-        velocity[VR] = - robot->i_joySpeed.depth - bRoll;
+        velocity[HLB] = - robot->joySpeed.march + robot->joySpeed.lag - bYaw;
+        velocity[HLF] = + robot->joySpeed.march + robot->joySpeed.lag + bYaw;
+        velocity[HRB] = + robot->joySpeed.march + robot->joySpeed.lag - bYaw;
+        velocity[HRF] = + robot->joySpeed.march - robot->joySpeed.lag - bYaw;
+        velocity[VB] = - bDepth - bPitch;
+        velocity[VF] = + bDepth - bPitch;
+        velocity[VL] = - bDepth + bRoll;
+        velocity[VR] = - bDepth - bRoll;
 
         for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
             velocity[i] = (int8_t)(velocity[i] / 0xFF);
@@ -654,26 +663,15 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 {
 	struct shoreResponse_s res;
 
-    res.roll = robot->i_sensors.roll;
-    res.pitch = robot->i_sensors.pitch;
-    res.yaw = robot->i_sensors.yaw;
-    res.rollSpeed = robot->i_sensors.rollSpeed;
-    res.pitchSpeed = robot->i_sensors.pitchSpeed;
-    res.yawSpeed = robot->i_sensors.yawSpeed;
+    res.roll = robot->sensors.roll;
+    res.pitch = robot->sensors.pitch;
+    res.yaw = robot->sensors.yaw;
+    res.rollSpeed = robot->sensors.rollSpeed;
+    res.pitchSpeed = robot->sensors.pitchSpeed;
+    res.yawSpeed = robot->sensors.yawSpeed;
 
-    res.pressure = robot->i_sensors.pressure;
+    res.pressure = robot->sensors.pressure;
 
-    res.wf_type = robot->wifi.type;
-    res.wf_tickrate = robot->wifi.tickrate;
-    res.wf_voltage = robot->wifi.voltage;
-    res.wf_x = robot->wifi.x;
-    res.wf_y = robot->wifi.y;
-
-    SetBit(&res.dev_state, SHORE_DEVICE_AC_BIT, robot->logdevice[ACOUSTIC].state);
-    // TODO other devices
-
-    res.wf_y = robot->i_sensors.leak;
-    res.wf_y = robot->i_sensors.in_pressure;
     // TODO eyes bleeding again
     res.vma_current_hlb = robot->thrusters[HLB].current;
     res.vma_current_hlf = robot->thrusters[HLF].current;
@@ -683,15 +681,6 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
     res.vma_current_vf = robot->thrusters[VF].current;
     res.vma_current_vl = robot->thrusters[VL].current;
     res.vma_current_vr = robot->thrusters[VR].current;
-
-    res.vma_velocity_hlb = robot->thrusters[HLB].desiredSpeed;
-    res.vma_velocity_hlf = robot->thrusters[HLF].desiredSpeed;
-    res.vma_velocity_hrb = robot->thrusters[HRB].desiredSpeed;
-    res.vma_velocity_hrf = robot->thrusters[HRF].desiredSpeed;
-    res.vma_velocity_vb = robot->thrusters[VB].desiredSpeed;
-    res.vma_velocity_vf = robot->thrusters[VF].desiredSpeed;
-    res.vma_velocity_vl = robot->thrusters[VL].desiredSpeed;
-    res.vma_velocity_vr = robot->thrusters[VR].desiredSpeed;
 
     res.dev_current_light = robot->device[LIGHT].current;
     res.dev_current_tilt = robot->device[TILT].current;
@@ -710,6 +699,46 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
     AddChecksumm16b(responseBuf, SHORE_RESPONSE_LENGTH);
 }
 
+void ShoreConfigResponse(struct Robot *robot, uint8_t *responseBuf)
+{
+	struct shoreConfigResponse_s res;
+
+	res.code = REQUEST_CONFIG_CODE;
+
+	res.roll = robot->sensors.roll;
+	res.pitch = robot->sensors.pitch;
+	res.yaw = robot->sensors.yaw;
+	res.rollSpeed = robot->sensors.rollSpeed;
+	res.pitchSpeed = robot->sensors.pitchSpeed;
+	res.yawSpeed = robot->sensors.yawSpeed;
+
+	res.pressure = robot->sensors.pressure;
+	res.in_pressure = 0;
+
+	res.inputSignal = *robot->stabState[ContourSelected].inputSignal;
+	res.speedSignal = *robot->stabState[ContourSelected].speedSignal;
+	res.posSignal = *robot->stabState[ContourSelected].posSignal;
+
+	res.oldSpeed = robot->stabState[ContourSelected].oldSpeed;
+	res.oldPos = robot->stabState[ContourSelected].oldPos;
+
+	res.joyUnitCasted = robot->stabState[ContourSelected].joyUnitCasted;
+	res.joy_iValue = robot->stabState[ContourSelected].joy_iValue;
+	res.posError = robot->stabState[ContourSelected].posError;
+	res.speedError = robot->stabState[ContourSelected].speedError;
+	res.dynSummator = robot->stabState[ContourSelected].dynSummator;
+	res.pidValue = robot->stabState[ContourSelected].pidValue;
+	res.posErrorAmp = robot->stabState[ContourSelected].posErrorAmp;
+	res.speedFiltered = robot->stabState[ContourSelected].speedFiltered;
+	res.posFiltered = robot->stabState[ContourSelected].posFiltered;
+
+	res.LastTick = robot->stabState[ContourSelected].LastTick;
+
+	memcpy((void*)responseBuf, (void*)&res, SHORE_CONFIG_RESPONSE_LENGTH);
+
+	AddChecksumm16b(responseBuf, SHORE_CONFIG_RESPONSE_LENGTH);
+}
+
 void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf)
 {
     for(uint8_t i = 0; i < IMU_CHECKSUMS; ++i) {
@@ -719,47 +748,47 @@ void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf)
         }
     }
 
-    robot->i_sensors.yaw = MergeBytes(ReceiveBuf[EULER_PSI], ReceiveBuf[EULER_PSI]+1);
-    robot->i_sensors.roll =  MergeBytes(ReceiveBuf[EULER_PHI], ReceiveBuf[EULER_PHI+1]);
-    robot->i_sensors.pitch =  MergeBytes(ReceiveBuf[EULER_TETA], ReceiveBuf[EULER_TETA+1]);
+    robot->sensors.yaw = MergeBytes(ReceiveBuf[EULER_PSI], ReceiveBuf[EULER_PSI]+1);
+    robot->sensors.roll =  MergeBytes(ReceiveBuf[EULER_PHI], ReceiveBuf[EULER_PHI+1]);
+    robot->sensors.pitch =  MergeBytes(ReceiveBuf[EULER_TETA], ReceiveBuf[EULER_TETA+1]);
 
-    robot->i_sensors.rollSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_X], ReceiveBuf[GYRO_PROC_X+1]);
-    robot->i_sensors.pitchSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Y], ReceiveBuf[GYRO_PROC_Y+1]);
-    robot->i_sensors.yawSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Z], ReceiveBuf[GYRO_PROC_Z+1]);
+    robot->sensors.rollSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_X], ReceiveBuf[GYRO_PROC_X+1]);
+    robot->sensors.pitchSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Y], ReceiveBuf[GYRO_PROC_Y+1]);
+    robot->sensors.yawSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Z], ReceiveBuf[GYRO_PROC_Z+1]);
 
-    robot->i_sensors.accelX = MergeBytes(ReceiveBuf[ACCEL_PROC_X], ReceiveBuf[ACCEL_PROC_X+1]) * 0.0109863;
-    robot->i_sensors.accelY = MergeBytes(ReceiveBuf[ACCEL_PROC_Y], ReceiveBuf[ACCEL_PROC_Y+1]) * 0.0109863;
-    robot->i_sensors.accelZ = MergeBytes(ReceiveBuf[ACCEL_PROC_Z], ReceiveBuf[ACCEL_PROC_Z+1]) * 0.0109863;
+    robot->sensors.accelX = MergeBytes(ReceiveBuf[ACCEL_PROC_X], ReceiveBuf[ACCEL_PROC_X+1]) * 0.0109863;
+    robot->sensors.accelY = MergeBytes(ReceiveBuf[ACCEL_PROC_Y], ReceiveBuf[ACCEL_PROC_Y+1]) * 0.0109863;
+    robot->sensors.accelZ = MergeBytes(ReceiveBuf[ACCEL_PROC_Z], ReceiveBuf[ACCEL_PROC_Z+1]) * 0.0109863;
 
-    robot->i_sensors.magX = MergeBytes(ReceiveBuf[MAG_PROC_X], ReceiveBuf[MAG_PROC_X+1]) * 0.000183105;
-    robot->i_sensors.magY = MergeBytes(ReceiveBuf[MAG_PROC_Y], ReceiveBuf[MAG_PROC_Y+1]) * 0.000183105;
-    robot->i_sensors.magZ = MergeBytes(ReceiveBuf[MAG_PROC_Z], ReceiveBuf[MAG_PROC_Z+1]) * 0.000183105;
+    robot->sensors.magX = MergeBytes(ReceiveBuf[MAG_PROC_X], ReceiveBuf[MAG_PROC_X+1]) * 0.000183105;
+    robot->sensors.magY = MergeBytes(ReceiveBuf[MAG_PROC_Y], ReceiveBuf[MAG_PROC_Y+1]) * 0.000183105;
+    robot->sensors.magZ = MergeBytes(ReceiveBuf[MAG_PROC_Z], ReceiveBuf[MAG_PROC_Z+1]) * 0.000183105;
 
-    robot->i_sensors.quatA = MergeBytes(ReceiveBuf[QUAT_A], ReceiveBuf[QUAT_A+1]) * 0.0000335693;
-    robot->i_sensors.quatB = MergeBytes(ReceiveBuf[QUAT_B], ReceiveBuf[QUAT_B+1]) * 0.0000335693;
-    robot->i_sensors.quatC = MergeBytes(ReceiveBuf[QUAT_C], ReceiveBuf[QUAT_C+1]) * 0.0000335693;
-    robot->i_sensors.quatD = MergeBytes(ReceiveBuf[QUAT_D], ReceiveBuf[QUAT_D+1]) * 0.0000335693;
+    robot->sensors.quatA = MergeBytes(ReceiveBuf[QUAT_A], ReceiveBuf[QUAT_A+1]) * 0.0000335693;
+    robot->sensors.quatB = MergeBytes(ReceiveBuf[QUAT_B], ReceiveBuf[QUAT_B+1]) * 0.0000335693;
+    robot->sensors.quatC = MergeBytes(ReceiveBuf[QUAT_C], ReceiveBuf[QUAT_C+1]) * 0.0000335693;
+    robot->sensors.quatD = MergeBytes(ReceiveBuf[QUAT_D], ReceiveBuf[QUAT_D+1]) * 0.0000335693;
 
-    robot->f_sensors.yaw = ((double) MergeBytes(ReceiveBuf[EULER_PSI], ReceiveBuf[EULER_PSI]+1)) * 0.0109863;
-    robot->f_sensors.roll =  ((double) MergeBytes(ReceiveBuf[EULER_PHI], ReceiveBuf[EULER_PHI]+1)) * 0.0109863;
-    robot->f_sensors.pitch =  ((double) MergeBytes(ReceiveBuf[EULER_TETA], ReceiveBuf[EULER_TETA]+1)) * 0.0109863;
+    robot->sensors.yaw = ((double) MergeBytes(ReceiveBuf[EULER_PSI], ReceiveBuf[EULER_PSI]+1)) * 0.0109863;
+    robot->sensors.roll =  ((double) MergeBytes(ReceiveBuf[EULER_PHI], ReceiveBuf[EULER_PHI]+1)) * 0.0109863;
+    robot->sensors.pitch =  ((double) MergeBytes(ReceiveBuf[EULER_TETA], ReceiveBuf[EULER_TETA]+1)) * 0.0109863;
 
-    robot->f_sensors.rollSpeed = ((double) MergeBytes(ReceiveBuf[GYRO_PROC_X], ReceiveBuf[GYRO_PROC_X+1])) * 0.000183105;
-    robot->f_sensors.pitchSpeed = ((double) MergeBytes(ReceiveBuf[GYRO_PROC_Y], ReceiveBuf[GYRO_PROC_Y+1])) * 0.000183105;
-    robot->f_sensors.yawSpeed = ((double) MergeBytes(ReceiveBuf[GYRO_PROC_Z], ReceiveBuf[GYRO_PROC_Z+1])) * 0.000183105;
+    robot->sensors.rollSpeed = ((double) MergeBytes(ReceiveBuf[GYRO_PROC_X], ReceiveBuf[GYRO_PROC_X+1])) * 0.000183105;
+    robot->sensors.pitchSpeed = ((double) MergeBytes(ReceiveBuf[GYRO_PROC_Y], ReceiveBuf[GYRO_PROC_Y+1])) * 0.000183105;
+    robot->sensors.yawSpeed = ((double) MergeBytes(ReceiveBuf[GYRO_PROC_Z], ReceiveBuf[GYRO_PROC_Z+1])) * 0.000183105;
 
-    robot->f_sensors.accelX = ((double) MergeBytes(ReceiveBuf[ACCEL_PROC_X], ReceiveBuf[ACCEL_PROC_X+1])) * 0.0109863;
-    robot->f_sensors.accelY = ((double) MergeBytes(ReceiveBuf[ACCEL_PROC_Y], ReceiveBuf[ACCEL_PROC_Y+1])) * 0.0109863;
-    robot->f_sensors.accelZ = ((double) MergeBytes(ReceiveBuf[ACCEL_PROC_Z], ReceiveBuf[ACCEL_PROC_Z+1])) * 0.0109863;
+    robot->sensors.accelX = ((double) MergeBytes(ReceiveBuf[ACCEL_PROC_X], ReceiveBuf[ACCEL_PROC_X+1])) * 0.0109863;
+    robot->sensors.accelY = ((double) MergeBytes(ReceiveBuf[ACCEL_PROC_Y], ReceiveBuf[ACCEL_PROC_Y+1])) * 0.0109863;
+    robot->sensors.accelZ = ((double) MergeBytes(ReceiveBuf[ACCEL_PROC_Z], ReceiveBuf[ACCEL_PROC_Z+1])) * 0.0109863;
 
-    robot->f_sensors.magX = ((double) MergeBytes(ReceiveBuf[MAG_PROC_X], ReceiveBuf[MAG_PROC_X+1])) * 0.000183105;
-    robot->f_sensors.magY = ((double) MergeBytes(ReceiveBuf[MAG_PROC_Y], ReceiveBuf[MAG_PROC_Y+1])) * 0.000183105;
-    robot->f_sensors.magZ = ((double) MergeBytes(ReceiveBuf[MAG_PROC_Z], ReceiveBuf[MAG_PROC_Z+1])) * 0.000183105;
+    robot->sensors.magX = ((double) MergeBytes(ReceiveBuf[MAG_PROC_X], ReceiveBuf[MAG_PROC_X+1])) * 0.000183105;
+    robot->sensors.magY = ((double) MergeBytes(ReceiveBuf[MAG_PROC_Y], ReceiveBuf[MAG_PROC_Y+1])) * 0.000183105;
+    robot->sensors.magZ = ((double) MergeBytes(ReceiveBuf[MAG_PROC_Z], ReceiveBuf[MAG_PROC_Z+1])) * 0.000183105;
 
-    robot->f_sensors.quatA = ((double) MergeBytes(ReceiveBuf[QUAT_A], ReceiveBuf[QUAT_A+1])) * 0.0000335693;
-    robot->f_sensors.quatB = ((double) MergeBytes(ReceiveBuf[QUAT_B], ReceiveBuf[QUAT_B+1])) * 0.0000335693;
-    robot->f_sensors.quatC = ((double) MergeBytes(ReceiveBuf[QUAT_C], ReceiveBuf[QUAT_C+1])) * 0.0000335693;
-    robot->f_sensors.quatD = ((double) MergeBytes(ReceiveBuf[QUAT_D], ReceiveBuf[QUAT_D+1])) * 0.0000335693;
+    robot->sensors.quatA = ((double) MergeBytes(ReceiveBuf[QUAT_A], ReceiveBuf[QUAT_A+1])) * 0.0000335693;
+    robot->sensors.quatB = ((double) MergeBytes(ReceiveBuf[QUAT_B], ReceiveBuf[QUAT_B+1])) * 0.0000335693;
+    robot->sensors.quatC = ((double) MergeBytes(ReceiveBuf[QUAT_C], ReceiveBuf[QUAT_C+1])) * 0.0000335693;
+    robot->sensors.quatD = ((double) MergeBytes(ReceiveBuf[QUAT_D], ReceiveBuf[QUAT_D+1])) * 0.0000335693;
 
     ++uartBus[IMU_UART].successRxCounter;
 }

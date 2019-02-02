@@ -77,9 +77,12 @@ void ThrustersRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster)
 void ThrustersResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster);
 
 void ShoreReceive();
+
 void ShoreRequest(struct Robot *robot, uint8_t *requestBuf);
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf);
+
 void ShoreResponse(struct Robot *robot, uint8_t *responseBuf);
+void ShoreConfigResponse(struct Robot *robot, uint8_t *responseBuf);
 
 void ImuReceive(struct Robot *robot, uint8_t *IMUReceiveBuf);
 

@@ -318,12 +318,12 @@ void func_tImuCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  	if(Q100.i_sensors.resetIMU) {
+	  	if(Q100.sensors.resetIMU) {
 			uartBus[IMU_UART].txBuffer = ImuResetRequestBuffer;
 			uartBus[IMU_UART].txLength = IMU_REQUEST_LENGTH;
 	  		transmitPackage(&uartBus[IMU_UART], false);
 
-	  		Q100.i_sensors.resetIMU = false;
+	  		Q100.sensors.resetIMU = false;
 	  	}
 	  	else {
 			uartBus[IMU_UART].txBuffer = ImuRequestBuffer;
@@ -488,25 +488,26 @@ void func_tUartTimer(void const * argument)
 			switch(ShoreRequestBuffer[0]) {
 				case SHORE_REQUEST_CODE:
 					ShoreRequest(&Q100, ShoreRequestBuffer);
+					ShoreResponse(&Q100, ShoreResponseBuffer);
+					uartBus[SHORE_UART].txLength = SHORE_RESPONSE_LENGTH;
 					break;
 				case REQUEST_CONFIG_CODE:
 					ShoreConfigRequest(&Q100, ShoreRequestBuffer);
+					ShoreConfigResponse(&Q100, ShoreResponseBuffer);
+					uartBus[SHORE_UART].txLength = SHORE_CONFIG_RESPONSE_LENGTH;
 					break;
 			}
-			ShoreResponse(&Q100, ShoreResponseBuffer);
 			xSemaphoreGive(mutDataHandle);
 		}
-		uartBus[SHORE_UART].huart = &huart1;
 		uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
-		uartBus[SHORE_UART].txLength = SHORE_RESPONSE_LENGTH;
-		transmitPackage(&uartBus[SHORE_UART], false);
+		HAL_UART_Transmit_IT(&huart1, ShoreResponseBuffer, uartBus[SHORE_UART].txLength);
 	}
 	else {
-		HAL_UART_AbortReceive_IT(&huart1);
 		++uartBus[SHORE_UART].outdatedRxCounter;
 	}
 	counterRx = 0;
 	uartBus[SHORE_UART].packageReceived = false;
+	HAL_UART_AbortReceive_IT(&huart1);
 	HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[0], 1);
   /* USER CODE END func_tUartTimer */
 }

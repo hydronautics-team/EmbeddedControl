@@ -80,7 +80,7 @@ struct Robot
 		bool inverse; // inverts thruster
 	} thrusters[THRUSTERS_NUMBER];
 
-	struct f_Sensors {
+	struct robot_sensors {
 		float roll;
 		float pitch;
 		float yaw;
@@ -101,83 +101,30 @@ struct Robot
 		float pressure;
 		float in_pressure;
 		float leak;
-	} f_sensors;
-
-	// TODO send all data in float, why the fuck u need that?
-	struct i_Sensors {
-		int16_t roll;
-		int16_t pitch;
-		int16_t yaw;
-		int16_t rollSpeed;
-		int16_t pitchSpeed;
-		int16_t yawSpeed;
-		int16_t accelX;
-		int16_t accelY;
-		int16_t accelZ;
-		int16_t magX;
-		int16_t magY;
-		int16_t magZ;
-		int16_t quatA;
-		int16_t quatB;
-		int16_t quatC;
-		int16_t quatD;
-		bool resetIMU;
-		uint16_t pressure;
-		uint16_t in_pressure;
-		uint16_t leak;
-	} i_sensors;
-
-	// TODO you don't need that
-	struct robotWifi {
-		uint8_t type;
-		uint8_t tickrate;
-		uint8_t voltage;
-		float x;
-		float y;
-	} wifi;
+	} sensors;
 
 	struct robotPC {
 		uint8_t reset;
 		uint8_t errors;
 	} pc;
 
-	struct i_JoystickRobotSpeed {
-		int16_t march;
-		int16_t lag;
-		int16_t depth;
-		int16_t roll;
-		int16_t pitch;
-		int16_t yaw;
-	} i_joySpeed;
-
-	// TODO same way as sensors
-	struct f_JoystickRobotSpeed {
+	struct JoystickRobotSpeed {
 		float march;
 		float lag;
 		float depth;
 		float roll;
 		float pitch;
 		float yaw;
-	} f_joySpeed;
+	} joySpeed;
 
-	struct i_PositionRobotMovement {
-		int16_t march;
-		int16_t lag;
-		int16_t depth;
-		int16_t roll;
-		int16_t pitch;
-		int16_t yaw;
-	} i_posMov;
-
-	// TODO same way as sensors
-	struct f_PositionRobotMovement {
+	struct PositionRobotMovement {
 		float march;
 		float lag;
 		float depth;
 		float roll;
 		float pitch;
 		float yaw;
-	} f_posMov;
+	} posMov;
 
 	struct RobotDev {
 		uint8_t address;
