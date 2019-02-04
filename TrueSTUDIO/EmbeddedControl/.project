@@ -122,11 +122,6 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Src/FreeRTOSTick.c</locationURI>
 		</link>
 		<link>
-			<name>Application/Src/PID.c</name>
-			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/Src/PID.c</locationURI>
-		</link>
-		<link>
 			<name>Application/Src/checksum.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/checksum.c</locationURI>

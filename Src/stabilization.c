@@ -4,32 +4,32 @@
 #include "math.h"
 #include "robot.h"
 
-struct PIDRegulator pidRegulator[STABILIZATION_AMOUNT];
+struct PidRegulator_s pidRegulator[STABILIZATION_AMOUNT];
 
 float depthSpeed = 0;
 float oldDepthSpeed = 0;
 
 void stabilizationInit(struct Robot *robot)
 {
-    PIDRegulatorInit(&pidRegulator[STAB_ROLL],
-            robot->stabConstants[STAB_ROLL].pid.pGain, 0,
-			robot->stabConstants[STAB_ROLL].pid.iGain,
-			robot->stabConstants[STAB_ROLL].pid.iMax,
-			robot->stabConstants[STAB_ROLL].pid.iMin);
-
-    PIDRegulatorInit(&pidRegulator[STAB_PITCH],
+	pidInit(&pidRegulator[STAB_PITCH],
             robot->stabConstants[STAB_PITCH].pid.pGain, 0,
 			robot->stabConstants[STAB_PITCH].pid.iGain,
 			robot->stabConstants[STAB_PITCH].pid.iMax,
 			robot->stabConstants[STAB_PITCH].pid.iMin);
 
-    PIDRegulatorInit(&pidRegulator[STAB_YAW],
+    pidInit(&pidRegulator[STAB_YAW],
     		robot->stabConstants[STAB_YAW].pid.pGain, 0,
 			robot->stabConstants[STAB_YAW].pid.iGain,
 			robot->stabConstants[STAB_YAW].pid.iMax,
 			robot->stabConstants[STAB_YAW].pid.iMin);
 
-    PIDRegulatorInit(&pidRegulator[STAB_DEPTH],
+    pidInit(&pidRegulator[STAB_DEPTH],
+        	robot->stabConstants[STAB_DEPTH].pid.pGain, 0,
+    		robot->stabConstants[STAB_DEPTH].pid.iGain,
+    		robot->stabConstants[STAB_DEPTH].pid.iMax,
+    		robot->stabConstants[STAB_DEPTH].pid.iMin);
+
+    pidInit(&pidRegulator[STAB_DEPTH],
         	robot->stabConstants[STAB_DEPTH].pid.pGain, 0,
     		robot->stabConstants[STAB_DEPTH].pid.iGain,
     		robot->stabConstants[STAB_DEPTH].pid.iMax,
@@ -66,7 +66,7 @@ void stabilizationInit(struct Robot *robot)
     Q100.stabState[STAB_ROLL].posErrorAmp = 0;
     Q100.stabState[STAB_ROLL].speedFiltered = 0;
     Q100.stabState[STAB_ROLL].posFiltered = 0;
-    Q100.stabState[STAB_ROLL].LastTick = 0; // TODO u need to write start function, lasttick AND OLDPOS needs to be updated before starting!
+    Q100.stabState[STAB_ROLL].LastTick = 0;
     /////////////////////////////////////////////////////////////
     Q100.stabConstants[STAB_PITCH].enable = false;
     Q100.stabConstants[STAB_PITCH].pJoyUnitCast = 1;
@@ -185,16 +185,8 @@ void stabilizationStart(uint8_t contour)
 	Q100.stabState[contour].speedFiltered = 0;
 	Q100.stabState[contour].posFiltered = 0;
 	Q100.stabState[contour].LastTick = xTaskGetTickCount();
-}
 
-void updatePidConstants()
-{
-	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
-		pidRegulator[i].pGain = Q100.stabConstants[i].pid.pGain;
-		pidRegulator[i].iGain = Q100.stabConstants[i].pid.iGain;
-		pidRegulator[i].iMax = Q100.stabConstants[i].pid.iMax;
-		pidRegulator[i].iMin = Q100.stabConstants[i].pid.iMin;
-	}
+	pidReset(&pidRegulator[contour]);
 }
 
 void stabilizationUpdate(uint8_t contour)
@@ -222,7 +214,7 @@ void stabilizationUpdate(uint8_t contour)
     state->posErrorAmp = state->posError * constants->pErrGain;
 
     // PID regulation
-    state->pidValue = update(&pidRegulator[contour], state->posErrorAmp, fromTickToMs(xTaskGetTickCount() - pidRegulator[contour].lastUpdateTick));
+    state->pidValue = pidUpdate(&pidRegulator[contour], state->posErrorAmp, fromTickToMs(xTaskGetTickCount() - pidRegulator[contour].lastUpdateTick));
 
     // Dynamic summator
     state->dynSummator = state->pidValue + *state->inputSignal * constants->pSpeedDyn;
@@ -248,3 +240,71 @@ void stabilizationUpdate(uint8_t contour)
     	state->speedError = constants->pThrustersMin;
     }
 }
+
+void pidInit(struct PidRegulator_s *pid, float pGain, float iGain, float iMax, float iMin, float dGain)
+{
+	pid->iGain = iGain;
+	pid->dGain = dGain;
+	pid->pGain = pGain;
+	pid->dState = 0;
+	pid->iState = 0;
+	pid->iMin = iMin;
+	pid->iMax = iMax;
+
+	pid->pTermLast = 0;
+	pid->iTermLast = 0;
+	pid->dTermLast = 0;
+
+	pid->lastUpdateTick = xTaskGetTickCount();
+}
+
+float pidUpdate(struct PidRegulator_s *pid, float error, float deltaTime_ms)
+{
+
+	float pTerm, dTerm, iTerm;
+	pTerm = pid->pGain * error; //proportional term
+
+	pid->iState += error * deltaTime_ms / 1000.0f;
+
+	if (pid->iState > pid->iMax) {
+		pid->iState = pid->iMax;
+	}
+	if (pid->iState < pid->iMin) {
+		pid->iState = pid->iMin;
+	}
+
+	iTerm = pid->iGain * pid->iState; //integral part
+
+	if (deltaTime_ms == 0) {
+		dTerm = 0;
+	} else {
+		dTerm = pid->dGain * (error - pid->dState) * 1000.0f / deltaTime_ms; //differential part
+	}
+
+	pid->dState = error;
+
+	pid->pTermLast = pTerm;
+	pid->dTermLast = dTerm;
+	pid->iTermLast = iTerm;
+
+	pid->lastUpdateTick = xTaskGetTickCount();
+
+	return pTerm + dTerm + iTerm;
+}
+
+void pidReset(struct PidRegulator_s *pid)
+{
+	pid->iState = 0;
+	pid->dState = 0;
+}
+
+void updatePidConstants()
+{
+	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+		pidRegulator[i].pGain = Q100.stabConstants[i].pid.pGain;
+		pidRegulator[i].iGain = Q100.stabConstants[i].pid.iGain;
+		pidRegulator[i].iMax = Q100.stabConstants[i].pid.iMax;
+		pidRegulator[i].iMin = Q100.stabConstants[i].pid.iMin;
+	}
+}
+

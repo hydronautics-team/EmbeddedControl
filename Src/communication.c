@@ -138,11 +138,6 @@ void uartBusesInit()
 
 bool transmitPackage(struct uartBus_s *bus, bool isrMode)
 {
-	if(bus == &uartBus[SHORE_UART]) {
-		return false;
-	}
-
-    bus->timeoutCounter = xTaskGetTickCount();
     bus->packageTransmitted = false;
 
     HAL_UART_AbortTransmit_IT(bus->huart);
@@ -157,8 +152,9 @@ bool transmitPackage(struct uartBus_s *bus, bool isrMode)
             return false;
     }
 
+    bus->timeoutCounter = fromTickToMs(xTaskGetTickCount());
     while (!bus->packageTransmitted && !isrMode) {
-    	if(xTaskGetTickCount() - bus->timeoutCounter > bus->transmitTimeout) {
+    	if(fromTickToMs(xTaskGetTickCount()) - bus->timeoutCounter > bus->transmitTimeout) {
     		return false;
     	}
     	osDelay(DELAY_UART_TIMEOUT);
@@ -168,7 +164,6 @@ bool transmitPackage(struct uartBus_s *bus, bool isrMode)
 
 bool receivePackage(struct uartBus_s *bus, bool isrMode)
 {
-	bus->timeoutCounter = xTaskGetTickCount();
 	bus->packageReceived = false;
 
 	HAL_UART_AbortReceive_IT(bus->huart);
@@ -183,8 +178,9 @@ bool receivePackage(struct uartBus_s *bus, bool isrMode)
 			return false;
 	}
 
+	bus->timeoutCounter = HAL_GetTick();
 	while (!bus->packageReceived && !isrMode) {
-		if(xTaskGetTickCount() - bus->timeoutCounter > bus->receiveTimeout) {
+		if(HAL_GetTick() - bus->timeoutCounter > bus->receiveTimeout) {
 			return false;
 		}
 		osDelay(DELAY_UART_TIMEOUT);
@@ -194,7 +190,6 @@ bool receivePackage(struct uartBus_s *bus, bool isrMode)
 
 bool transmitAndReceive(struct uartBus_s *bus, bool isrMode)
 {
-	bus->timeoutCounter = xTaskGetTickCount();
 	bus->packageReceived = false;
 	bus->packageTransmitted = false;
 
@@ -213,8 +208,9 @@ bool transmitAndReceive(struct uartBus_s *bus, bool isrMode)
 			return false;
 	}
 
-	while (!bus->packageTransmitted && !isrMode) {
-		if(xTaskGetTickCount() - bus->timeoutCounter > bus->transmitTimeout) {
+	bus->timeoutCounter = fromTickToMs(xTaskGetTickCount());
+	while (!bus->packageTransmitted && !bus->packageReceived && !isrMode) {
+		if(fromTickToMs(xTaskGetTickCount()) - bus->timeoutCounter > bus->transmitTimeout) {
 			return false;
 		}
 		osDelay(DELAY_UART_TIMEOUT);
@@ -233,11 +229,10 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 	for(uint8_t i=0; i<UART_NUMBER; i++) {
 		if(uartBus[i].huart == huart) {
 			bus = &uartBus[i];
+			bus->packageTransmitted = true;
 			break;
 		}
 	}
-
-	bus->packageTransmitted = true;
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -251,11 +246,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	for(uint8_t i=0; i<UART_NUMBER; i++) {
 		if(uartBus[i].huart == huart) {
 			bus = &uartBus[i];
+			bus->packageReceived = true;
 			break;
 		}
 	}
-
-	bus->packageReceived = true;
 }
 
 void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
@@ -739,13 +733,13 @@ void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf)
         }
     }
 
-    robot->sensors.yaw = MergeBytes(ReceiveBuf[EULER_PSI], ReceiveBuf[EULER_PSI]+1);
-    robot->sensors.roll =  MergeBytes(ReceiveBuf[EULER_PHI], ReceiveBuf[EULER_PHI+1]);
-    robot->sensors.pitch =  MergeBytes(ReceiveBuf[EULER_TETA], ReceiveBuf[EULER_TETA+1]);
+    robot->sensors.yaw = MergeBytes(ReceiveBuf[EULER_PSI], ReceiveBuf[EULER_PSI]+1) * 0.0109863;
+    robot->sensors.roll =  MergeBytes(ReceiveBuf[EULER_PHI], ReceiveBuf[EULER_PHI]+1) * 0.0109863;
+    robot->sensors.pitch =  MergeBytes(ReceiveBuf[EULER_TETA], ReceiveBuf[EULER_TETA]+1) * 0.0109863;
 
-    robot->sensors.rollSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_X], ReceiveBuf[GYRO_PROC_X+1]);
-    robot->sensors.pitchSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Y], ReceiveBuf[GYRO_PROC_Y+1]);
-    robot->sensors.yawSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Z], ReceiveBuf[GYRO_PROC_Z+1]);
+    robot->sensors.rollSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_X], ReceiveBuf[GYRO_PROC_X+1]) * 0.000183105;
+    robot->sensors.pitchSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Y], ReceiveBuf[GYRO_PROC_Y+1]) * 0.000183105;
+    robot->sensors.yawSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Z], ReceiveBuf[GYRO_PROC_Z+1]) * 0.000183105;
 
     robot->sensors.accelX = MergeBytes(ReceiveBuf[ACCEL_PROC_X], ReceiveBuf[ACCEL_PROC_X+1]) * 0.0109863;
     robot->sensors.accelY = MergeBytes(ReceiveBuf[ACCEL_PROC_Y], ReceiveBuf[ACCEL_PROC_Y+1]) * 0.0109863;
@@ -759,27 +753,6 @@ void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf)
     robot->sensors.quatB = MergeBytes(ReceiveBuf[QUAT_B], ReceiveBuf[QUAT_B+1]) * 0.0000335693;
     robot->sensors.quatC = MergeBytes(ReceiveBuf[QUAT_C], ReceiveBuf[QUAT_C+1]) * 0.0000335693;
     robot->sensors.quatD = MergeBytes(ReceiveBuf[QUAT_D], ReceiveBuf[QUAT_D+1]) * 0.0000335693;
-
-    robot->sensors.yaw = ((double) MergeBytes(ReceiveBuf[EULER_PSI], ReceiveBuf[EULER_PSI]+1)) * 0.0109863;
-    robot->sensors.roll =  ((double) MergeBytes(ReceiveBuf[EULER_PHI], ReceiveBuf[EULER_PHI]+1)) * 0.0109863;
-    robot->sensors.pitch =  ((double) MergeBytes(ReceiveBuf[EULER_TETA], ReceiveBuf[EULER_TETA]+1)) * 0.0109863;
-
-    robot->sensors.rollSpeed = ((double) MergeBytes(ReceiveBuf[GYRO_PROC_X], ReceiveBuf[GYRO_PROC_X+1])) * 0.000183105;
-    robot->sensors.pitchSpeed = ((double) MergeBytes(ReceiveBuf[GYRO_PROC_Y], ReceiveBuf[GYRO_PROC_Y+1])) * 0.000183105;
-    robot->sensors.yawSpeed = ((double) MergeBytes(ReceiveBuf[GYRO_PROC_Z], ReceiveBuf[GYRO_PROC_Z+1])) * 0.000183105;
-
-    robot->sensors.accelX = ((double) MergeBytes(ReceiveBuf[ACCEL_PROC_X], ReceiveBuf[ACCEL_PROC_X+1])) * 0.0109863;
-    robot->sensors.accelY = ((double) MergeBytes(ReceiveBuf[ACCEL_PROC_Y], ReceiveBuf[ACCEL_PROC_Y+1])) * 0.0109863;
-    robot->sensors.accelZ = ((double) MergeBytes(ReceiveBuf[ACCEL_PROC_Z], ReceiveBuf[ACCEL_PROC_Z+1])) * 0.0109863;
-
-    robot->sensors.magX = ((double) MergeBytes(ReceiveBuf[MAG_PROC_X], ReceiveBuf[MAG_PROC_X+1])) * 0.000183105;
-    robot->sensors.magY = ((double) MergeBytes(ReceiveBuf[MAG_PROC_Y], ReceiveBuf[MAG_PROC_Y+1])) * 0.000183105;
-    robot->sensors.magZ = ((double) MergeBytes(ReceiveBuf[MAG_PROC_Z], ReceiveBuf[MAG_PROC_Z+1])) * 0.000183105;
-
-    robot->sensors.quatA = ((double) MergeBytes(ReceiveBuf[QUAT_A], ReceiveBuf[QUAT_A+1])) * 0.0000335693;
-    robot->sensors.quatB = ((double) MergeBytes(ReceiveBuf[QUAT_B], ReceiveBuf[QUAT_B+1])) * 0.0000335693;
-    robot->sensors.quatC = ((double) MergeBytes(ReceiveBuf[QUAT_C], ReceiveBuf[QUAT_C+1])) * 0.0000335693;
-    robot->sensors.quatD = ((double) MergeBytes(ReceiveBuf[QUAT_D], ReceiveBuf[QUAT_D+1])) * 0.0000335693;
 
     ++uartBus[IMU_UART].successRxCounter;
 }

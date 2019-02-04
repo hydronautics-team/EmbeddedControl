@@ -326,20 +326,26 @@ void func_tImuCommTask(void const * argument)
 	  		Q100.sensors.resetIMU = false;
 	  	}
 	  	else {
-			uartBus[IMU_UART].txBuffer = ImuRequestBuffer;
-			uartBus[IMU_UART].txLength = IMU_REQUEST_LENGTH;
+	  		uartBus[IMU_UART].txBuffer = ImuRequestBuffer;
+	  		uartBus[IMU_UART].txLength = IMU_REQUEST_LENGTH;
 
-			uartBus[IMU_UART].rxBuffer = ImuResponseBuffer;
-			uartBus[IMU_UART].rxLength = IMU_RESPONSE_LENGTH*IMU_CHECKSUMS;
+	  		uartBus[IMU_UART].rxBuffer = ImuResponseBuffer;
+	  		uartBus[IMU_UART].rxLength = IMU_RESPONSE_LENGTH*IMU_CHECKSUMS;
 
-	  		transmitAndReceive(&uartBus[IMU_UART], false);
-	  		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_IMU_TASK) == pdTRUE) {
-	  			ImuReceive(&Q100, ImuResponseBuffer);
-	        	xSemaphoreGive(mutDataHandle);
-	  		}
+	  		HAL_UART_Receive_IT(uartBus[IMU_UART].huart, uartBus[IMU_UART].rxBuffer, uartBus[IMU_UART].rxLength);
+	  		HAL_UART_Transmit_IT(uartBus[IMU_UART].huart, uartBus[IMU_UART].txBuffer, uartBus[IMU_UART].txLength);
+	  		osDelayUntil(&sysTime, DELAY_IMU_TASK);
+
+	  		//if(transmitAndReceive(&uartBus[IMU_UART], false)) {
+	  			if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_IMU_TASK) == pdTRUE) {
+	  				ImuReceive(&Q100, ImuResponseBuffer);
+	  				xSemaphoreGive(mutDataHandle);
+	  			}
+	  		//}
+
 	  	}
 
-        osDelayUntil(&sysTime, DELAY_IMU_TASK);
+	  	osDelayUntil(&sysTime, DELAY_IMU_TASK);
   }
   /* USER CODE END func_tImuCommTask */
 }
@@ -482,20 +488,20 @@ void func_tPcCommTask(void const * argument)
 /* func_tUartTimer function */
 void func_tUartTimer(void const * argument)
 {
-	/* USER CODE BEGIN func_tUartTimer */
+  /* USER CODE BEGIN func_tUartTimer */
 	if (uartBus[SHORE_UART].packageReceived) {
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
 			switch(uartBus[SHORE_UART].rxBuffer[0]) {
-			case SHORE_REQUEST_CODE:
-				ShoreRequest(&Q100, uartBus[SHORE_UART].rxBuffer);
-				ShoreResponse(&Q100, uartBus[SHORE_UART].txBuffer);
-				uartBus[SHORE_UART].txLength = SHORE_RESPONSE_LENGTH;
-				break;
-			case REQUEST_CONFIG_CODE:
-				ShoreConfigRequest(&Q100, uartBus[SHORE_UART].rxBuffer);
-				ShoreConfigResponse(&Q100, uartBus[SHORE_UART].txBuffer);
-				uartBus[SHORE_UART].txLength = SHORE_CONFIG_RESPONSE_LENGTH;
-				break;
+				case SHORE_REQUEST_CODE:
+					ShoreRequest(&Q100, uartBus[SHORE_UART].rxBuffer);
+					ShoreResponse(&Q100, uartBus[SHORE_UART].txBuffer);
+					uartBus[SHORE_UART].txLength = SHORE_RESPONSE_LENGTH;
+					break;
+				case REQUEST_CONFIG_CODE:
+					ShoreConfigRequest(&Q100, uartBus[SHORE_UART].rxBuffer);
+					ShoreConfigResponse(&Q100, uartBus[SHORE_UART].txBuffer);
+					uartBus[SHORE_UART].txLength = SHORE_CONFIG_RESPONSE_LENGTH;
+					break;
 			}
 			xSemaphoreGive(mutDataHandle);
 		}
@@ -508,7 +514,7 @@ void func_tUartTimer(void const * argument)
 	uartBus[SHORE_UART].packageReceived = false;
 	HAL_UART_AbortReceive_IT(uartBus[SHORE_UART].huart);
 	HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
-	/* USER CODE END func_tUartTimer */
+  /* USER CODE END func_tUartTimer */
 }
 
 /* tSilence_func function */
