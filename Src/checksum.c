@@ -1,5 +1,43 @@
 #include "checksum.h"
 
+uint16_t GetCrc16Checksumm(uint8_t *pcBlock, uint16_t len)
+{
+	uint16_t crc = 0xFFFF;
+	uint8_t i;
+	len = len-2;
+
+    while (len--) {
+        crc ^= *pcBlock++ << 8;
+
+        for (i = 0; i < 8; i++)
+            crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
+    }
+    return crc;
+}
+
+bool IsCrc16ChecksummCorrect(uint8_t *pcBlock, uint16_t len)
+{
+	uint16_t crc_calculated = GetCrc16Checksumm(pcBlock, len);
+
+	uint16_t *crc_pointer = (uint16_t*) (&pcBlock[len-2]);
+	uint16_t crc_got = *crc_pointer;
+
+	if(crc_got == crc_calculated) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+void AddCrc16Checksumm(uint8_t *pcBlock, uint16_t len)
+{
+	uint16_t crc = GetCrc16Checksumm(pcBlock, len);
+	uint16_t *crc_pointer = (uint16_t*) (&pcBlock[len-2]);
+	*crc_pointer = crc;
+}
+
+
 /* CRC16-CCITT algorithm */
 bool IsChecksumm16bCorrect(uint8_t *msg, uint16_t length)
 {

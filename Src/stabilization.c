@@ -4,35 +4,32 @@
 #include "math.h"
 #include "robot.h"
 
-struct PIDRegulator rollPID;
-struct PIDRegulator pitchPID;
-struct PIDRegulator yawPID;
-struct PIDRegulator depthPID;
+struct PIDRegulator pidRegulator[STABILIZATION_AMOUNT];
 
 float depthSpeed = 0;
 float oldDepthSpeed = 0;
 
 void stabilizationInit(struct Robot *robot)
 {
-    PIDRegulatorInit(&rollPID,
+    PIDRegulatorInit(&pidRegulator[STAB_ROLL],
             robot->stabConstants[STAB_ROLL].pid.pGain, 0,
 			robot->stabConstants[STAB_ROLL].pid.iGain,
 			robot->stabConstants[STAB_ROLL].pid.iMax,
 			robot->stabConstants[STAB_ROLL].pid.iMin);
 
-    PIDRegulatorInit(&pitchPID,
+    PIDRegulatorInit(&pidRegulator[STAB_PITCH],
             robot->stabConstants[STAB_PITCH].pid.pGain, 0,
 			robot->stabConstants[STAB_PITCH].pid.iGain,
 			robot->stabConstants[STAB_PITCH].pid.iMax,
 			robot->stabConstants[STAB_PITCH].pid.iMin);
 
-    PIDRegulatorInit(&yawPID,
+    PIDRegulatorInit(&pidRegulator[STAB_YAW],
     		robot->stabConstants[STAB_YAW].pid.pGain, 0,
 			robot->stabConstants[STAB_YAW].pid.iGain,
 			robot->stabConstants[STAB_YAW].pid.iMax,
 			robot->stabConstants[STAB_YAW].pid.iMin);
 
-    PIDRegulatorInit(&depthPID,
+    PIDRegulatorInit(&pidRegulator[STAB_DEPTH],
         	robot->stabConstants[STAB_DEPTH].pid.pGain, 0,
     		robot->stabConstants[STAB_DEPTH].pid.iGain,
     		robot->stabConstants[STAB_DEPTH].pid.iMax,
@@ -190,6 +187,16 @@ void stabilizationStart(uint8_t contour)
 	Q100.stabState[contour].LastTick = xTaskGetTickCount();
 }
 
+void updatePidConstants()
+{
+	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+		pidRegulator[i].pGain = Q100.stabConstants[i].pid.pGain;
+		pidRegulator[i].iGain = Q100.stabConstants[i].pid.iGain;
+		pidRegulator[i].iMax = Q100.stabConstants[i].pid.iMax;
+		pidRegulator[i].iMin = Q100.stabConstants[i].pid.iMin;
+	}
+}
+
 void stabilizationUpdate(uint8_t contour)
 {
 	struct RobotStabilizationConstants *constants = &Q100.stabConstants[contour];
@@ -215,7 +222,7 @@ void stabilizationUpdate(uint8_t contour)
     state->posErrorAmp = state->posError * constants->pErrGain;
 
     // PID regulation
-    state->pidValue = update(&rollPID, state->posErrorAmp, fromTickToMs(xTaskGetTickCount() - rollPID.lastUpdateTick));
+    state->pidValue = update(&pidRegulator[contour], state->posErrorAmp, fromTickToMs(xTaskGetTickCount() - pidRegulator[contour].lastUpdateTick));
 
     // Dynamic summator
     state->dynSummator = state->pidValue + *state->inputSignal * constants->pSpeedDyn;

@@ -79,7 +79,7 @@ void variableInit() {
 void uartBusesInit()
 {
 	// Shore UART configuration
-	uartBus[SHORE_UART].huart = &huart5; // Link to huart will be set before receiving
+	uartBus[SHORE_UART].huart = &huart1; // Link to huart will be set before receiving
 	uartBus[SHORE_UART].rxBuffer = ShoreRequestBuffer;
 	uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
 	uartBus[SHORE_UART].rxLength = 0; // Length of the received message will be determined when first byte will be received
@@ -168,10 +168,6 @@ bool transmitPackage(struct uartBus_s *bus, bool isrMode)
 
 bool receivePackage(struct uartBus_s *bus, bool isrMode)
 {
-	if(bus == &uartBus[SHORE_UART]) {
-		return false;
-	}
-
 	bus->timeoutCounter = xTaskGetTickCount();
 	bus->packageReceived = false;
 
@@ -198,10 +194,6 @@ bool receivePackage(struct uartBus_s *bus, bool isrMode)
 
 bool transmitAndReceive(struct uartBus_s *bus, bool isrMode)
 {
-	if(bus == &uartBus[SHORE_UART]) {
-		return false;
-	}
-
 	bus->timeoutCounter = xTaskGetTickCount();
 	bus->packageReceived = false;
 	bus->packageTransmitted = false;
@@ -232,7 +224,7 @@ bool transmitAndReceive(struct uartBus_s *bus, bool isrMode)
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart == &huart1) {
+	if(huart == uartBus[SHORE_UART].huart) {
 		uartBus[SHORE_UART].packageTransmitted = true;
 		return;
 	}
@@ -250,7 +242,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart == &huart1) {
+	if(huart == uartBus[SHORE_UART].huart) {
 		ShoreReceive();
 		return;
 	}
@@ -269,30 +261,30 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
 {
 	TickType_t timeBegin = xTaskGetTickCount();
-    switch(I2C) {
-        case DEV_I2C:
-            HAL_I2C_Master_Receive_IT(&hi2c2, addr>>1, buf, length);
-            while (!i2c1PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
-                osDelay(DELAY_SENSOR_TASK);
-            }
-            i2c1PackageReceived = false;
-            break;
-    }
+	switch(I2C) {
+	case DEV_I2C:
+		HAL_I2C_Master_Receive_IT(&hi2c2, addr>>1, buf, length);
+		while (!i2c1PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+			osDelay(DELAY_SENSOR_TASK);
+		}
+		i2c1PackageReceived = false;
+		break;
+	}
 }
 
 
 void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
 {
-    TickType_t timeBegin = xTaskGetTickCount();
-    switch(I2C) {
-        case DEV_I2C:
-        	HAL_I2C_Master_Transmit_IT(&hi2c1, addr>>1, buf, length);
-            while (!i2c1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
-                osDelay(DELAY_SENSOR_TASK);
-            }
-            i2c1PackageTransmit = false;
-            break;
-    }
+	TickType_t timeBegin = xTaskGetTickCount();
+	switch(I2C) {
+	case DEV_I2C:
+		HAL_I2C_Master_Transmit_IT(&hi2c1, addr>>1, buf, length);
+		while (!i2c1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+			osDelay(DELAY_SENSOR_TASK);
+		}
+		i2c1PackageTransmit = false;
+		break;
+	}
 }
 
 
@@ -320,43 +312,40 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
 void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id)
 {
 	switch(Sensor_id) {
-		case DEV_I2C:
-			robot->sensors.pressure = FloatFromUint8(buf, 0);
-			break;
+	case DEV_I2C:
+		robot->sensors.pressure = FloatFromUint8(buf, 0);
+		break;
 	}
 }
 
 void ShoreReceive()
 {
-    static portBASE_TYPE xHigherPriorityTaskWoken;
-    xHigherPriorityTaskWoken = pdFALSE;
+	static portBASE_TYPE xHigherPriorityTaskWoken;
+	xHigherPriorityTaskWoken = pdFALSE;
+	if(counterRx == 0) {
+		for(uint8_t i=0; i<SHORE_REQUEST_MODES_NUMBER; ++i) {
+			if(uartBus[SHORE_UART].rxBuffer[0] == ShoreCodes[i]) {
+				counterRx = 1;
+				uartBus[SHORE_UART].rxLength = ShoreLength[i]-1;
+				HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer+1, uartBus[SHORE_UART].rxLength);
+				xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
+				break;
+			}
 
-    if(counterRx == 0) {
-    	switch(ShoreRequestBuffer[0]) {
-    	case SHORE_REQUEST_CODE:
-    		xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
-    		counterRx = 1;
-    		HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[1], SHORE_REQUEST_LENGTH-1);
-    		break;
-    	case REQUEST_CONFIG_CODE:
-    		xTimerStartFromISR(UARTTimer, &xHigherPriorityTaskWoken);
-    		counterRx = 1;
-    		HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[1], REQUEST_CONFIG_LENGTH-1);
-    		break;
-    	default:
-    		HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[0], 1);
-    	}
+			if(i == SHORE_REQUEST_MODES_NUMBER-1) {
+				HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
+			}
+		}
+	}
+	else if(counterRx == 1) {
+		uartBus[SHORE_UART].packageReceived = true;
+		counterRx = 2;
+	}
 
-    }
-    else if(counterRx == 1) {
-    	uartBus[SHORE_UART].packageReceived = true;
-    	counterRx = 2;
-    }
-
-    if (xHigherPriorityTaskWoken == pdTRUE) {
-    	xHigherPriorityTaskWoken = pdFALSE;
-    	taskYIELD();
-    }
+	if (xHigherPriorityTaskWoken == pdTRUE) {
+		xHigherPriorityTaskWoken = pdFALSE;
+		taskYIELD();
+	}
 }
 
 void DevicesRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
@@ -435,53 +424,55 @@ void ThrustersResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster
 
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
 {
-    if(IsChecksumm16bCorrect(requestBuf, REQUEST_CONFIG_LENGTH)) {
-    	struct shoreConfigRequest_s req;
-    	memcpy((void*)&req, (void*)requestBuf, REQUEST_CONFIG_LENGTH);
+	if(IsCrc16ChecksummCorrect(requestBuf, REQUEST_CONFIG_LENGTH)) {
+		struct shoreConfigRequest_s req;
+		memcpy((void*)&req, (void*)requestBuf, REQUEST_CONFIG_LENGTH);
 
-        robot->joySpeed.march = req.march;
-        robot->joySpeed.lag = req.lag;
-        robot->joySpeed.depth = req.depth;
-        robot->joySpeed.roll = req.roll;
-        robot->joySpeed.pitch = req.pitch;
-        robot->joySpeed.yaw = req.yaw;
+		robot->joySpeed.march = req.march;
+		robot->joySpeed.lag = req.lag;
+		robot->joySpeed.depth = req.depth;
+		robot->joySpeed.roll = req.roll;
+		robot->joySpeed.pitch = req.pitch;
+		robot->joySpeed.yaw = req.yaw;
 
-        robot->stabConstants[req.contour].pJoyUnitCast = req.pJoyUnitCast;
-        robot->stabConstants[req.contour].pSpeedDyn = req.pSpeedDyn;
-        robot->stabConstants[req.contour].pErrGain = req.pErrGain;
+		robot->stabConstants[req.contour].pJoyUnitCast = req.pJoyUnitCast;
+		robot->stabConstants[req.contour].pSpeedDyn = req.pSpeedDyn;
+		robot->stabConstants[req.contour].pErrGain = req.pErrGain;
 
-        robot->stabConstants[req.contour].aFilter[POS_FILTER].T = req.posFilterT;
-        robot->stabConstants[req.contour].aFilter[POS_FILTER].K = req.posFilterK;
-        robot->stabConstants[req.contour].aFilter[SPEED_FILTER].T = req.speedFilterT;
-        robot->stabConstants[req.contour].aFilter[SPEED_FILTER].K = req.speedFilterK;
+		robot->stabConstants[req.contour].aFilter[POS_FILTER].T = req.posFilterT;
+		robot->stabConstants[req.contour].aFilter[POS_FILTER].K = req.posFilterK;
+		robot->stabConstants[req.contour].aFilter[SPEED_FILTER].T = req.speedFilterT;
+		robot->stabConstants[req.contour].aFilter[SPEED_FILTER].K = req.speedFilterK;
 
-        robot->stabConstants[req.contour].pid.pGain = req.pid_pGain;
-        robot->stabConstants[req.contour].pid.iGain = req.pid_iGain;
-        robot->stabConstants[req.contour].pid.iMax = req.pid_iMax;
-        robot->stabConstants[req.contour].pid.iMin = req.pid_iMin;
+		robot->stabConstants[req.contour].pid.pGain = req.pid_pGain;
+		robot->stabConstants[req.contour].pid.iGain = req.pid_iGain;
+		robot->stabConstants[req.contour].pid.iMax = req.pid_iMax;
+		robot->stabConstants[req.contour].pid.iMin = req.pid_iMin;
 
-        robot->stabConstants[req.contour].pThrustersCast = req.pThrustersCast;
-        robot->stabConstants[req.contour].pThrustersMin = req.pThrustersMin;
-        robot->stabConstants[req.contour].pThrustersMax = req.pThrustersMax;
+		robot->stabConstants[req.contour].pThrustersCast = req.pThrustersCast;
+		robot->stabConstants[req.contour].pThrustersMin = req.pThrustersMin;
+		robot->stabConstants[req.contour].pThrustersMax = req.pThrustersMax;
 
-        ContourSelected = req.contour;
+		ContourSelected = req.contour;
 
-        for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
-        	robot->stabConstants[i].enable = false;
-        }
-        robot->stabConstants[req.contour].enable = true;
+		updatePidConstants();
 
-        ++uartBus[SHORE_UART].successRxCounter;;
-    }
-    else {
-    	++uartBus[SHORE_UART].brokenRxCounter;
-    }
+		for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+			robot->stabConstants[i].enable = false;
+		}
+		robot->stabConstants[req.contour].enable = true;
+
+		++uartBus[SHORE_UART].successRxCounter;;
+	}
+	else {
+		++uartBus[SHORE_UART].brokenRxCounter;
+	}
 }
 
 
 void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 {
-    if (IsChecksumm16bCorrect(requestBuf, SHORE_REQUEST_LENGTH)) {
+    if (IsCrc16ChecksummCorrect(requestBuf, SHORE_REQUEST_LENGTH)) {
     	struct shoreRequest_s req;
     	memcpy((void*)&req, (void*)requestBuf, SHORE_REQUEST_LENGTH);
 
@@ -696,7 +687,7 @@ void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
 
     memcpy((void*)responseBuf, (void*)&res, SHORE_RESPONSE_LENGTH);
 
-    AddChecksumm16b(responseBuf, SHORE_RESPONSE_LENGTH);
+    AddCrc16Checksumm(responseBuf, SHORE_RESPONSE_LENGTH);
 }
 
 void ShoreConfigResponse(struct Robot *robot, uint8_t *responseBuf)
@@ -736,7 +727,7 @@ void ShoreConfigResponse(struct Robot *robot, uint8_t *responseBuf)
 
 	memcpy((void*)responseBuf, (void*)&res, SHORE_CONFIG_RESPONSE_LENGTH);
 
-	AddChecksumm16b(responseBuf, SHORE_CONFIG_RESPONSE_LENGTH);
+	AddCrc16Checksumm(responseBuf, SHORE_CONFIG_RESPONSE_LENGTH);
 }
 
 void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf)

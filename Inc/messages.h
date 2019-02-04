@@ -307,7 +307,7 @@ struct imuResponse_s
 #define DELAY_PC_TASK 				10
 #define DELAY_SENSOR_TASK 			10
 #define DELAY_STABILIZATION_TASK 	10
-#define DELAY_TIMER_TASK 			100
+#define DELAY_TIMER_TASK 			30
 #define DELAY_SILENCE    			20000
 #define DELAY_UART_TIMEOUT    		5
 
@@ -317,7 +317,7 @@ struct imuResponse_s
 #define WAITING_THRUSTERS 			10
 #define WAITING_SENSORS				10
 #define WAITING_PC					10
-#define WAITING_TIMER				10
+#define WAITING_TIMER				5
 
 
 #pragma pack(pop)

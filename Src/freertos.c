@@ -176,7 +176,7 @@ void MX_FREERTOS_Init(void) {
     uartBusesInit();
     stabilizationInit(&Q100);
 
-    HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[0], 1);
+    HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -482,34 +482,33 @@ void func_tPcCommTask(void const * argument)
 /* func_tUartTimer function */
 void func_tUartTimer(void const * argument)
 {
-  /* USER CODE BEGIN func_tUartTimer */
+	/* USER CODE BEGIN func_tUartTimer */
 	if (uartBus[SHORE_UART].packageReceived) {
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
-			switch(ShoreRequestBuffer[0]) {
-				case SHORE_REQUEST_CODE:
-					ShoreRequest(&Q100, ShoreRequestBuffer);
-					ShoreResponse(&Q100, ShoreResponseBuffer);
-					uartBus[SHORE_UART].txLength = SHORE_RESPONSE_LENGTH;
-					break;
-				case REQUEST_CONFIG_CODE:
-					ShoreConfigRequest(&Q100, ShoreRequestBuffer);
-					ShoreConfigResponse(&Q100, ShoreResponseBuffer);
-					uartBus[SHORE_UART].txLength = SHORE_CONFIG_RESPONSE_LENGTH;
-					break;
+			switch(uartBus[SHORE_UART].rxBuffer[0]) {
+			case SHORE_REQUEST_CODE:
+				ShoreRequest(&Q100, uartBus[SHORE_UART].rxBuffer);
+				ShoreResponse(&Q100, uartBus[SHORE_UART].txBuffer);
+				uartBus[SHORE_UART].txLength = SHORE_RESPONSE_LENGTH;
+				break;
+			case REQUEST_CONFIG_CODE:
+				ShoreConfigRequest(&Q100, uartBus[SHORE_UART].rxBuffer);
+				ShoreConfigResponse(&Q100, uartBus[SHORE_UART].txBuffer);
+				uartBus[SHORE_UART].txLength = SHORE_CONFIG_RESPONSE_LENGTH;
+				break;
 			}
 			xSemaphoreGive(mutDataHandle);
 		}
-		uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
-		HAL_UART_Transmit_IT(&huart1, ShoreResponseBuffer, uartBus[SHORE_UART].txLength);
+		HAL_UART_Transmit_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].txBuffer, uartBus[SHORE_UART].txLength);
 	}
 	else {
 		++uartBus[SHORE_UART].outdatedRxCounter;
 	}
 	counterRx = 0;
 	uartBus[SHORE_UART].packageReceived = false;
-	HAL_UART_AbortReceive_IT(&huart1);
-	HAL_UART_Receive_IT(&huart1, &ShoreRequestBuffer[0], 1);
-  /* USER CODE END func_tUartTimer */
+	HAL_UART_AbortReceive_IT(uartBus[SHORE_UART].huart);
+	HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
+	/* USER CODE END func_tUartTimer */
 }
 
 /* tSilence_func function */

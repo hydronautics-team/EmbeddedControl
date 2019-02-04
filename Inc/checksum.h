@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+uint16_t GetCrc16Checksumm(uint8_t *pcBlock, uint16_t len);
+bool IsCrc16ChecksummCorrect(uint8_t *pcBlock, uint16_t len);
+void AddCrc16Checksumm(uint8_t *pcBlock, uint16_t len);
+
 bool IsChecksumm16bCorrect(uint8_t *msg, uint16_t length);
 void AddChecksumm16b(uint8_t *msg, uint16_t length);
 
