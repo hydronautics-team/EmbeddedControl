@@ -44,6 +44,7 @@ struct uartBus_s {
 	uint32_t brokenRxCounter;		// Broken received packages counter (incorrect checksum)
 	uint32_t outdatedRxCounter;		// Outdated received packages counter (timeout reached)
 	TickType_t timeoutCounter;		// Timeout counter for receive and transmit
+	TickType_t lastMessage;
 	// Bus configuration
 	uint8_t brokenRxTolerance;		// How many broken packages will be received until special event
 	uint32_t timeoutRxTolerance;	// How many milliseconds to wait new package and not cast special event

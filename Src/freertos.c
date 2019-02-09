@@ -177,6 +177,9 @@ void MX_FREERTOS_Init(void) {
     stabilizationInit(&Q100);
 
     HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
+
+    HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
+    HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -204,6 +207,8 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_TIMERS */
   SilenceTimer = xTimerCreate("silence", DELAY_SILENCE/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) tSilence_func);
   UARTTimer = xTimerCreate("timer", DELAY_TIMER_TASK/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) func_tUartTimer);
+
+  xTimerStart(SilenceTimer, 10);
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the thread(s) */
@@ -451,16 +456,19 @@ void func_tSensCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tSensCommTask */
 	uint32_t sysTime = osKernelSysTick();
-	uint8_t output = 0xAA;
+	//uint8_t output = 0xAA;
   /* Infinite loop */
   for(;;)
   {
-	  HAL_I2C_Master_Transmit_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1, &output, 1);
-	  receiveI2cPackageDMA (DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
-	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
-		  SensorsResponseUpdate(&Q100, PressureResponseBuffer, DEV_I2C);
-		  xSemaphoreGive(mutDataHandle);
-	  }
+	  //HAL_I2C_Master_Abort_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1);
+	  //HAL_I2C_Master_Receive_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1, , 1);
+	  //HAL_I2C_Master_Receive(&hi2c2, SENSORS_PRESSURE_ADDR>>1, PressureResponseBuffer, PRESSURE_SENSOR_SIZE, 1);
+	  //HAL_I2C_Master_Transmit_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1, &output, 1);
+	  //receiveI2cPackageDMA (DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
+	  //if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
+	  //	  SensorsResponseUpdate(&Q100, PressureResponseBuffer, DEV_I2C);
+	  //	  xSemaphoreGive(mutDataHandle);
+	  //}
 	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
   }
   /* USER CODE END func_tSensCommTask */
@@ -505,7 +513,10 @@ void func_tUartTimer(void const * argument)
 			}
 			xSemaphoreGive(mutDataHandle);
 		}
-		HAL_UART_Transmit_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].txBuffer, uartBus[SHORE_UART].txLength);
+
+		if(uartBus[SHORE_UART].huart == &huart1) {
+			HAL_UART_Transmit_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].txBuffer, uartBus[SHORE_UART].txLength);
+		}
 	}
 	else {
 		++uartBus[SHORE_UART].outdatedRxCounter;
@@ -521,7 +532,18 @@ void func_tUartTimer(void const * argument)
 void tSilence_func(void const * argument)
 {
   /* USER CODE BEGIN tSilence_func */
-
+	if(fromTickToMs(xTaskGetTickCount()) - uartBus[SHORE_UART].lastMessage > UART_SWITCH_DELAY && counterRx == 0) {
+		if(uartBus[SHORE_UART].huart == &huart1) {
+			uartBus[SHORE_UART].huart = &huart5;
+		}
+		else if(uartBus[SHORE_UART].huart == &huart5) {
+			uartBus[SHORE_UART].huart = &huart1;
+		}
+		HAL_UART_AbortReceive_IT(uartBus[SHORE_UART].huart);
+		HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
+	}
+	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+	xTimerStart(SilenceTimer, 10);
   /* USER CODE END tSilence_func */
 }
 

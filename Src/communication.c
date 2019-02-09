@@ -45,30 +45,30 @@ void variableInit() {
 
     Q100.thrusters[HLB].kForward = 1;
     Q100.thrusters[HLF].kForward = 1;
-    Q100.thrusters[HRB].kForward = -1;
-    Q100.thrusters[HRF].kForward = -1;
+    Q100.thrusters[HRB].kForward = 1;
+    Q100.thrusters[HRF].kForward = 1;
     Q100.thrusters[VB].kForward = 1;
     Q100.thrusters[VF].kForward = 1;
     Q100.thrusters[VL].kForward = 1;
     Q100.thrusters[VR].kForward = 1;
 
-    Q100.thrusters[HLB].kForward = 1;
-    Q100.thrusters[HLF].kForward = 1;
-    Q100.thrusters[HRB].kForward = -1;
-    Q100.thrusters[HRF].kForward = -1;
-    Q100.thrusters[VB].kForward = 1;
-    Q100.thrusters[VF].kForward = 1;
-    Q100.thrusters[VL].kForward = 1;
-    Q100.thrusters[VR].kForward = 1;
+    Q100.thrusters[HLB].kBackward = 1;
+    Q100.thrusters[HLF].kBackward = 1;
+    Q100.thrusters[HRB].kBackward = 1;
+    Q100.thrusters[HRF].kBackward = 1;
+    Q100.thrusters[VB].kBackward = 1;
+    Q100.thrusters[VF].kBackward = 1;
+    Q100.thrusters[VL].kBackward = 1;
+    Q100.thrusters[VR].kBackward = 1;
 
-    Q100.thrusters[HLB].inverse = false;
+    Q100.thrusters[HLB].inverse = true;
     Q100.thrusters[HLF].inverse = false;
-    Q100.thrusters[HRB].inverse = true;
-    Q100.thrusters[HRF].inverse = true;
+    Q100.thrusters[HRB].inverse = false;
+    Q100.thrusters[HRF].inverse = false;
     Q100.thrusters[VB].inverse = false;
     Q100.thrusters[VF].inverse = false;
     Q100.thrusters[VL].inverse = false;
-    Q100.thrusters[VR].inverse = false;
+    Q100.thrusters[VR].inverse = true;
 
     Q100.device[DEV1].address = 0x03;
     Q100.device[GRAB].address = 0x01;
@@ -133,6 +133,7 @@ void uartBusesInit()
 		uartBus[i].brokenRxCounter = 0;
 		uartBus[i].outdatedRxCounter = 0;
 		uartBus[i].timeoutCounter = 0;
+		uartBus[i].lastMessage = 0;
 	}
 }
 
@@ -247,6 +248,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		if(uartBus[i].huart == huart) {
 			bus = &uartBus[i];
 			bus->packageReceived = true;
+			bus->lastMessage = fromTickToMs(xTaskGetTickCount());
 			break;
 		}
 	}
@@ -255,28 +257,29 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
 {
 	TickType_t timeBegin = xTaskGetTickCount();
+	i2c2PackageReceived = false;
 	switch(I2C) {
 	case DEV_I2C:
 		HAL_I2C_Master_Receive_IT(&hi2c2, addr>>1, buf, length);
-		while (!i2c1PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+		while (!i2c2PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
 			osDelay(DELAY_SENSOR_TASK);
 		}
-		i2c1PackageReceived = false;
 		break;
 	}
+	HAL_I2C_Master_Abort_IT(&hi2c2, addr>>1);
 }
 
 
 void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
 {
 	TickType_t timeBegin = xTaskGetTickCount();
+	i2c2PackageTransmit = false;
 	switch(I2C) {
 	case DEV_I2C:
-		HAL_I2C_Master_Transmit_IT(&hi2c1, addr>>1, buf, length);
-		while (!i2c1PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+		HAL_I2C_Master_Transmit_IT(&hi2c2, addr>>1, buf, length);
+		while (!i2c2PackageTransmit && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
 			osDelay(DELAY_SENSOR_TASK);
 		}
-		i2c1PackageTransmit = false;
 		break;
 	}
 }
@@ -333,6 +336,7 @@ void ShoreReceive()
 	}
 	else if(counterRx == 1) {
 		uartBus[SHORE_UART].packageReceived = true;
+		uartBus[SHORE_UART].lastMessage = fromTickToMs(xTaskGetTickCount());
 		counterRx = 2;
 	}
 
@@ -589,13 +593,14 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
         	bDepth = robot->joySpeed.depth;
         }
 
+        // what the fuck is happening here? this code is actually correct, why?
         int16_t velocity[THRUSTERS_NUMBER];
-        velocity[HLB] = - robot->joySpeed.march + robot->joySpeed.lag - bYaw;
+        velocity[HLB] = + robot->joySpeed.march - robot->joySpeed.lag + bYaw;
+        velocity[HRB] = - robot->joySpeed.march - robot->joySpeed.lag + bYaw;
         velocity[HLF] = + robot->joySpeed.march + robot->joySpeed.lag + bYaw;
-        velocity[HRB] = + robot->joySpeed.march + robot->joySpeed.lag - bYaw;
-        velocity[HRF] = + robot->joySpeed.march - robot->joySpeed.lag - bYaw;
-        velocity[VB] = - bDepth - bPitch;
-        velocity[VF] = + bDepth - bPitch;
+        velocity[HRF] = - robot->joySpeed.march + robot->joySpeed.lag + bYaw;
+        velocity[VB] = - bDepth + bPitch;
+        velocity[VF] = - bDepth - bPitch;
         velocity[VL] = - bDepth + bRoll;
         velocity[VR] = - bDepth - bRoll;
 
