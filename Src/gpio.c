@@ -70,7 +70,7 @@
 void MX_GPIO_Init(void)
 {
 
-  GPIO_InitTypeDef GPIO_InitStruct;
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOF_CLK_ENABLE();
@@ -84,7 +84,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, CAM1_Pin|CAM2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin|RES_PC_2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin|RES_PC_2_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ON_OFF_GPIO_Port, ON_OFF_Pin, GPIO_PIN_RESET);
@@ -102,7 +102,7 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pins : PEPin PEPin */
   GPIO_InitStruct.Pin = RES_PC_1_Pin|RES_PC_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
@@ -125,13 +125,5 @@ void MX_GPIO_Init(void)
 /* USER CODE BEGIN 2 */
 
 /* USER CODE END 2 */
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

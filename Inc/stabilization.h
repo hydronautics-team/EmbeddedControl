@@ -3,23 +3,33 @@
 
 #include <math.h>
 #include <stdbool.h>
-#include "PID.h"
+
+#include "FreeRTOSTick.h"
 #include "robot.h"
 #include "global.h"
 
+struct PidRegulator_s{
+	TickType_t lastUpdateTick;
+	float iGain;
+	float dGain;
+	float pGain;
+	float dState;
+	float iState;
+	float iMax;
+	float iMin;
 
-#define STUBILIZATION_BUFF_SIZE 10
-#define KREN_INDEX 1
-#define DIFF_INDEX 2
-
-extern struct PIDRegulator rollPID;
-extern struct PIDRegulator pitchPID;
-extern struct PIDRegulator yawPID;
+	float dTermLast;
+	float pTermLast;
+	float iTermLast;
+};
 
 void stabilizationInit(struct Robot *robot);
-void computeVmaValues(struct Robot *robot);
-void stabilizeRoll(struct Robot *robot);
-void stabilizePitch(struct Robot *robot);
-void stabilizeYaw(struct Robot *robot);
+void stabilizationStart(uint8_t contour);
+void stabilizationUpdate(uint8_t contour);
+
+void pidInit(struct PidRegulator_s *pid, float pGain, float iGain, float iMax, float iMin, float dGain);
+float pidUpdate(struct PidRegulator_s *pid, float error, float deltaTime);
+void pidReset(struct PidRegulator_s *pid);
+void updatePidConstants();
 
 #endif

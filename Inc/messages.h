@@ -6,18 +6,16 @@
 #pragma pack(push, 1)
 
 /* STM send requests and VMA send responses */
+#define THRUSTERS_NUMBER             		8
 
-#define VMA_NUMBER              	8
-#define VMA_DRIVER_NUMBER       	8
+#define THRUSTERS_REQUEST_LENGTH   			5
+#define THRUSTERS_CONFIG_REQUEST_LENGTH  	13
+#define THRUSTERS_RESPONSE_LENGTH  			9
 
-#define VMA_REQUEST_LENGTH   		5
-#define VMA_CONFIG_REQUEST_LENGTH  	13
-#define VMA_RESPONSE_LENGTH  		9
+#define THRUSTERS_NORMAL_REQUEST_TYPE 		0x01
+#define THRUSTERS_CONFIG_REQUEST_TYPE 		0x02
 
-#define VMA_NORMAL_REQUEST_TYPE 	0x01
-#define VMA_CONFIG_REQUEST_TYPE 	0x02
-
-struct vmaRequest_s
+struct thrustersRequest_s
 {
 	uint8_t AA;
 	uint8_t type; // 0x01
@@ -26,7 +24,7 @@ struct vmaRequest_s
 	uint8_t crc;
 };
 
-struct vmaConfigRequest_s
+struct thrustersConfigRequest_s
 {
 	uint8_t AA;
 	uint8_t type; // 0x02
@@ -40,7 +38,7 @@ struct vmaConfigRequest_s
 	uint8_t crc;
 };
 
-struct vmaResponse_s
+struct thrustersResponse_s
 {
 	uint8_t AA;
 	uint8_t type; // 0x01
@@ -53,12 +51,12 @@ struct vmaResponse_s
 
 /* STM send requests and DEV send responses */
 
-#define DEV_REQUEST_LENGTH 			7
-#define DEV_NULL					-1
-#define DEV_RESPONSE_LENGTH			10
-#define DEV_DRIVER_NUMBER      		4
+#define DEVICES_REQUEST_LENGTH 			7
+#define DEVICES_NULL					-1
+#define DEVICES_RESPONSE_LENGTH			10
+#define DEVICES_NUMBER      			4
 
-struct devRequest_s
+struct devicesRequest_s
 {
 	uint8_t AA1;
 	uint8_t AA2;
@@ -69,7 +67,7 @@ struct devRequest_s
 	uint8_t checksum;
 };
 
-struct devResponse_s
+struct devicesResponse_s
 {
     uint8_t AA;
     uint8_t address;
@@ -122,106 +120,58 @@ struct shoreRequest_s
 };
 
 #define REQUEST_CONFIG_CODE             0x55
-#define REQUEST_CONFIG_LENGTH           195
+#define REQUEST_CONFIG_LENGTH           72
 
 struct shoreConfigRequest_s
 {
     uint8_t type;
+    uint8_t contour;
 
-    float depth_k1;
-    float depth_k2;
-    float depth_k3;
-    float depth_k4;
-    float depth_iborders;
-    float depth_pgain;
-    float depth_igain;
-
-    float roll_k1;
-    float roll_k2;
-    float roll_k3;
-    float roll_k4;
-    float roll_iborders;
-    float roll_pgain;
-    float roll_igain;
-
-    float pitch_k1;
-    float pitch_k2;
-    float pitch_k3;
-    float pitch_k4;
-    float pitch_iborders;
-    float pitch_pgain;
-    float pitch_igain;
-
-    float yaw_k1;
-    float yaw_k2;
-    float yaw_k3;
-    float yaw_k4;
-    float yaw_iborders;
-    float yaw_pgain;
-    float yaw_igain;
-
-    uint8_t position_hlb;
-    uint8_t position_hlf;
-    uint8_t position_hrb;
-    uint8_t position_hrf;
-    uint8_t position_vb;
-    uint8_t position_vf;
-    uint8_t position_vl;
-    uint8_t position_vr;
-
-    uint8_t setting_hlb;
-    uint8_t setting_hlf;
-    uint8_t setting_hrb;
-    uint8_t setting_hrf;
-    uint8_t setting_vb;
-    uint8_t setting_vf;
-    uint8_t setting_vl;
-    uint8_t setting_vr;
-
-    uint8_t kforward_hlb;
-    uint8_t kforward_hlf;
-    uint8_t kforward_hrb;
-    uint8_t kforward_hrf;
-    uint8_t kforward_vb;
-    uint8_t kforward_vf;
-    uint8_t kforward_vl;
-    uint8_t kforward_vr;
-
-    uint8_t kbackward_hlb;
-    uint8_t kbackward_hlf;
-    uint8_t kbackward_hrb;
-    uint8_t kbackward_hrf;
-    uint8_t kbackward_vb;
-    uint8_t kbackward_vf;
-    uint8_t kbackward_vl;
-    uint8_t kbackward_vr;
-
-    uint16_t checksum;
-};
-
-#define SHORE_RESPONSE_LENGTH			72
-
-struct shoreResponse_s
-{
+    int16_t march;
+    int16_t lag;
+    int16_t depth;
     int16_t roll;
     int16_t pitch;
     int16_t yaw;
 
-    int16_t rollSpeed;
-    int16_t pitchSpeed;
-    int16_t yawSpeed;
+	float pJoyUnitCast;
+	float pSpeedDyn;
+	float pErrGain;
 
-    uint16_t pressure;
+	float posFilterT;
+	float posFilterK;
+	float speedFilterT;
+	float speedFilterK;
 
-    uint8_t wf_type;
-    uint8_t wf_tickrate;
-    uint8_t wf_voltage;
-    float wf_x;
-    float wf_y;
+	float pid_pGain;
+	float pid_iGain;
+	float pid_iMax;
+	float pid_iMin;
+
+	float pThrustersCast;
+	float pThrustersMin;
+	float pThrustersMax;
+
+    uint16_t checksum;
+};
+
+#define SHORE_RESPONSE_LENGTH			70
+
+struct shoreResponse_s
+{
+    float roll;
+    float pitch;
+    float yaw;
+
+    float rollSpeed;
+    float pitchSpeed;
+    float yawSpeed;
+
+    float pressure;
+    float in_pressure;
 
     uint8_t dev_state;
     int16_t leak_data;
-    int16_t in_pressure;
 
     uint16_t vma_current_hlb;
     uint16_t vma_current_hlf;
@@ -232,15 +182,6 @@ struct shoreResponse_s
     uint16_t vma_current_vl;
     uint16_t vma_current_vr;
 
-    int8_t vma_velocity_hlb;
-    int8_t vma_velocity_hlf;
-    int8_t vma_velocity_hrb;
-    int8_t vma_velocity_hrf;
-    int8_t vma_velocity_vb;
-    int8_t vma_velocity_vf;
-    int8_t vma_velocity_vl;
-    int8_t vma_velocity_vr;
-
     uint16_t dev_current_light;
     uint16_t dev_current_tilt;
     uint16_t dev_current_grab;
@@ -249,14 +190,61 @@ struct shoreResponse_s
     uint16_t dev_current_dev2;
 
     uint16_t vma_errors;
-    uint8_t dev_errors;
+    uint16_t dev_errors;
     uint8_t pc_errors;
 
     uint16_t checksum;
 };
 
+#define SHORE_CONFIG_RESPONSE_LENGTH			95
+
+struct shoreConfigResponse_s
+{
+	uint8_t code;
+
+	float roll;
+	float pitch;
+	float yaw;
+
+	float rollSpeed;
+	float pitchSpeed;
+	float yawSpeed;
+
+	float pressure;
+	float in_pressure;
+
+	float inputSignal;
+	float speedSignal;
+	float posSignal;
+
+	float oldSpeed;
+	float oldPos;
+
+	float joyUnitCasted;
+	float joy_iValue;
+	float posError;
+	float speedError;
+	float dynSummator;
+	float pidValue;
+	float posErrorAmp;
+	float speedFiltered;
+	float posFiltered;
+
+	float LastTick;
+
+    uint16_t checksum;
+};
+
+#define SHORE_REQUEST_MODES_NUMBER 2
+
+enum ShoreRequestModes {
+	SHORE_REQUEST_NORMAL = 0,
+	SHORE_REQUEST_CONFIG,
+	SHORE_REQUEST_DIRECT
+};
+
 /* --- IMU package and parsing info  --- */
-#define IMU_REQUEST_LENGTH 11 // size of transmit package
+#define IMU_REQUEST_LENGTH 7 // size of transmit package
 #define IMU_RESPONSE_LENGTH 15 // size of receive package
 #define IMU_CHECKSUMS 5 // amount of packages
 
@@ -313,20 +301,24 @@ struct imuResponse_s
 /* --- Delays and waiting rates --- */
 
 #define DELAY_LED_TASK 				1000
-#define DELAY_VMA_TASK 				10
-#define DELAY_DEV_TASK 				10
+#define DELAY_THRUSTERS_TASK 		20
+#define DELAY_DEVICES_TASK 			10
 #define DELAY_IMU_TASK 				10
 #define DELAY_PC_TASK 				10
 #define DELAY_SENSOR_TASK 			10
-#define DELAY_STAB_TASK 			10
-#define DELAY_TIMER_TASK 			10
+#define DELAY_STABILIZATION_TASK 	10
+#define DELAY_TIMER_TASK 			30
+#define DELAY_SILENCE    			1000
+#define DELAY_UART_TIMEOUT    		5
 
-#define WAITING_DEV 				10
+#define WAITING_DEVICES 			10
 #define WAITING_IMU 				10
 #define WAITING_SHORE 				10
-#define WAITING_VMA 				10
+#define WAITING_THRUSTERS 			10
 #define WAITING_SENSORS				10
 #define WAITING_PC					10
+#define WAITING_TIMER				5
+#define UART_SWITCH_DELAY			1000
 
 
 #pragma pack(pop)

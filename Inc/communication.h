@@ -7,8 +7,8 @@
 
 enum {
 	SHORE_UART = 0,
-	VMA_UART,
-	DEV_UART,
+	THRUSTERS_UART,
+	DEVICES_UART,
 	IMU_UART
 };
 
@@ -27,32 +27,65 @@ enum BTErrCodes {
     BT_ERROR_RECEIVED_LESS
 };
 
-extern bool uartPackageReceived[UART_NUMBER];
-extern uint8_t RxBuffer;
-extern uint16_t numberRx;
-extern uint16_t counterRx;
+enum uartTxRxType {
+	TXRX_IT = 0,
+	TXRX_DMA
+};
+
+// Structure for each UART bus
+struct uartBus_s {
+	// Data storage
+	uint8_t* rxBuffer;				// Buffer for received messages
+	uint8_t* txBuffer;				// Buffer for messages to be transmitted
+	// State of the bus
+	bool packageReceived; 			// Is new package received in this moment
+	bool packageTransmitted;		// Is new package transmitted in this moment (true if transmitted but not received)
+	uint16_t successRxCounter;		// Successfully received packages counter (checksum is correct + timeout not reached)
+	uint32_t brokenRxCounter;		// Broken received packages counter (incorrect checksum)
+	uint32_t outdatedRxCounter;		// Outdated received packages counter (timeout reached)
+	TickType_t timeoutCounter;		// Timeout counter for receive and transmit
+	TickType_t lastMessage;
+	// Bus configuration
+	uint8_t brokenRxTolerance;		// How many broken packages will be received until special event
+	uint32_t timeoutRxTolerance;	// How many milliseconds to wait new package and not cast special event
+	uint8_t rxLength;				// Length of the next received message
+	uint8_t txLength;				// Length of the next message to be transmitted
+	uint32_t receiveTimeout;		// How many milliseconds to wait until timeout
+	uint32_t transmitTimeout;		// How many milliseconds to wait until timeout
+	UART_HandleTypeDef *huart;		// Link to huart structure
+	uint8_t txrxType;				// How to send and receive messages (use DMA or regular interruptions)
+};
+
+extern struct uartBus_s uartBus[UART_NUMBER];
+
+extern uint16_t counterRx; // TODO this needs to be refactored as shorestage or smth
+
+// Initialization of user variables
+void variableInit(void);
+void uartBusesInit(void);
 
 // Custom UART DMA receive/transmit functions
-void variableInit(void);
-
-void receivePackage(uint8_t UART, uint8_t *buf, uint8_t length);
-void transmitPackage(uint8_t UART, uint8_t *buf, uint8_t length);
-void transmitAndReceive(uint8_t UART, uint8_t *tr_buf, uint8_t tr_length, uint8_t *re_buf, uint8_t re_length);
+bool receivePackage(struct uartBus_s *bus, bool isrMode);
+bool transmitPackage(struct uartBus_s *bus, bool isrMode);
+bool transmitAndReceive(struct uartBus_s *bus, bool isrMode);
 void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
 void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
 
-void DevRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev);
-void DevResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev);
+void DevicesRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t device);
+void DevicesResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t device);
 
-void VmaRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma);
-void VmaResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t vma);
+void ThrustersRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster);
+void ThrustersResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster);
 
 void ShoreReceive();
+
 void ShoreRequest(struct Robot *robot, uint8_t *requestBuf);
 void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf);
-void ShoreResponse(struct Robot *robot, uint8_t *responseBuf);
 
-void ImuReceive(struct Robot *robot, uint8_t *IMUReceiveBuf, uint8_t *ErrCode);
+void ShoreResponse(struct Robot *robot, uint8_t *responseBuf);
+void ShoreConfigResponse(struct Robot *robot, uint8_t *responseBuf);
+
+void ImuReceive(struct Robot *robot, uint8_t *IMUReceiveBuf);
 
 void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id);
 

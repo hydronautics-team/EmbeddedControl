@@ -122,11 +122,6 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Src/FreeRTOSTick.c</locationURI>
 		</link>
 		<link>
-			<name>Application/Src/PID.c</name>
-			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/Src/PID.c</locationURI>
-		</link>
-		<link>
 			<name>Application/Src/checksum.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/checksum.c</locationURI>
@@ -177,9 +172,9 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Src/stm32f3xx_hal_msp.c</locationURI>
 		</link>
 		<link>
-			<name>Application/Src/stm32f3xx_hal_timebase_TIM.c</name>
+			<name>Application/Src/stm32f3xx_hal_timebase_tim.c</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/Src/stm32f3xx_hal_timebase_TIM.c</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/stm32f3xx_hal_timebase_tim.c</locationURI>
 		</link>
 		<link>
 			<name>Application/Src/stm32f3xx_it.c</name>
@@ -200,6 +195,11 @@
 			<name>Application/TrueSTUDIO/startup_stm32f303xc.s</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/startup_stm32f303xc.s</locationURI>
+		</link>
+		<link>
+			<name>Application/TrueSTUDIO/syscalls.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/syscalls.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/CMSIS/system_stm32f3xx.c</name>
