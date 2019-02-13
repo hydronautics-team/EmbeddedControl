@@ -57,134 +57,135 @@ enum I2C {
 	I2C_PC
 };
 
-//TODO i don't think that you really need this structure (do you have second robot or what?)
-struct Robot
-{
-	// Current camera ID (controls multiplexor)
-	uint8_t cameraNum;
-
-	// Individual characteristics, controls and current state of each VMA
-	struct robot_thrusters {
-		// current controls (data ready to fetch)
-		uint8_t address;
-		uint8_t settings;
-		int8_t desiredSpeed;
-		// current state (fresh data)
-		uint16_t current;
-		uint8_t errors;
-		int8_t realSpeed;
-		int8_t speedError;
-		// characteristics (this parameters affects only sending data, they are not meant to be sent or received)
-		float kForward;	// this constants will be multiplied with desiredSpeed
-		float kBackward;
-		bool inverse; // inverts thruster
-	} thrusters[THRUSTERS_NUMBER];
-
-	struct robot_sensors {
-		float roll;
-		float pitch;
-		float yaw;
-		float rollSpeed;
-		float pitchSpeed;
-		float yawSpeed;
-		float accelX;
-		float accelY;
-		float accelZ;
-		float magX;
-		float magY;
-		float magZ;
-		float quatA;
-		float quatB;
-		float quatC;
-		float quatD;
-		bool resetIMU;
-		float pressure;
-		float in_pressure;
-		float leak;
-	} sensors;
-
-	struct robotPC {
-		uint8_t reset;
-		uint8_t errors;
-	} pc;
-
-	struct JoystickRobotSpeed {
-		float march;
-		float lag;
-		float depth;
-		float roll;
-		float pitch;
-		float yaw;
-	} joySpeed;
-
-	struct PositionRobotMovement {
-		float march;
-		float lag;
-		float depth;
-		float roll;
-		float pitch;
-		float yaw;
-	} posMov;
-
-	struct RobotDev {
-		uint8_t address;
-		uint8_t settings;
-		int8_t force;
-		uint16_t current;
-		uint8_t errors;
-	} device[DEV_AMOUNT];
-
-	struct RobotLogDev {
-		uint8_t state;
-		uint8_t control;
-		uint8_t errors;
-	} logdevice[LOGDEV_AMOUNT];
-
-	struct RobotStabilizationConstants {
-		bool enable;
-		// Before P
-		float pJoyUnitCast;
-		float pSpeedDyn;
-		float pErrGain;
-		// Feedback aperiodic filters
-		struct AperiodicFilter {
-			float T;
-			float K;
-		} aFilter[STABILIZATION_FILTERS];
-		// PID
-		struct PidConstants {
-			float pGain;
-			float iGain;
-			float iMax;
-			float iMin;
-		} pid;
-		// Thrusters unit cast
-		float pThrustersCast;
-		float pThrustersMin;
-		float pThrustersMax;
-	} stabConstants[STABILIZATION_AMOUNT];
-
-	struct RobotStabilizationState {
-		float *inputSignal; 		// Link to input signal. You need to set this on initialization
-		float *speedSignal;			// Link to speed signal. You need to set this on initialization
-		float *posSignal;			// Link to position signal. You need to set this on initialization
-
-		float oldSpeed;
-		float oldPos;
-
-		float joyUnitCasted;
-		float joy_iValue;
-		float posError;
-		float speedError;
-		float dynSummator;
-		float pidValue;
-		float posErrorAmp;
-		float speedFiltered;
-		float posFiltered;
-
-		float LastTick;
-	} stabState[STABILIZATION_AMOUNT];
-
+// Structure for overall robot state
+struct robotState_s {
+	uint8_t cameraNum;	// Current camera ID (controls multiplexor)
+	uint8_t contourSelected; // Current contour selected for the configuration mode
 };
+
+// Individual characteristics, controls and current state of each VMA
+struct robotThrusters_s {
+	// current controls (data ready to fetch)
+	uint8_t address;
+	uint8_t settings;
+	int8_t desiredSpeed;
+	// current state (fresh data)
+	uint16_t current;
+	uint8_t errors;
+	int8_t realSpeed;
+	int8_t speedError;
+	// characteristics (this parameters affects only sending data, they are not meant to be sent or received)
+	float kForward;	// this constants will be multiplied with desiredSpeed
+	float kBackward;	// this constants will be multiplied with desiredSpeed
+	float Saturation; // low and high thresholds for thruster signal
+	// current state (fresh data)t kBackward;
+	bool inverse; // inverts thruster
+};
+
+struct robotSensors_s {
+	float roll;
+	float pitch;
+	float yaw;
+	float rollSpeed;
+	float pitchSpeed;
+	float yawSpeed;
+	float accelX;
+	float accelY;
+	float accelZ;
+	float magX;
+	float magY;
+	float magZ;
+	float quatA;
+	float quatB;
+	float quatC;
+	float quatD;
+	bool resetIMU;
+	float pressure;
+	float in_pressure;
+	float leak;
+};
+
+struct robotPc_s {
+	uint8_t reset;
+	uint8_t errors;
+};
+
+struct robotJoystickSpeed_s {
+	float march;
+	float lag;
+	float depth;
+	float roll;
+	float pitch;
+	float yaw;
+};
+
+struct robotPositionMovement_s {
+	float march;
+	float lag;
+	float depth;
+	float roll;
+	float pitch;
+	float yaw;
+};
+
+struct robotDevices_s {
+	uint8_t address;
+	uint8_t settings;
+	int8_t force;
+	uint16_t current;
+	uint8_t errors;
+};
+
+struct RobotLogicDevices_s {
+	uint8_t state;
+	uint8_t control;
+	uint8_t errors;
+};
+
+struct robotStabilizationConstants_s {
+	bool enable;
+	// Before P
+	float pJoyUnitCast;
+	float pSpeedDyn;
+	float pErrGain;
+	// Feedback aperiodic filters
+	struct AperiodicFilter {
+		float T;
+		float K;
+	} aFilter[STABILIZATION_FILTERS];
+	// PID
+	struct PidConstants {
+		float pGain;
+		float iGain;
+		float iMax;
+		float iMin;
+	} pid;
+	// Thrusters unit cast
+	float pThrustersCast;
+	float pThrustersMin;
+	float pThrustersMax;
+};
+
+struct robotStabilizationState_s {
+	float *inputSignal; 		// Link to input signal. You need to set this on initialization
+	float *speedSignal;			// Link to speed signal. You need to set this on initialization
+	float *posSignal;			// Link to position signal. You need to set this on initialization
+
+	float oldSpeed;
+	float oldPos;
+
+	float joyUnitCasted;
+	float joy_iValue;
+	float posError;
+	float speedError;
+	float dynSummator;
+	float pidValue;
+	float posErrorAmp;
+	float speedFiltered;
+	float posFiltered;
+
+	float LastTick;
+};
+
 
 #endif

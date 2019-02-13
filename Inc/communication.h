@@ -71,22 +71,22 @@ bool transmitAndReceive(struct uartBus_s *bus, bool isrMode);
 void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
 void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
 
-void DevicesRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t device);
-void DevicesResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t device);
+void DevicesRequestUpdate(uint8_t *buf, uint8_t device);
+void DevicesResponseUpdate(uint8_t *buf, uint8_t device);
 
-void ThrustersRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster);
-void ThrustersResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster);
+void ThrustersRequestUpdate(uint8_t *buf, uint8_t thruster);
+void ThrustersResponseUpdate(uint8_t *buf, uint8_t thruster);
 
 void ShoreReceive();
 
-void ShoreRequest(struct Robot *robot, uint8_t *requestBuf);
-void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf);
+void ShoreRequest(uint8_t *requestBuf);
+void ShoreConfigRequest(uint8_t *requestBuf);
 
-void ShoreResponse(struct Robot *robot, uint8_t *responseBuf);
-void ShoreConfigResponse(struct Robot *robot, uint8_t *responseBuf);
+void ShoreResponse(uint8_t *responseBuf);
+void ShoreConfigResponse(uint8_t *responseBuf);
 
-void ImuReceive(struct Robot *robot, uint8_t *IMUReceiveBuf);
+void ImuReceive(uint8_t *IMUReceiveBuf);
 
-void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id);
+void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id);
 
 #endif

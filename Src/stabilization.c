@@ -9,190 +9,136 @@ struct PidRegulator_s pidRegulator[STABILIZATION_AMOUNT];
 float depthSpeed = 0;
 float oldDepthSpeed = 0;
 
-void stabilizationInit(struct Robot *robot)
+void stabilizationInit()
 {
-	pidInit(&pidRegulator[STAB_PITCH],
-            robot->stabConstants[STAB_PITCH].pid.pGain, 0,
-			robot->stabConstants[STAB_PITCH].pid.iGain,
-			robot->stabConstants[STAB_PITCH].pid.iMax,
-			robot->stabConstants[STAB_PITCH].pid.iMin);
+	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+		pidInit(&pidRegulator[i],
+				rStabConstants[i].pid.pGain, 0,
+				rStabConstants[i].pid.iGain,
+				rStabConstants[i].pid.iMax,
+				rStabConstants[i].pid.iMin);
 
-    pidInit(&pidRegulator[STAB_YAW],
-    		robot->stabConstants[STAB_YAW].pid.pGain, 0,
-			robot->stabConstants[STAB_YAW].pid.iGain,
-			robot->stabConstants[STAB_YAW].pid.iMax,
-			robot->stabConstants[STAB_YAW].pid.iMin);
+		rStabState[i].oldSpeed = 0;
+		rStabState[i].oldPos = 0;
 
-    pidInit(&pidRegulator[STAB_DEPTH],
-        	robot->stabConstants[STAB_DEPTH].pid.pGain, 0,
-    		robot->stabConstants[STAB_DEPTH].pid.iGain,
-    		robot->stabConstants[STAB_DEPTH].pid.iMax,
-    		robot->stabConstants[STAB_DEPTH].pid.iMin);
+		rStabState[i].joyUnitCasted = 0;
+		rStabState[i].joy_iValue = 0;
+		rStabState[i].posError = 0;
+		rStabState[i].speedError = 0;
+		rStabState[i].dynSummator = 0;
+		rStabState[i].pidValue = 0;
+		rStabState[i].posErrorAmp = 0;
+		rStabState[i].speedFiltered = 0;
+		rStabState[i].posFiltered = 0;
+		rStabState[i].LastTick = 0;
+	}
 
-    pidInit(&pidRegulator[STAB_DEPTH],
-        	robot->stabConstants[STAB_DEPTH].pid.pGain, 0,
-    		robot->stabConstants[STAB_DEPTH].pid.iGain,
-    		robot->stabConstants[STAB_DEPTH].pid.iMax,
-    		robot->stabConstants[STAB_DEPTH].pid.iMin);
+    rStabConstants[STAB_ROLL].enable = false;
+	rStabConstants[STAB_ROLL].pJoyUnitCast = 1;
+    rStabConstants[STAB_ROLL].pSpeedDyn = 1;
+    rStabConstants[STAB_ROLL].pErrGain = 1;
+    rStabConstants[STAB_ROLL].aFilter[SPEED_FILTER].T = 0;
+    rStabConstants[STAB_ROLL].aFilter[SPEED_FILTER].K = 1;
+    rStabConstants[STAB_ROLL].aFilter[POS_FILTER].T = 0;
+	rStabConstants[STAB_ROLL].aFilter[POS_FILTER].K = 1;
+    rStabConstants[STAB_ROLL].pid.pGain = 1;
+    rStabConstants[STAB_ROLL].pid.iGain = 1;
+    rStabConstants[STAB_ROLL].pid.iMax = 500;
+    rStabConstants[STAB_ROLL].pid.iMin = -500;
+    rStabConstants[STAB_ROLL].pThrustersCast = 1;
+    rStabConstants[STAB_ROLL].pThrustersMax = 127;
+    rStabConstants[STAB_ROLL].pThrustersMin = -127;
 
-    Q100.stabConstants[STAB_ROLL].enable = false;
-	Q100.stabConstants[STAB_ROLL].pJoyUnitCast = 1;
-    Q100.stabConstants[STAB_ROLL].pSpeedDyn = 1;
-    Q100.stabConstants[STAB_ROLL].pErrGain = 1;
-    Q100.stabConstants[STAB_ROLL].aFilter[SPEED_FILTER].T = 0;
-	Q100.stabConstants[STAB_ROLL].aFilter[SPEED_FILTER].K = 1;
-    Q100.stabConstants[STAB_ROLL].aFilter[POS_FILTER].T = 0;
-	Q100.stabConstants[STAB_ROLL].aFilter[POS_FILTER].K = 1;
-    Q100.stabConstants[STAB_ROLL].pid.pGain = 1;
-    Q100.stabConstants[STAB_ROLL].pid.iGain = 1;
-    Q100.stabConstants[STAB_ROLL].pid.iMax = 500;
-    Q100.stabConstants[STAB_ROLL].pid.iMin = -500;
-    Q100.stabConstants[STAB_ROLL].pThrustersCast = 1;
-    Q100.stabConstants[STAB_ROLL].pThrustersMax = 127;
-    Q100.stabConstants[STAB_ROLL].pThrustersMin = -127;
-
-    Q100.stabState[STAB_ROLL].inputSignal = &Q100.joySpeed.roll;
-    Q100.stabState[STAB_ROLL].speedSignal = &Q100.sensors.rollSpeed;
-    Q100.stabState[STAB_ROLL].posSignal = &Q100.sensors.roll;
-    Q100.stabState[STAB_ROLL].oldSpeed = 0;
-    Q100.stabState[STAB_ROLL].oldPos = 0;
-
-    Q100.stabState[STAB_ROLL].joyUnitCasted = 0;
-    Q100.stabState[STAB_ROLL].joy_iValue = 0;
-    Q100.stabState[STAB_ROLL].posError = 0;
-    Q100.stabState[STAB_ROLL].speedError = 0;
-    Q100.stabState[STAB_ROLL].dynSummator = 0;
-    Q100.stabState[STAB_ROLL].pidValue = 0;
-    Q100.stabState[STAB_ROLL].posErrorAmp = 0;
-    Q100.stabState[STAB_ROLL].speedFiltered = 0;
-    Q100.stabState[STAB_ROLL].posFiltered = 0;
-    Q100.stabState[STAB_ROLL].LastTick = 0;
+    rStabState[STAB_ROLL].inputSignal = &rJoySpeed.roll;
+    rStabState[STAB_ROLL].speedSignal = &rSensors.rollSpeed;
+    rStabState[STAB_ROLL].posSignal = &rSensors.roll;
     /////////////////////////////////////////////////////////////
-    Q100.stabConstants[STAB_PITCH].enable = false;
-    Q100.stabConstants[STAB_PITCH].pJoyUnitCast = 1;
-    Q100.stabConstants[STAB_PITCH].pSpeedDyn = 1;
-    Q100.stabConstants[STAB_PITCH].pErrGain = 1;
-    Q100.stabConstants[STAB_PITCH].aFilter[SPEED_FILTER].T = 0;
-    Q100.stabConstants[STAB_PITCH].aFilter[SPEED_FILTER].K = 1;
-    Q100.stabConstants[STAB_PITCH].aFilter[POS_FILTER].T = 0;
-    Q100.stabConstants[STAB_PITCH].aFilter[POS_FILTER].K = 1;
-    Q100.stabConstants[STAB_PITCH].pid.pGain = 1;
-    Q100.stabConstants[STAB_PITCH].pid.iGain = 1;
-    Q100.stabConstants[STAB_PITCH].pid.iMax = 500;
-    Q100.stabConstants[STAB_PITCH].pid.iMin = -500;
-    Q100.stabConstants[STAB_PITCH].pThrustersCast = 1;
-    Q100.stabConstants[STAB_PITCH].pThrustersMax = 127;
-    Q100.stabConstants[STAB_PITCH].pThrustersMin = -127;
+    rStabConstants[STAB_PITCH].enable = false;
+	rStabConstants[STAB_PITCH].pJoyUnitCast = 1;
+    rStabConstants[STAB_PITCH].pSpeedDyn = 1;
+    rStabConstants[STAB_PITCH].pErrGain = 1;
+    rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].T = 0;
+    rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].K = 1;
+    rStabConstants[STAB_PITCH].aFilter[POS_FILTER].T = 0;
+	rStabConstants[STAB_PITCH].aFilter[POS_FILTER].K = 1;
+    rStabConstants[STAB_PITCH].pid.pGain = 1;
+    rStabConstants[STAB_PITCH].pid.iGain = 1;
+    rStabConstants[STAB_PITCH].pid.iMax = 500;
+    rStabConstants[STAB_PITCH].pid.iMin = -500;
+    rStabConstants[STAB_PITCH].pThrustersCast = 1;
+    rStabConstants[STAB_PITCH].pThrustersMax = 127;
+    rStabConstants[STAB_PITCH].pThrustersMin = -127;
 
-    Q100.stabState[STAB_PITCH].inputSignal = &Q100.joySpeed.pitch;
-    Q100.stabState[STAB_PITCH].speedSignal = &Q100.sensors.pitchSpeed;
-    Q100.stabState[STAB_PITCH].posSignal = &Q100.sensors.pitch;
-    Q100.stabState[STAB_PITCH].oldSpeed = 0;
-    Q100.stabState[STAB_PITCH].oldPos = 0;
-
-    Q100.stabState[STAB_PITCH].joyUnitCasted = 0;
-    Q100.stabState[STAB_PITCH].joy_iValue = 0;
-    Q100.stabState[STAB_PITCH].posError = 0;
-    Q100.stabState[STAB_PITCH].speedError = 0;
-    Q100.stabState[STAB_PITCH].dynSummator = 0;
-    Q100.stabState[STAB_PITCH].pidValue = 0;
-    Q100.stabState[STAB_PITCH].posErrorAmp = 0;
-    Q100.stabState[STAB_PITCH].speedFiltered = 0;
-    Q100.stabState[STAB_PITCH].posFiltered = 0;
-    Q100.stabState[STAB_PITCH].LastTick = 0;
+    rStabState[STAB_PITCH].inputSignal = &rJoySpeed.pitch;
+    rStabState[STAB_PITCH].speedSignal = &rSensors.pitchSpeed;
+    rStabState[STAB_PITCH].posSignal = &rSensors.pitch;
     /////////////////////////////////////////////////////////////
-    Q100.stabConstants[STAB_YAW].enable = false;
-    Q100.stabConstants[STAB_YAW].pJoyUnitCast = 1;
-    Q100.stabConstants[STAB_YAW].pSpeedDyn = 1;
-    Q100.stabConstants[STAB_YAW].pErrGain = 1;
-    Q100.stabConstants[STAB_YAW].aFilter[SPEED_FILTER].T = 0;
-    Q100.stabConstants[STAB_YAW].aFilter[SPEED_FILTER].K = 1;
-    Q100.stabConstants[STAB_YAW].aFilter[POS_FILTER].T = 0;
-    Q100.stabConstants[STAB_YAW].aFilter[POS_FILTER].K = 1;
-    Q100.stabConstants[STAB_YAW].pid.pGain = 1;
-    Q100.stabConstants[STAB_YAW].pid.iGain = 1;
-    Q100.stabConstants[STAB_YAW].pid.iMax = 500;
-    Q100.stabConstants[STAB_YAW].pid.iMin = -500;
-    Q100.stabConstants[STAB_YAW].pThrustersCast = 1;
-    Q100.stabConstants[STAB_YAW].pThrustersMax = 127;
-    Q100.stabConstants[STAB_YAW].pThrustersMin = -127;
+    rStabConstants[STAB_YAW].enable = false;
+	rStabConstants[STAB_YAW].pJoyUnitCast = 1;
+    rStabConstants[STAB_YAW].pSpeedDyn = 1;
+    rStabConstants[STAB_YAW].pErrGain = 1;
+    rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].T = 0;
+    rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].K = 1;
+    rStabConstants[STAB_YAW].aFilter[POS_FILTER].T = 0;
+	rStabConstants[STAB_YAW].aFilter[POS_FILTER].K = 1;
+    rStabConstants[STAB_YAW].pid.pGain = 1;
+    rStabConstants[STAB_YAW].pid.iGain = 1;
+    rStabConstants[STAB_YAW].pid.iMax = 500;
+    rStabConstants[STAB_YAW].pid.iMin = -500;
+    rStabConstants[STAB_YAW].pThrustersCast = 1;
+    rStabConstants[STAB_YAW].pThrustersMax = 127;
+    rStabConstants[STAB_YAW].pThrustersMin = -127;
 
-    Q100.stabState[STAB_YAW].inputSignal = &Q100.joySpeed.yaw;
-    Q100.stabState[STAB_YAW].speedSignal = &Q100.sensors.yawSpeed;
-    Q100.stabState[STAB_YAW].posSignal = &Q100.sensors.yaw;
-    Q100.stabState[STAB_YAW].oldSpeed = 0;
-    Q100.stabState[STAB_YAW].oldPos = 0;
-
-    Q100.stabState[STAB_YAW].joyUnitCasted = 0;
-    Q100.stabState[STAB_YAW].joy_iValue = 0;
-    Q100.stabState[STAB_YAW].posError = 0;
-    Q100.stabState[STAB_YAW].speedError = 0;
-    Q100.stabState[STAB_YAW].dynSummator = 0;
-    Q100.stabState[STAB_YAW].pidValue = 0;
-    Q100.stabState[STAB_YAW].posErrorAmp = 0;
-    Q100.stabState[STAB_YAW].speedFiltered = 0;
-    Q100.stabState[STAB_YAW].posFiltered = 0;
-    Q100.stabState[STAB_YAW].LastTick = 0;
+    rStabState[STAB_YAW].inputSignal = &rJoySpeed.yaw;
+    rStabState[STAB_YAW].speedSignal = &rSensors.yawSpeed;
+    rStabState[STAB_YAW].posSignal = &rSensors.yaw;
     /////////////////////////////////////////////////////////////
-    Q100.stabConstants[STAB_DEPTH].enable = false;
-    Q100.stabConstants[STAB_DEPTH].pJoyUnitCast = 1;
-    Q100.stabConstants[STAB_DEPTH].pSpeedDyn = 1;
-    Q100.stabConstants[STAB_DEPTH].pErrGain = 1;
-    Q100.stabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].T = 0;
-    Q100.stabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = 1;
-    Q100.stabConstants[STAB_DEPTH].aFilter[POS_FILTER].T = 0;
-    Q100.stabConstants[STAB_DEPTH].aFilter[POS_FILTER].K = 1;
-    Q100.stabConstants[STAB_DEPTH].pid.pGain = 1;
-    Q100.stabConstants[STAB_DEPTH].pid.iGain = 1;
-    Q100.stabConstants[STAB_DEPTH].pid.iMax = 500;
-    Q100.stabConstants[STAB_DEPTH].pid.iMin = -500;
-    Q100.stabConstants[STAB_DEPTH].pThrustersCast = 1;
-    Q100.stabConstants[STAB_DEPTH].pThrustersMax = 127;
-    Q100.stabConstants[STAB_DEPTH].pThrustersMin = -127;
+    rStabConstants[STAB_DEPTH].enable = false;
+	rStabConstants[STAB_DEPTH].pJoyUnitCast = 1;
+    rStabConstants[STAB_DEPTH].pSpeedDyn = 1;
+    rStabConstants[STAB_DEPTH].pErrGain = 1;
+    rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].T = 0;
+    rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = 1;
+    rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].T = 0;
+	rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].K = 1;
+    rStabConstants[STAB_DEPTH].pid.pGain = 1;
+    rStabConstants[STAB_DEPTH].pid.iGain = 1;
+    rStabConstants[STAB_DEPTH].pid.iMax = 500;
+    rStabConstants[STAB_DEPTH].pid.iMin = -500;
+    rStabConstants[STAB_DEPTH].pThrustersCast = 1;
+    rStabConstants[STAB_DEPTH].pThrustersMax = 127;
+    rStabConstants[STAB_DEPTH].pThrustersMin = -127;
 
-    Q100.stabState[STAB_DEPTH].inputSignal = &Q100.joySpeed.depth;
-    Q100.stabState[STAB_DEPTH].speedSignal = &depthSpeed;
-    Q100.stabState[STAB_DEPTH].posSignal = &Q100.sensors.pressure;
-    Q100.stabState[STAB_DEPTH].oldSpeed = 0;
-    Q100.stabState[STAB_DEPTH].oldPos = 0;
-
-    Q100.stabState[STAB_DEPTH].joyUnitCasted = 0;
-    Q100.stabState[STAB_DEPTH].joy_iValue = 0;
-    Q100.stabState[STAB_DEPTH].posError = 0;
-    Q100.stabState[STAB_DEPTH].speedError = 0;
-    Q100.stabState[STAB_DEPTH].dynSummator = 0;
-    Q100.stabState[STAB_DEPTH].pidValue = 0;
-    Q100.stabState[STAB_DEPTH].posErrorAmp = 0;
-    Q100.stabState[STAB_DEPTH].speedFiltered = 0;
-    Q100.stabState[STAB_DEPTH].posFiltered = 0;
-    Q100.stabState[STAB_DEPTH].LastTick = 0;
+    rStabState[STAB_DEPTH].inputSignal = &rJoySpeed.depth;
+    rStabState[STAB_DEPTH].speedSignal = &depthSpeed;
+    rStabState[STAB_DEPTH].posSignal = &rSensors.pressure;
 }
 
 void stabilizationStart(uint8_t contour)
 {
-	Q100.stabConstants[contour].enable = true;
+	rStabConstants[contour].enable = true;
 
-	Q100.stabState[contour].oldSpeed = *Q100.stabState[contour].speedSignal;
-	Q100.stabState[contour].oldPos = *Q100.stabState[contour].posSignal;
+	rStabState[contour].oldSpeed = *rStabState[contour].speedSignal;
+	rStabState[contour].oldPos = *rStabState[contour].posSignal;
 
-	Q100.stabState[contour].joyUnitCasted = 0;
-	Q100.stabState[contour].joy_iValue = 0;
-	Q100.stabState[contour].posError = 0;
-	Q100.stabState[contour].speedError = 0;
-	Q100.stabState[contour].dynSummator = 0;
-	Q100.stabState[contour].pidValue = 0;
-	Q100.stabState[contour].posErrorAmp = 0;
-	Q100.stabState[contour].speedFiltered = 0;
-	Q100.stabState[contour].posFiltered = 0;
-	Q100.stabState[contour].LastTick = xTaskGetTickCount();
+	rStabState[contour].joyUnitCasted = 0;
+	rStabState[contour].joy_iValue = 0;
+	rStabState[contour].posError = 0;
+	rStabState[contour].speedError = 0;
+	rStabState[contour].dynSummator = 0;
+	rStabState[contour].pidValue = 0;
+	rStabState[contour].posErrorAmp = 0;
+	rStabState[contour].speedFiltered = 0;
+	rStabState[contour].posFiltered = 0;
+	rStabState[contour].LastTick = xTaskGetTickCount();
 
 	pidReset(&pidRegulator[contour]);
 }
 
 void stabilizationUpdate(uint8_t contour)
 {
-	struct RobotStabilizationConstants *constants = &Q100.stabConstants[contour];
-	struct RobotStabilizationState *state = &Q100.stabState[contour];
+	struct robotStabilizationConstants_s *constants = &rStabConstants[contour];
+	struct robotStabilizationState_s *state = &rStabState[contour];
 	float diffTime = fromTickToMs(xTaskGetTickCount() - state->LastTick) / 1000.0f;
 	state->LastTick = xTaskGetTickCount();
 
@@ -301,10 +247,10 @@ void pidReset(struct PidRegulator_s *pid)
 void updatePidConstants()
 {
 	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
-		pidRegulator[i].pGain = Q100.stabConstants[i].pid.pGain;
-		pidRegulator[i].iGain = Q100.stabConstants[i].pid.iGain;
-		pidRegulator[i].iMax = Q100.stabConstants[i].pid.iMax;
-		pidRegulator[i].iMin = Q100.stabConstants[i].pid.iMin;
+		pidRegulator[i].pGain = rStabConstants[i].pid.pGain;
+		pidRegulator[i].iGain = rStabConstants[i].pid.iGain;
+		pidRegulator[i].iMax = rStabConstants[i].pid.iMax;
+		pidRegulator[i].iMin = rStabConstants[i].pid.iMin;
 	}
 }
 

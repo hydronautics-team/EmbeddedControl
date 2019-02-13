@@ -23,7 +23,7 @@ struct PidRegulator_s{
 	float iTermLast;
 };
 
-void stabilizationInit(struct Robot *robot);
+void stabilizationInit();
 void stabilizationStart(uint8_t contour);
 void stabilizationUpdate(uint8_t contour);
 

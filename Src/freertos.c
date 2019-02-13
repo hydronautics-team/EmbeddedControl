@@ -174,7 +174,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
     variableInit();
     uartBusesInit();
-    stabilizationInit(&Q100);
+    stabilizationInit();
 
     HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
 
@@ -286,7 +286,7 @@ void func_tVmaCommTask(void const * argument)
 	for(;;)
 	{
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_THRUSTERS_TASK) == pdTRUE) {
-			ThrustersRequestUpdate(&Q100, ThrustersRequestBuffer, transaction);
+			ThrustersRequestUpdate(ThrustersRequestBuffer, transaction);
 			xSemaphoreGive(mutDataHandle);
 		}
 
@@ -299,7 +299,7 @@ void func_tVmaCommTask(void const * argument)
 		transmitAndReceive(&uartBus[THRUSTERS_UART], false);
 
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_THRUSTERS_TASK) == pdTRUE) {
-			ThrustersResponseUpdate(&Q100, ThrustersResponseBuffer[transaction], transaction);
+			ThrustersResponseUpdate(ThrustersResponseBuffer[transaction], transaction);
 			xSemaphoreGive(mutDataHandle);
 		}
 
@@ -323,12 +323,12 @@ void func_tImuCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  	if(Q100.sensors.resetIMU) {
+	  	if(rSensors.resetIMU) {
 			uartBus[IMU_UART].txBuffer = ImuResetRequestBuffer;
 			uartBus[IMU_UART].txLength = IMU_REQUEST_LENGTH;
 	  		transmitPackage(&uartBus[IMU_UART], false);
 
-	  		Q100.sensors.resetIMU = false;
+	  		rSensors.resetIMU = false;
 	  	}
 	  	else {
 	  		uartBus[IMU_UART].txBuffer = ImuRequestBuffer;
@@ -343,7 +343,7 @@ void func_tImuCommTask(void const * argument)
 
 	  		//if(transmitAndReceive(&uartBus[IMU_UART], false)) {
 	  			if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_IMU_TASK) == pdTRUE) {
-	  				ImuReceive(&Q100, ImuResponseBuffer);
+	  				ImuReceive(ImuResponseBuffer);
 	  				xSemaphoreGive(mutDataHandle);
 	  			}
 	  		//}
@@ -370,32 +370,32 @@ void func_tStabilizationTask(void const * argument)
 	for(;;)
 	{
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STABILIZATION_TASK) == pdTRUE) {
-			if (Q100.stabConstants[STAB_PITCH].enable) {
+			if (rStabConstants[STAB_PITCH].enable) {
 				stabilizationUpdate(STAB_PITCH);
 			}
 			else {
-				Q100.stabState[STAB_PITCH].speedError = 0;
+				rStabState[STAB_PITCH].speedError = 0;
 			}
 
-			if (Q100.stabConstants[STAB_ROLL].enable) {
+			if (rStabConstants[STAB_ROLL].enable) {
 				stabilizationUpdate(STAB_ROLL);
 			}
 			else {
-				Q100.stabState[STAB_ROLL].speedError = 0;
+				rStabState[STAB_ROLL].speedError = 0;
 			}
 
-			if (Q100.stabConstants[STAB_YAW].enable) {
+			if (rStabConstants[STAB_YAW].enable) {
 				stabilizationUpdate(STAB_YAW);
 			}
 			else {
-				Q100.stabState[STAB_YAW].speedError = 0;
+				rStabState[STAB_YAW].speedError = 0;
 			}
 
-			if (Q100.stabConstants[STAB_DEPTH].enable) {
+			if (rStabConstants[STAB_DEPTH].enable) {
 				stabilizationUpdate(STAB_DEPTH);
 			}
 			else {
-				Q100.stabState[STAB_DEPTH].speedError = 0;
+				rStabState[STAB_DEPTH].speedError = 0;
 			}
 
 			xSemaphoreGive(mutDataHandle);
@@ -422,7 +422,7 @@ void func_tDevCommTask(void const * argument)
   for(;;)
   {
         if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_DEVICES_TASK) == pdTRUE) {
-            DevicesRequestUpdate(&Q100, DevicesRequestBuffer, transaction);
+            DevicesRequestUpdate(DevicesRequestBuffer, transaction);
             xSemaphoreGive(mutDataHandle);
         }
 
@@ -435,7 +435,7 @@ void func_tDevCommTask(void const * argument)
 		transmitAndReceive(&uartBus[DEVICES_UART], false);
 
         if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_DEVICES_TASK) == pdTRUE) {
-            DevicesResponseUpdate(&Q100, DevicesResponseBuffer[transaction], transaction);
+            DevicesResponseUpdate(DevicesResponseBuffer[transaction], transaction);
             xSemaphoreGive(mutDataHandle);
         }
 
@@ -461,7 +461,7 @@ void func_tSensCommTask(void const * argument)
   {
 	  receiveI2cPackageDMA(DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
 	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
-	  	  SensorsResponseUpdate(&Q100, PressureResponseBuffer, DEV_I2C);
+	  	  SensorsResponseUpdate(PressureResponseBuffer, DEV_I2C);
 	  	  xSemaphoreGive(mutDataHandle);
 	  }
 	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
@@ -496,13 +496,13 @@ void func_tUartTimer(void const * argument)
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
 			switch(uartBus[SHORE_UART].rxBuffer[0]) {
 				case SHORE_REQUEST_CODE:
-					ShoreRequest(&Q100, uartBus[SHORE_UART].rxBuffer);
-					ShoreResponse(&Q100, uartBus[SHORE_UART].txBuffer);
+					ShoreRequest(uartBus[SHORE_UART].rxBuffer);
+					ShoreResponse(uartBus[SHORE_UART].txBuffer);
 					uartBus[SHORE_UART].txLength = SHORE_RESPONSE_LENGTH;
 					break;
 				case REQUEST_CONFIG_CODE:
-					ShoreConfigRequest(&Q100, uartBus[SHORE_UART].rxBuffer);
-					ShoreConfigResponse(&Q100, uartBus[SHORE_UART].txBuffer);
+					ShoreConfigRequest(uartBus[SHORE_UART].rxBuffer);
+					ShoreConfigResponse(uartBus[SHORE_UART].txBuffer);
 					uartBus[SHORE_UART].txLength = SHORE_CONFIG_RESPONSE_LENGTH;
 					break;
 			}
