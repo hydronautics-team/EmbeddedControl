@@ -266,7 +266,6 @@ void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
 		}
 		break;
 	}
-	HAL_I2C_Master_Abort_IT(&hi2c2, addr>>1);
 }
 
 
@@ -310,7 +309,7 @@ void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id)
 {
 	switch(Sensor_id) {
 	case DEV_I2C:
-		robot->sensors.pressure = FloatFromUint8(buf, 0);
+		robot->sensors.pressure = FloatFromUint8Reverse(buf, 0);
 		break;
 	}
 }

@@ -27,6 +27,7 @@ void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size)
 int16_t MergeBytes(uint8_t most, uint8_t least);
 uint16_t MergeUBytes(uint8_t most, uint8_t least);
 float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos);
+float FloatFromUint8Reverse(uint8_t *buff, uint8_t high_byte_pos);
 void Uint8FromFloat(float input, uint8_t *outArray);
 void nullIntArray(uint8_t *array, uint8_t size);
 bool PickBit(uint8_t input, uint8_t bit);

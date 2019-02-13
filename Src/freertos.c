@@ -456,19 +456,14 @@ void func_tSensCommTask(void const * argument)
 {
   /* USER CODE BEGIN func_tSensCommTask */
 	uint32_t sysTime = osKernelSysTick();
-	//uint8_t output = 0xAA;
   /* Infinite loop */
   for(;;)
   {
-	  //HAL_I2C_Master_Abort_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1);
-	  //HAL_I2C_Master_Receive_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1, , 1);
-	  //HAL_I2C_Master_Receive(&hi2c2, SENSORS_PRESSURE_ADDR>>1, PressureResponseBuffer, PRESSURE_SENSOR_SIZE, 1);
-	  //HAL_I2C_Master_Transmit_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1, &output, 1);
-	  //receiveI2cPackageDMA (DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
-	  //if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
-	  //	  SensorsResponseUpdate(&Q100, PressureResponseBuffer, DEV_I2C);
-	  //	  xSemaphoreGive(mutDataHandle);
-	  //}
+	  receiveI2cPackageDMA(DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
+	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
+	  	  SensorsResponseUpdate(&Q100, PressureResponseBuffer, DEV_I2C);
+	  	  xSemaphoreGive(mutDataHandle);
+	  }
 	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
   }
   /* USER CODE END func_tSensCommTask */

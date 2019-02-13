@@ -185,6 +185,11 @@ float FloatFromUint8(uint8_t *buff, uint8_t high_byte_pos)
 	return (float) ((buff[high_byte_pos] << 24) | (buff[high_byte_pos + 1] << 16) | (buff[high_byte_pos + 2] << 8) | buff[high_byte_pos + 3]);
 }
 
+float FloatFromUint8Reverse(uint8_t *buff, uint8_t high_byte_pos)
+{
+	return *((float*) (&buff[high_byte_pos]));
+}
+
 void Uint8FromFloat(float input, uint8_t *outArray)
 {
 	uint8_t *d = (uint8_t *) &input;
