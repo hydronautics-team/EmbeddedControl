@@ -61,14 +61,14 @@ void variableInit() {
     rThrusters[VL].kBackward = 1;
     rThrusters[VR].kBackward = 1;
 
-    rThrusters[HLB].Saturation = 1;
-    rThrusters[HLF].Saturation = 1;
-    rThrusters[HRB].Saturation = 1;
-    rThrusters[HRF].Saturation = 1;
-    rThrusters[VB].Saturation = 1;
-    rThrusters[VF].Saturation = 1;
-    rThrusters[VL].Saturation = 1;
-    rThrusters[VR].Saturation = 1;
+    rThrusters[HLB].Saturation = 50;
+    rThrusters[HLF].Saturation = 50;
+    rThrusters[HRB].Saturation = 50;
+    rThrusters[HRF].Saturation = 50;
+    rThrusters[VB].Saturation = 50;
+    rThrusters[VF].Saturation = 50;
+    rThrusters[VL].Saturation = 50;
+    rThrusters[VR].Saturation = 50;
 
     rThrusters[HLB].inverse = true;
     rThrusters[HLF].inverse = false;
@@ -83,6 +83,27 @@ void variableInit() {
     rDevice[GRAB].address = 0x01;
     rDevice[GRAB_ROTATION].address = 0x02;
     rDevice[TILT].address = 0x04;
+
+    rSensors.yaw = 0;
+    rSensors.roll =  0;
+    rSensors.pitch =  0;
+
+    rSensors.rollSpeed = 0;
+    rSensors.pitchSpeed = 0;
+    rSensors.yawSpeed = 0;
+
+    rSensors.accelX = 0;
+    rSensors.accelY = 0;
+    rSensors.accelZ = 0;
+
+    rSensors.magX = 0;
+    rSensors.magY = 0;
+    rSensors.magZ = 0;
+
+    rSensors.quatA = 0;
+    rSensors.quatB = 0;
+    rSensors.quatC = 0;
+    rSensors.quatD = 0;
 }
 
 void uartBusesInit()
@@ -476,6 +497,8 @@ void ShoreConfigRequest(uint8_t *requestBuf)
 		}
 		rStabConstants[req.contour].enable = true;
 
+		formThrustVectors();
+
 		++uartBus[SHORE_UART].successRxCounter;;
 	}
 	else {
@@ -580,58 +603,7 @@ void ShoreRequest(uint8_t *requestBuf)
         	}
         }
 
-        float bYaw, bRoll, bPitch, bDepth;
-        if(rStabConstants[STAB_ROLL].enable) {
-            bRoll = rStabState[STAB_ROLL].speedError;
-        }
-        else {
-            bRoll = rJoySpeed.roll;
-        }
-
-        if(rStabConstants[STAB_PITCH].enable) {
-            bPitch = rStabState[STAB_PITCH].speedError;
-        }
-        else {
-            bPitch = rJoySpeed.pitch;
-        }
-
-        if(rStabConstants[STAB_YAW].enable) {
-            bYaw = rStabState[STAB_YAW].speedError;
-        }
-        else {
-            bYaw = rJoySpeed.yaw;
-        }
-
-        if(rStabConstants[STAB_DEPTH].enable) {
-        	bDepth = rStabState[STAB_DEPTH].speedError;
-        }
-        else {
-        	bDepth = rJoySpeed.depth;
-        }
-
-        // what the fuck is happening here? this code is actually correct, why?
-        int16_t velocity[THRUSTERS_NUMBER];
-        velocity[HLB] = + rJoySpeed.march - rJoySpeed.lag + bYaw;
-        velocity[HRB] = - rJoySpeed.march - rJoySpeed.lag + bYaw;
-        velocity[HLF] = + rJoySpeed.march + rJoySpeed.lag + bYaw;
-        velocity[HRF] = - rJoySpeed.march + rJoySpeed.lag + bYaw;
-        velocity[VB] = - bDepth + bPitch;
-        velocity[VF] = - bDepth - bPitch;
-        velocity[VL] = - bDepth + bRoll;
-        velocity[VR] = - bDepth - bRoll;
-
-        for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
-            velocity[i] = (int8_t)(velocity[i] / 0xFF);
-            if (velocity[i] > 127) {
-                rThrusters[i].desiredSpeed = 127;
-            }
-            else if( velocity[i] > -127) {
-                rThrusters[i].desiredSpeed = velocity[i];
-            }
-            else {
-                rThrusters[i].desiredSpeed = -127;
-            }
-        }
+        formThrustVectors();
 
         ++uartBus[SHORE_UART].successRxCounter;
     }
@@ -663,6 +635,62 @@ void ShoreRequest(uint8_t *requestBuf)
         }
         */
     }
+}
+
+void formThrustVectors()
+{
+	float bYaw, bRoll, bPitch, bDepth;
+	if(rStabConstants[STAB_ROLL].enable) {
+		bRoll = rStabState[STAB_ROLL].speedError;
+	}
+	else {
+		bRoll = rJoySpeed.roll;
+	}
+
+	if(rStabConstants[STAB_PITCH].enable) {
+		bPitch = rStabState[STAB_PITCH].speedError;
+	}
+	else {
+		bPitch = rJoySpeed.pitch;
+	}
+
+	if(rStabConstants[STAB_YAW].enable) {
+		bYaw = rStabState[STAB_YAW].speedError;
+	}
+	else {
+		bYaw = rJoySpeed.yaw;
+	}
+
+	if(rStabConstants[STAB_DEPTH].enable) {
+		bDepth = rStabState[STAB_DEPTH].speedError;
+	}
+	else {
+		bDepth = rJoySpeed.depth;
+	}
+
+	// what the fuck is happening here? this code is actually correct, why?
+	int16_t velocity[THRUSTERS_NUMBER];
+	velocity[HLB] = + rJoySpeed.march - rJoySpeed.lag + bYaw;
+	velocity[HRB] = - rJoySpeed.march - rJoySpeed.lag + bYaw;
+	velocity[HLF] = + rJoySpeed.march + rJoySpeed.lag + bYaw;
+	velocity[HRF] = - rJoySpeed.march + rJoySpeed.lag + bYaw;
+	velocity[VB] = - bDepth + bPitch;
+	velocity[VF] = - bDepth - bPitch;
+	velocity[VL] = - bDepth + bRoll;
+	velocity[VR] = - bDepth - bRoll;
+
+	for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
+		velocity[i] = (int8_t)(velocity[i] / 0xFF);
+		if (velocity[i] > 127) {
+			rThrusters[i].desiredSpeed = 127;
+		}
+		else if( velocity[i] > -127) {
+			rThrusters[i].desiredSpeed = velocity[i];
+		}
+		else {
+			rThrusters[i].desiredSpeed = -127;
+		}
+	}
 }
 
 void ShoreResponse(uint8_t *responseBuf)
@@ -754,26 +782,50 @@ void ImuReceive(uint8_t *ReceiveBuf)
         }
     }
 
-    rSensors.yaw = MergeBytes(ReceiveBuf[EULER_PSI], ReceiveBuf[EULER_PSI]+1) * 0.0109863;
-    rSensors.roll =  MergeBytes(ReceiveBuf[EULER_PHI], ReceiveBuf[EULER_PHI]+1) * 0.0109863;
-    rSensors.pitch =  MergeBytes(ReceiveBuf[EULER_TETA], ReceiveBuf[EULER_TETA]+1) * 0.0109863;
 
-    rSensors.rollSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_X], ReceiveBuf[GYRO_PROC_X+1]) * 0.000183105;
-    rSensors.pitchSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Y], ReceiveBuf[GYRO_PROC_Y+1]) * 0.000183105;
-    rSensors.yawSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Z], ReceiveBuf[GYRO_PROC_Z+1]) * 0.000183105;
+    float yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
+    static float old_yaw = 0;
+    static int16_t spins = 0;
+    float diff = 0;
+    if(abs(old_yaw - yaw) > 180) {
+    	if(yaw > 0) {
+    		spins--;
+    		rSensors.yaw = 360*spins+180;
+    		rSensors.yaw -= (180 - abs(yaw));
+    	}
+    	else {
+    		spins++;
+    		rSensors.yaw = 360*spins-180;
+    		rSensors.yaw += (180 - abs(yaw));
+    	}
+        old_yaw = yaw;
+    }
+    else {
+    	diff = yaw-old_yaw;
+    	rSensors.yaw += diff;
+        old_yaw = yaw;
+    }
 
-    rSensors.accelX = MergeBytes(ReceiveBuf[ACCEL_PROC_X], ReceiveBuf[ACCEL_PROC_X+1]) * 0.0109863;
-    rSensors.accelY = MergeBytes(ReceiveBuf[ACCEL_PROC_Y], ReceiveBuf[ACCEL_PROC_Y+1]) * 0.0109863;
-    rSensors.accelZ = MergeBytes(ReceiveBuf[ACCEL_PROC_Z], ReceiveBuf[ACCEL_PROC_Z+1]) * 0.0109863;
+    //rSensors.yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
+    rSensors.roll =  (float) (MergeBytes(&ReceiveBuf[EULER_PHI])) * 0.0109863;
+    rSensors.pitch =  (float) (MergeBytes(&ReceiveBuf[EULER_TETA])) * 0.0109863;
 
-    rSensors.magX = MergeBytes(ReceiveBuf[MAG_PROC_X], ReceiveBuf[MAG_PROC_X+1]) * 0.000183105;
-    rSensors.magY = MergeBytes(ReceiveBuf[MAG_PROC_Y], ReceiveBuf[MAG_PROC_Y+1]) * 0.000183105;
-    rSensors.magZ = MergeBytes(ReceiveBuf[MAG_PROC_Z], ReceiveBuf[MAG_PROC_Z+1]) * 0.000183105;
+    rSensors.rollSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_X])) * 0.000183105;
+    rSensors.pitchSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Y])) * 0.000183105;
+    rSensors.yawSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Z])) * 0.000183105;
 
-    rSensors.quatA = MergeBytes(ReceiveBuf[QUAT_A], ReceiveBuf[QUAT_A+1]) * 0.0000335693;
-    rSensors.quatB = MergeBytes(ReceiveBuf[QUAT_B], ReceiveBuf[QUAT_B+1]) * 0.0000335693;
-    rSensors.quatC = MergeBytes(ReceiveBuf[QUAT_C], ReceiveBuf[QUAT_C+1]) * 0.0000335693;
-    rSensors.quatD = MergeBytes(ReceiveBuf[QUAT_D], ReceiveBuf[QUAT_D+1]) * 0.0000335693;
+    rSensors.accelX = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_X])) * 0.0109863;
+    rSensors.accelY = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_Y])) * 0.0109863;
+    rSensors.accelZ = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_Z])) * 0.0109863;
+
+    rSensors.magX = (float) (MergeBytes(&ReceiveBuf[MAG_PROC_X])) * 0.000183105;
+    rSensors.magY = (float) (MergeBytes(&ReceiveBuf[MAG_PROC_Y])) * 0.000183105;
+    rSensors.magZ = (float) (MergeBytes(&ReceiveBuf[MAG_PROC_Z])) * 0.000183105;
+
+    rSensors.quatA = (float) (MergeBytes(&ReceiveBuf[QUAT_A])) * 0.0000335693;
+    rSensors.quatB = (float) (MergeBytes(&ReceiveBuf[QUAT_B])) * 0.0000335693;
+    rSensors.quatC = (float) (MergeBytes(&ReceiveBuf[QUAT_C])) * 0.0000335693;
+    rSensors.quatD = (float) (MergeBytes(&ReceiveBuf[QUAT_D])) * 0.0000335693;
 
     ++uartBus[IMU_UART].successRxCounter;
 }

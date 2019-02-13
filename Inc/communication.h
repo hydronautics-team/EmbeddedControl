@@ -89,4 +89,6 @@ void ImuReceive(uint8_t *IMUReceiveBuf);
 
 void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id);
 
+void formThrustVectors();
+
 #endif

@@ -170,9 +170,14 @@ void CompChecksum(uint8_t *upbyte, uint8_t *lowbyte, uint8_t *msg, uint8_t size)
     *upbyte = (uint8_t) (checksum & 0x00FF);
 }
 
-int16_t MergeBytes(uint8_t most, uint8_t least)
+int16_t MergeBytes(uint8_t *pos)
 {
-	return ((int16_t) most << 8) | least;
+	uint8_t temp = pos[0];
+	pos[0] = pos[1];
+	pos[1] = temp;
+
+	int16_t *pointer = (int16_t*) (pos);
+	return *pointer;
 }
 
 uint16_t MergeUBytes(uint8_t most, uint8_t least)
@@ -229,12 +234,12 @@ void writeBit(uint8_t *byte, uint8_t value, uint8_t biteNumb)
 
 uint8_t ComputeChecksum8b(uint8_t *msg, uint16_t length)
 {
-    uint8_t crc = 0;
-    int i = 0;
+	uint8_t crc = 0;
+	int i = 0;
 
-    for(i=0; i < length - 1; i++) {
-            crc ^= msg[i];
-        }
+	for(i=0; i < length - 1; i++) {
+		crc ^= msg[i];
+	}
 
-    return crc;
+	return crc;
 }
