@@ -8,35 +8,22 @@
 #include "messages.h"
 
 extern struct Robot Q100;
-/*
-extern bool shore_RX_enable;
-extern bool shore_TX_enable;
-extern bool VMA_RX_enable;
-extern bool VMA_TX_enable;
-extern bool DEV_RX_enable;
-extern bool DEV_TX_enable;
 
-extern bool VMA_RX_enable;
-extern bool VMA_TX_enable;
-extern bool DEV_RX_enable;
-extern bool DEV_TX_enable;
-*/
-extern uint8_t shorePackageError;
+extern uint8_t ShoreRequestBuffer[REQUEST_CONFIG_LENGTH];
+extern uint8_t ShoreResponseBuffer[SHORE_CONFIG_RESPONSE_LENGTH];
 
-extern uint8_t ShoreRequestBuf[SHORE_REQUEST_LENGTH];
-extern uint8_t ShoreRequestConfigBuf[REQUEST_CONFIG_LENGTH];
-extern uint8_t ShoreResponseBuf[SHORE_RESPONSE_LENGTH];
+extern uint8_t ImuRequestBuffer[IMU_REQUEST_LENGTH];
+extern uint8_t ImuResetRequestBuffer[IMU_REQUEST_LENGTH];
+extern uint8_t ImuResponseBuffer[IMU_RESPONSE_LENGTH*IMU_CHECKSUMS];
 
-extern uint8_t ImuRequestBuf[IMU_REQUEST_LENGTH];
-extern uint8_t ImuResetRequestBuf[IMU_REQUEST_LENGTH];
-extern uint8_t ImuResponseBuf[IMU_RESPONSE_LENGTH*IMU_CHECKSUMS];
+extern uint8_t ThrustersRequestBuffer[THRUSTERS_REQUEST_LENGTH];
+extern uint8_t ThrustersResponseBuffer[THRUSTERS_NUMBER][THRUSTERS_RESPONSE_LENGTH];
 
-extern uint8_t VmaRequestBuf[VMA_REQUEST_LENGTH];
-extern uint8_t VmaResponseBuf[VMA_DRIVER_NUMBER+1][VMA_RESPONSE_LENGTH];
+extern uint8_t DevicesRequestBuffer[DEVICES_REQUEST_LENGTH];
+extern uint8_t DevicesResponseBuffer[DEVICES_NUMBER][DEVICES_RESPONSE_LENGTH];
 
-extern uint8_t DevRequestBuf[DEV_REQUEST_LENGTH];
-extern uint8_t DevResponseBuf[DEV_DRIVER_NUMBER][DEV_RESPONSE_LENGTH];
+extern uint8_t PressureResponseBuffer[PRESSURE_SENSOR_SIZE];
 
-extern uint8_t PressureResponseBuf[PRESSURE_SENSOR_SIZE];
+extern uint8_t ContourSelected;
 
 #endif

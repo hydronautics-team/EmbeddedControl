@@ -36,167 +36,154 @@ enum LOGDEV {
 	ACOUSTIC = 0
 };
 
+#define STABILIZATION_AMOUNT 4
+
+enum STAB_CIRCUITS {
+	STAB_DEPTH = 0,
+	STAB_YAW,
+	STAB_ROLL,
+	STAB_PITCH
+};
+
+#define STABILIZATION_FILTERS 2
+
+enum STAB_FILTERS {
+	POS_FILTER = 0,
+	SPEED_FILTER
+};
+
 enum I2C {
-	I2C_SENSORS,
+	I2C_SENSORS = 0,
 	I2C_PC
 };
 
-struct Robot {
-
+//TODO i don't think that you really need this structure (do you have second robot or what?)
+struct Robot
+{
+	// Current camera ID (controls multiplexor)
 	uint8_t cameraNum;
 
-    struct robotVMA {
-        uint8_t address;
-        int8_t desiredSpeed;
-        int8_t realSpeed;
-        int8_t speedError;
+	// Individual characteristics, controls and current state of each VMA
+	struct robot_thrusters {
+		// current controls (data ready to fetch)
+		uint8_t address;
+		uint8_t settings;
+		int8_t desiredSpeed;
+		// current state (fresh data)
+		uint16_t current;
+		uint8_t errors;
+		int8_t realSpeed;
+		int8_t speedError;
+		// characteristics (this parameters affects only sending data, they are not meant to be sent or received)
+		float kForward;	// this constants will be multiplied with desiredSpeed
+		float kBackward;
+		bool inverse; // inverts thruster
+	} thrusters[THRUSTERS_NUMBER];
 
-        uint8_t errors;
+	struct robot_sensors {
+		float roll;
+		float pitch;
+		float yaw;
+		float rollSpeed;
+		float pitchSpeed;
+		float yawSpeed;
+		float accelX;
+		float accelY;
+		float accelZ;
+		float magX;
+		float magY;
+		float magZ;
+		float quatA;
+		float quatB;
+		float quatC;
+		float quatD;
+		bool resetIMU;
+		float pressure;
+		float in_pressure;
+		float leak;
+	} sensors;
 
-        // There is flags of: enabling, inversing, ...
-        uint8_t settings;
-        uint16_t current;
+	struct robotPC {
+		uint8_t reset;
+		uint8_t errors;
+	} pc;
 
-        double kForward;
-        double kBackward;
-    } VMA[VMA_NUMBER];
+	struct JoystickRobotSpeed {
+		float march;
+		float lag;
+		float depth;
+		float roll;
+		float pitch;
+		float yaw;
+	} joySpeed;
 
-  struct f_Sensors {
-    float roll;
-    float pitch;
-    float yaw;
-    float rollSpeed;
-    float pitchSpeed;
-    float yawSpeed;
-    float accelX;
-    float accelY;
-    float accelZ;
-    float magX;
-    float magY;
-    float magZ;
-    float quatA;
-    float quatB;
-    float quatC;
-    float quatD;
-    bool resetIMU;
-    float pressure;
-    float in_pressure;
-    float leak;
-  } f_sensors;
+	struct PositionRobotMovement {
+		float march;
+		float lag;
+		float depth;
+		float roll;
+		float pitch;
+		float yaw;
+	} posMov;
 
-  struct i_Sensors {
-    int16_t roll;
-    int16_t pitch;
-    int16_t yaw;
-    int16_t rollSpeed;
-    int16_t pitchSpeed;
-    int16_t yawSpeed;
-    int16_t accelX;
-    int16_t accelY;
-    int16_t accelZ;
-    int16_t magX;
-    int16_t magY;
-    int16_t magZ;
-    int16_t quatA;
-    int16_t quatB;
-    int16_t quatC;
-    int16_t quatD;
-    bool resetIMU;
-    uint16_t pressure;
-    uint16_t in_pressure;
-    uint16_t leak;
-  } i_sensors;
+	struct RobotDev {
+		uint8_t address;
+		uint8_t settings;
+		int8_t force;
+		uint16_t current;
+		uint8_t errors;
+	} device[DEV_AMOUNT];
 
-    struct robotWifi {
-        uint8_t type;
-        uint8_t tickrate;
-        uint8_t voltage;
-        float x;
-        float y;
-    } wifi;
+	struct RobotLogDev {
+		uint8_t state;
+		uint8_t control;
+		uint8_t errors;
+	} logdevice[LOGDEV_AMOUNT];
 
-    struct robotPC {
-    	uint8_t reset;
-    	uint8_t errors;
-    } pc;
+	struct RobotStabilizationConstants {
+		bool enable;
+		// Before P
+		float pJoyUnitCast;
+		float pSpeedDyn;
+		float pErrGain;
+		// Feedback aperiodic filters
+		struct AperiodicFilter {
+			float T;
+			float K;
+		} aFilter[STABILIZATION_FILTERS];
+		// PID
+		struct PidConstants {
+			float pGain;
+			float iGain;
+			float iMax;
+			float iMin;
+		} pid;
+		// Thrusters unit cast
+		float pThrustersCast;
+		float pThrustersMin;
+		float pThrustersMax;
+	} stabConstants[STABILIZATION_AMOUNT];
 
-    struct i_JoystickRobotSpeed {
-        int16_t march;
-        int16_t lag;
-        int16_t depth;
-        int16_t roll;
-        int16_t pitch;
-        int16_t yaw;
-    } i_joySpeed;
+	struct RobotStabilizationState {
+		float *inputSignal; 		// Link to input signal. You need to set this on initialization
+		float *speedSignal;			// Link to speed signal. You need to set this on initialization
+		float *posSignal;			// Link to position signal. You need to set this on initialization
 
-    struct f_JoystickRobotSpeed {
-        float march;
-        float lag;
-        float depth;
-        float roll;
-        float pitch;
-        float yaw;
-    } f_joySpeed;
+		float oldSpeed;
+		float oldPos;
 
-    struct i_PositionRobotMovement {
-    	int16_t march;
-    	int16_t lag;
-    	int16_t depth;
-    	int16_t roll;
-    	int16_t pitch;
-    	int16_t yaw;
-    } i_posMov;
+		float joyUnitCasted;
+		float joy_iValue;
+		float posError;
+		float speedError;
+		float dynSummator;
+		float pidValue;
+		float posErrorAmp;
+		float speedFiltered;
+		float posFiltered;
 
-    struct f_PositionRobotMovement {
-        float march;
-        float lag;
-        float depth;
-        float roll;
-        float pitch;
-        float yaw;
-    } f_posMov;
-
-
-    struct RobotDev {
-    	uint8_t address;
-    	uint8_t settings;
-    	int8_t force;
-    	uint16_t current;
-    	uint8_t errors;
-    } device[DEV_AMOUNT];
-
-    struct RobotLogDev {
-    	uint8_t state;
-    	uint8_t control;
-        uint8_t errors;
-    } logdevice[LOGDEV_AMOUNT];
-
-    struct RobotStabilizationConstants {
-        bool enable;
-        // Before P
-    	uint8_t cameras;
-        float iJoySpeed;
-        float pSpeedDyn;
-        float pErrGain;
-        // Feedback
-        float pSpeedFback;
-        // PID
-        float pid_pGain;
-        float pid_iGain;
-        float pid_iMax;
-        float pid_iMin;
-    } depthStabCons, rollStabCons, pitchStabCons, yawStabCons;
-
-    struct RobotStabilizationState {
-        float posError;
-        float speedError;
-        float dynSummator;
-        float pidValue;
-        float posErrorAmp;
-
-        float joy_iValue;
-        float joy_iLastTick;
-    } depthStabSt, rollStabSt, pitchStabSt, yawStabSt;
+		float LastTick;
+	} stabState[STABILIZATION_AMOUNT];
 
 };
 
