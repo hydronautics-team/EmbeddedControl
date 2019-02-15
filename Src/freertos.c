@@ -459,7 +459,9 @@ void func_tSensCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  receiveI2cPackageDMA(DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
+	  //receiveI2cPackageDMA(DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
+	  HAL_I2C_Master_Receive_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
+	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
 	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
 	  	  SensorsResponseUpdate(PressureResponseBuffer, DEV_I2C);
 	  	  xSemaphoreGive(mutDataHandle);

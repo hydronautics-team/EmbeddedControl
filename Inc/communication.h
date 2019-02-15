@@ -43,8 +43,8 @@ struct uartBus_s {
 	uint16_t successRxCounter;		// Successfully received packages counter (checksum is correct + timeout not reached)
 	uint32_t brokenRxCounter;		// Broken received packages counter (incorrect checksum)
 	uint32_t outdatedRxCounter;		// Outdated received packages counter (timeout reached)
-	TickType_t timeoutCounter;		// Timeout counter for receive and transmit
-	TickType_t lastMessage;
+	float timeoutCounter;			// Timeout counter for receive and transmit
+	float lastMessage;
 	// Bus configuration
 	uint8_t brokenRxTolerance;		// How many broken packages will be received until special event
 	uint32_t timeoutRxTolerance;	// How many milliseconds to wait new package and not cast special event
@@ -68,7 +68,7 @@ void uartBusesInit(void);
 bool receivePackage(struct uartBus_s *bus, bool isrMode);
 bool transmitPackage(struct uartBus_s *bus, bool isrMode);
 bool transmitAndReceive(struct uartBus_s *bus, bool isrMode);
-void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
+bool receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
 void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
 
 void DevicesRequestUpdate(uint8_t *buf, uint8_t device);

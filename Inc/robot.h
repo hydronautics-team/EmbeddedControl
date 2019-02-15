@@ -154,7 +154,7 @@ struct robotStabilizationConstants_s {
 		float K;
 	} aFilter[STABILIZATION_FILTERS];
 	// PID
-	struct PidConstants {
+	struct pidRegulator {
 		float pGain;
 		float iGain;
 		float iMax;
@@ -180,6 +180,7 @@ struct robotStabilizationState_s {
 	float speedError;
 	float dynSummator;
 	float pidValue;
+	float pid_iValue;
 	float posErrorAmp;
 	float speedFiltered;
 	float posFiltered;

@@ -4,20 +4,12 @@
 #include "math.h"
 #include "robot.h"
 
-struct PidRegulator_s pidRegulator[STABILIZATION_AMOUNT];
-
 float depthSpeed = 0;
 float oldDepthSpeed = 0;
 
 void stabilizationInit()
 {
 	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
-		pidInit(&pidRegulator[i],
-				rStabConstants[i].pid.pGain, 0,
-				rStabConstants[i].pid.iGain,
-				rStabConstants[i].pid.iMax,
-				rStabConstants[i].pid.iMin);
-
 		rStabState[i].oldSpeed = 0;
 		rStabState[i].oldPos = 0;
 
@@ -27,6 +19,7 @@ void stabilizationInit()
 		rStabState[i].speedError = 0;
 		rStabState[i].dynSummator = 0;
 		rStabState[i].pidValue = 0;
+		rStabState[i].pid_iValue = 0;
 		rStabState[i].posErrorAmp = 0;
 		rStabState[i].speedFiltered = 0;
 		rStabState[i].posFiltered = 0;
@@ -122,17 +115,16 @@ void stabilizationStart(uint8_t contour)
 	rStabState[contour].oldPos = *rStabState[contour].posSignal;
 
 	rStabState[contour].joyUnitCasted = 0;
-	rStabState[contour].joy_iValue = 0;
+	rStabState[contour].joy_iValue = *rStabState[contour].inputSignal;
 	rStabState[contour].posError = 0;
 	rStabState[contour].speedError = 0;
 	rStabState[contour].dynSummator = 0;
 	rStabState[contour].pidValue = 0;
+	rStabState[contour].pid_iValue = 0;
 	rStabState[contour].posErrorAmp = 0;
 	rStabState[contour].speedFiltered = 0;
 	rStabState[contour].posFiltered = 0;
 	rStabState[contour].LastTick = xTaskGetTickCount();
-
-	pidReset(&pidRegulator[contour]);
 }
 
 void stabilizationUpdate(uint8_t contour)
@@ -159,8 +151,19 @@ void stabilizationUpdate(uint8_t contour)
     // Feedback amplifiers
     state->posErrorAmp = state->posError * constants->pErrGain;
 
-    // PID regulation
-    state->pidValue = pidUpdate(&pidRegulator[contour], state->posErrorAmp, fromTickToMs(xTaskGetTickCount() - pidRegulator[contour].lastUpdateTick));
+    // PI integration
+    state->pid_iValue += (state->posErrorAmp * diffTime) * constants->pid.iGain;
+
+    // PI integration saturation
+    if(state->pid_iValue > constants->pid.iMax) {
+    	state->pid_iValue = constants->pid.iMax;
+    }
+    else if(state->pid_iValue < constants->pid.iMin) {
+    	state->pid_iValue = constants->pid.iMin;
+    }
+
+    // PI summator
+    state->pidValue =  state->pid_iValue + (state->posErrorAmp * constants->pid.pGain);
 
     // Dynamic summator
     state->dynSummator = state->pidValue + *state->inputSignal * constants->pSpeedDyn;
@@ -185,72 +188,5 @@ void stabilizationUpdate(uint8_t contour)
     else if(state->speedError < constants->pThrustersMin) {
     	state->speedError = constants->pThrustersMin;
     }
-}
-
-void pidInit(struct PidRegulator_s *pid, float pGain, float iGain, float iMax, float iMin, float dGain)
-{
-	pid->iGain = iGain;
-	pid->dGain = dGain;
-	pid->pGain = pGain;
-	pid->dState = 0;
-	pid->iState = 0;
-	pid->iMin = iMin;
-	pid->iMax = iMax;
-
-	pid->pTermLast = 0;
-	pid->iTermLast = 0;
-	pid->dTermLast = 0;
-
-	pid->lastUpdateTick = xTaskGetTickCount();
-}
-
-float pidUpdate(struct PidRegulator_s *pid, float error, float deltaTime_ms)
-{
-
-	float pTerm, dTerm, iTerm;
-	pTerm = pid->pGain * error; //proportional term
-
-	pid->iState += error * deltaTime_ms / 1000.0f;
-
-	if (pid->iState > pid->iMax) {
-		pid->iState = pid->iMax;
-	}
-	if (pid->iState < pid->iMin) {
-		pid->iState = pid->iMin;
-	}
-
-	iTerm = pid->iGain * pid->iState; //integral part
-
-	if (deltaTime_ms == 0) {
-		dTerm = 0;
-	} else {
-		dTerm = pid->dGain * (error - pid->dState) * 1000.0f / deltaTime_ms; //differential part
-	}
-
-	pid->dState = error;
-
-	pid->pTermLast = pTerm;
-	pid->dTermLast = dTerm;
-	pid->iTermLast = iTerm;
-
-	pid->lastUpdateTick = xTaskGetTickCount();
-
-	return pTerm + dTerm + iTerm;
-}
-
-void pidReset(struct PidRegulator_s *pid)
-{
-	pid->iState = 0;
-	pid->dState = 0;
-}
-
-void updatePidConstants()
-{
-	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
-		pidRegulator[i].pGain = rStabConstants[i].pid.pGain;
-		pidRegulator[i].iGain = rStabConstants[i].pid.iGain;
-		pidRegulator[i].iMax = rStabConstants[i].pid.iMax;
-		pidRegulator[i].iMin = rStabConstants[i].pid.iMin;
-	}
 }
 

@@ -230,7 +230,7 @@ struct shoreConfigResponse_s
 	float speedFiltered;
 	float posFiltered;
 
-	float LastTick;
+	float pid_iValue;
 
     uint16_t checksum;
 };
@@ -305,7 +305,7 @@ struct imuResponse_s
 #define DELAY_DEVICES_TASK 			10
 #define DELAY_IMU_TASK 				10
 #define DELAY_PC_TASK 				10
-#define DELAY_SENSOR_TASK 			10
+#define DELAY_SENSOR_TASK 			25
 #define DELAY_STABILIZATION_TASK 	10
 #define DELAY_TIMER_TASK 			30
 #define DELAY_SILENCE    			1000
@@ -315,7 +315,7 @@ struct imuResponse_s
 #define WAITING_IMU 				10
 #define WAITING_SHORE 				10
 #define WAITING_THRUSTERS 			10
-#define WAITING_SENSORS				10
+#define WAITING_SENSORS				5
 #define WAITING_PC					10
 #define WAITING_TIMER				5
 #define UART_SWITCH_DELAY			1000

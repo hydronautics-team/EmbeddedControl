@@ -104,6 +104,8 @@ void variableInit() {
     rSensors.quatB = 0;
     rSensors.quatC = 0;
     rSensors.quatD = 0;
+
+    rSensors.resetIMU = true;
 }
 
 void uartBusesInit()
@@ -284,18 +286,23 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 }
 
-void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
+bool receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
 {
-	TickType_t timeBegin = xTaskGetTickCount();
+	float timeBegin = fromTickToMs(xTaskGetTickCount());
 	i2c2PackageReceived = false;
 	switch(I2C) {
 	case DEV_I2C:
 		HAL_I2C_Master_Receive_IT(&hi2c2, addr>>1, buf, length);
-		while (!i2c2PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+		while (!i2c2PackageReceived) {
+			if(fromTickToMs(xTaskGetTickCount()) - timeBegin < WAITING_SENSORS) {
+				HAL_I2C_Master_Abort_IT(&hi2c2, addr>>1);
+				return false;
+			}
 			osDelay(DELAY_SENSOR_TASK);
 		}
 		break;
 	}
+	return true;
 }
 
 
@@ -317,20 +324,20 @@ void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	if(hi2c == &hi2c1) {
-		i2c1PackageTransmit = true;
+		i2c2PackageReceived = true;
 	}
 	else if(hi2c == &hi2c2) {
-		i2c2PackageTransmit = true;
+		i2c2PackageReceived = true;
 	}
 }
 
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	if(hi2c == &hi2c1) {
-		i2c1PackageReceived = true;
+		i2c1PackageTransmit = true;
 	}
 	else if(hi2c == &hi2c2) {
-		i2c2PackageReceived  = true;
+		i2c1PackageTransmit  = true;
 	}
 }
 
@@ -488,15 +495,18 @@ void ShoreConfigRequest(uint8_t *requestBuf)
 		rStabConstants[req.contour].pThrustersMin = req.pThrustersMin;
 		rStabConstants[req.contour].pThrustersMax = req.pThrustersMax;
 
-		rState.contourSelected = req.contour;
-
-		updatePidConstants();
+		uint8_t old_contour = rState.contourSelected;
+		if(old_contour != req.contour) {
+			stabilizationStart(req.contour);
+		}
 
 		for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
 			rStabConstants[i].enable = false;
 		}
 		rStabConstants[req.contour].enable = true;
+		rState.contourSelected = req.contour;
 
+		// TODO tuuuupooo
 		formThrustVectors();
 
 		++uartBus[SHORE_UART].successRxCounter;;
@@ -539,9 +549,23 @@ void ShoreRequest(uint8_t *requestBuf)
         rDevice[DEV1].force = req.dev1;
         rDevice[DEV2].force = req.dev2;
 
+        rSensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
+
+        tempCameraNum = req.cameras;
+
+        uint8_t old_reset = rComputer.reset;
+        if(old_reset != req.pc_reset) {
+            if(req.pc_reset == PC_ON_CODE) {
+            	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+            }
+            else if(req.pc_reset == PC_OFF_CODE) {
+            	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+            }
+        }
+        rComputer.reset = req.pc_reset;
+
         bool wasEnabled;
 
-        //TODO govnokod
         wasEnabled = rStabConstants[STAB_YAW].enable;
         rStabConstants[STAB_YAW].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
         if(wasEnabled == false && rStabConstants[STAB_YAW].enable == true) {
@@ -564,18 +588,6 @@ void ShoreRequest(uint8_t *requestBuf)
         rStabConstants[STAB_DEPTH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
         if(wasEnabled == false && rStabConstants[STAB_DEPTH].enable == true) {
         	stabilizationStart(STAB_DEPTH);
-        }
-
-        rSensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
-
-        tempCameraNum = req.cameras;
-        rComputer.reset = req.pc_reset;
-
-        if(rComputer.reset == PC_ON_CODE) {
-        	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
-        }
-        else if(rComputer.reset == PC_OFF_CODE) {
-        	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
         }
 
         if(tempCameraNum != rState.cameraNum) {
@@ -603,7 +615,8 @@ void ShoreRequest(uint8_t *requestBuf)
         	}
         }
 
-        formThrustVectors();
+        // TODO tuuuupoooo
+        formThrustVectors(&req);
 
         ++uartBus[SHORE_UART].successRxCounter;
     }
@@ -766,7 +779,7 @@ void ShoreConfigResponse(uint8_t *responseBuf)
 	res.speedFiltered = rStabState[rState.contourSelected].speedFiltered;
 	res.posFiltered = rStabState[rState.contourSelected].posFiltered;
 
-	res.LastTick = rStabState[rState.contourSelected].LastTick;
+	res.pid_iValue = rStabState[rState.contourSelected].pid_iValue;
 
 	memcpy((void*)responseBuf, (void*)&res, SHORE_CONFIG_RESPONSE_LENGTH);
 
