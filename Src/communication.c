@@ -85,6 +85,7 @@ void variableInit() {
     rDevice[TILT].address = 0x04;
 
     rSensors.yaw = 0;
+    rSensors.raw_yaw = 0;
     rSensors.roll =  0;
     rSensors.pitch =  0;
 
@@ -105,7 +106,7 @@ void variableInit() {
     rSensors.quatC = 0;
     rSensors.quatD = 0;
 
-    rSensors.resetIMU = true;
+    rSensors.resetIMU = false;
 }
 
 void uartBusesInit()
@@ -495,16 +496,13 @@ void ShoreConfigRequest(uint8_t *requestBuf)
 		rStabConstants[req.contour].pThrustersMin = req.pThrustersMin;
 		rStabConstants[req.contour].pThrustersMax = req.pThrustersMax;
 
-		uint8_t old_contour = rState.contourSelected;
-		if(old_contour != req.contour) {
+		if(rState.contourSelected != req.contour) {
+			for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+				rStabConstants[i].enable = false;
+			}
+			rState.contourSelected = req.contour;
 			stabilizationStart(req.contour);
 		}
-
-		for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
-			rStabConstants[i].enable = false;
-		}
-		rStabConstants[req.contour].enable = true;
-		rState.contourSelected = req.contour;
 
 		// TODO tuuuupooo
 		formThrustVectors();
@@ -556,9 +554,11 @@ void ShoreRequest(uint8_t *requestBuf)
         uint8_t old_reset = rComputer.reset;
         if(old_reset != req.pc_reset) {
             if(req.pc_reset == PC_ON_CODE) {
+            	HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_RESET); // RESET
             	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
             }
             else if(req.pc_reset == PC_OFF_CODE) {
+            	HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
             	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
             }
         }
@@ -755,6 +755,8 @@ void ShoreConfigResponse(uint8_t *responseBuf)
 	res.roll = rSensors.roll;
 	res.pitch = rSensors.pitch;
 	res.yaw = rSensors.yaw;
+	res.raw_yaw = rSensors.raw_yaw;
+
 	res.rollSpeed = rSensors.rollSpeed;
 	res.pitchSpeed = rSensors.pitchSpeed;
 	res.yawSpeed = rSensors.yawSpeed;
@@ -765,9 +767,6 @@ void ShoreConfigResponse(uint8_t *responseBuf)
 	res.inputSignal = *rStabState[rState.contourSelected].inputSignal;
 	res.speedSignal = *rStabState[rState.contourSelected].speedSignal;
 	res.posSignal = *rStabState[rState.contourSelected].posSignal;
-
-	res.oldSpeed = rStabState[rState.contourSelected].oldSpeed;
-	res.oldPos = rStabState[rState.contourSelected].oldPos;
 
 	res.joyUnitCasted = rStabState[rState.contourSelected].joyUnitCasted;
 	res.joy_iValue = rStabState[rState.contourSelected].joy_iValue;
@@ -796,27 +795,27 @@ void ImuReceive(uint8_t *ReceiveBuf)
     }
 
 
-    float yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
+    rSensors.raw_yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
     static float old_yaw = 0;
     static int16_t spins = 0;
     float diff = 0;
-    if(abs(old_yaw - yaw) > 180) {
-    	if(yaw > 0) {
+    if(abs(old_yaw - rSensors.raw_yaw) > 180) {
+    	if(rSensors.raw_yaw > 0) {
     		spins--;
     		rSensors.yaw = 360*spins+180;
-    		rSensors.yaw -= (180 - abs(yaw));
+    		rSensors.yaw -= (180 - abs(rSensors.raw_yaw));
     	}
     	else {
     		spins++;
     		rSensors.yaw = 360*spins-180;
-    		rSensors.yaw += (180 - abs(yaw));
+    		rSensors.yaw += (180 - abs(rSensors.raw_yaw));
     	}
-        old_yaw = yaw;
+        old_yaw = rSensors.raw_yaw;
     }
     else {
-    	diff = yaw-old_yaw;
+    	diff = rSensors.raw_yaw-old_yaw;
     	rSensors.yaw += diff;
-        old_yaw = yaw;
+        old_yaw = rSensors.raw_yaw;
     }
 
     //rSensors.yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;

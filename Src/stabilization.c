@@ -66,21 +66,21 @@ void stabilizationInit()
     rStabState[STAB_PITCH].speedSignal = &rSensors.pitchSpeed;
     rStabState[STAB_PITCH].posSignal = &rSensors.pitch;
     /////////////////////////////////////////////////////////////
-    rStabConstants[STAB_YAW].enable = false;
+    rStabConstants[STAB_YAW].enable = true;
 	rStabConstants[STAB_YAW].pJoyUnitCast = 1;
-    rStabConstants[STAB_YAW].pSpeedDyn = 1;
-    rStabConstants[STAB_YAW].pErrGain = 1;
+    rStabConstants[STAB_YAW].pSpeedDyn = 0;
+    rStabConstants[STAB_YAW].pErrGain = 100;
     rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].T = 0;
-    rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].K = 1;
+    rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].K = 9000;
     rStabConstants[STAB_YAW].aFilter[POS_FILTER].T = 0;
 	rStabConstants[STAB_YAW].aFilter[POS_FILTER].K = 1;
     rStabConstants[STAB_YAW].pid.pGain = 1;
-    rStabConstants[STAB_YAW].pid.iGain = 1;
-    rStabConstants[STAB_YAW].pid.iMax = 500;
-    rStabConstants[STAB_YAW].pid.iMin = -500;
+    rStabConstants[STAB_YAW].pid.iGain = 0.5;
+    rStabConstants[STAB_YAW].pid.iMax = 1000;
+    rStabConstants[STAB_YAW].pid.iMin = -1000;
     rStabConstants[STAB_YAW].pThrustersCast = 1;
-    rStabConstants[STAB_YAW].pThrustersMax = 127;
-    rStabConstants[STAB_YAW].pThrustersMin = -127;
+    rStabConstants[STAB_YAW].pThrustersMax = 10000;
+    rStabConstants[STAB_YAW].pThrustersMin = -10000;
 
     rStabState[STAB_YAW].inputSignal = &rJoySpeed.yaw;
     rStabState[STAB_YAW].speedSignal = &rSensors.yawSpeed;
@@ -115,7 +115,7 @@ void stabilizationStart(uint8_t contour)
 	rStabState[contour].oldPos = *rStabState[contour].posSignal;
 
 	rStabState[contour].joyUnitCasted = 0;
-	rStabState[contour].joy_iValue = *rStabState[contour].inputSignal;
+	rStabState[contour].joy_iValue = *rStabState[contour].posSignal;
 	rStabState[contour].posError = 0;
 	rStabState[contour].speedError = 0;
 	rStabState[contour].dynSummator = 0;
@@ -171,8 +171,7 @@ void stabilizationUpdate(uint8_t contour)
     // Speed feedback filtering
     filter = &constants->aFilter[SPEED_FILTER];
     if(contour == STAB_DEPTH) {
-    	depthSpeed = (depthSpeed - oldDepthSpeed) / diffTime;
-    	oldDepthSpeed = depthSpeed;
+    	depthSpeed = (depthSpeed - state->oldSpeed) / diffTime;
     }
     state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T) + state->oldSpeed*filter->K*(1-exp(-diffTime/filter->T));
     state->oldSpeed = *state->speedSignal;

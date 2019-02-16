@@ -196,7 +196,7 @@ struct shoreResponse_s
     uint16_t checksum;
 };
 
-#define SHORE_CONFIG_RESPONSE_LENGTH			95
+#define SHORE_CONFIG_RESPONSE_LENGTH			91
 
 struct shoreConfigResponse_s
 {
@@ -205,6 +205,7 @@ struct shoreConfigResponse_s
 	float roll;
 	float pitch;
 	float yaw;
+	float raw_yaw;
 
 	float rollSpeed;
 	float pitchSpeed;
@@ -217,9 +218,6 @@ struct shoreConfigResponse_s
 	float speedSignal;
 	float posSignal;
 
-	float oldSpeed;
-	float oldPos;
-
 	float joyUnitCasted;
 	float joy_iValue;
 	float posError;
@@ -229,7 +227,6 @@ struct shoreConfigResponse_s
 	float posErrorAmp;
 	float speedFiltered;
 	float posFiltered;
-
 	float pid_iValue;
 
     uint16_t checksum;

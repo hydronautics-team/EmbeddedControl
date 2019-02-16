@@ -219,7 +219,13 @@ bool PickBit(uint8_t input, uint8_t bit)
 
 void SetBit(uint8_t *byte, uint8_t bit, bool state)
 {
-	*byte = (*byte & ~(1 << bit)) | ((uint8_t) state << bit);
+	uint8_t value = 0b00000001;
+	if(state) {
+		*byte = (value << bit) | *byte;
+	}
+	else {
+		*byte = ~(value << bit) & *byte;
+	}
 }
 
 void writeBit(uint8_t *byte, uint8_t value, uint8_t biteNumb)

@@ -86,6 +86,7 @@ struct robotSensors_s {
 	float roll;
 	float pitch;
 	float yaw;
+	float raw_yaw;
 	float rollSpeed;
 	float pitchSpeed;
 	float yawSpeed;
