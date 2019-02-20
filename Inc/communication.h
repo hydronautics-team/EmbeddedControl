@@ -63,6 +63,7 @@ extern uint16_t counterRx; // TODO this needs to be refactored as shorestage or 
 // Initialization of user variables
 void variableInit(void);
 void uartBusesInit(void);
+void resetThrusters(void);
 
 // Custom UART DMA receive/transmit functions
 bool receivePackage(struct uartBus_s *bus, bool isrMode);

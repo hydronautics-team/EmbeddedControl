@@ -173,6 +173,25 @@ void uartBusesInit()
 	}
 }
 
+void resetThrusters()
+{
+	rJoySpeed.depth = 0;
+	rJoySpeed.lag = 0;
+	rJoySpeed.march = 0;
+	rJoySpeed.pitch = 0;
+	rJoySpeed.roll = 0;
+	rJoySpeed.yaw = 0;
+
+	rThrusters[HLB].desiredSpeed = 0;
+	rThrusters[HLF].desiredSpeed = 0;
+	rThrusters[HRB].desiredSpeed = 0;
+	rThrusters[HRF].desiredSpeed = 0;
+	rThrusters[VB].desiredSpeed = 0;
+	rThrusters[VF].desiredSpeed = 0;
+	rThrusters[VL].desiredSpeed = 0;
+	rThrusters[VR].desiredSpeed = 0;
+}
+
 bool transmitPackage(struct uartBus_s *bus, bool isrMode)
 {
     bus->packageTransmitted = false;
@@ -510,7 +529,7 @@ void ShoreConfigRequest(uint8_t *requestBuf)
 		}
 
 		// TODO tuuuupooo
-		//formThrustVectors();
+		formThrustVectors();
 
 		++uartBus[SHORE_UART].successRxCounter;;
 	}

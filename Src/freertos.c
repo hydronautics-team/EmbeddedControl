@@ -373,29 +373,17 @@ void func_tStabilizationTask(void const * argument)
 			if (rStabConstants[STAB_PITCH].enable) {
 				stabilizationUpdate(STAB_PITCH);
 			}
-			else {
-				rStabState[STAB_PITCH].speedError = 0;
-			}
 
 			if (rStabConstants[STAB_ROLL].enable) {
 				stabilizationUpdate(STAB_ROLL);
-			}
-			else {
-				rStabState[STAB_ROLL].speedError = 0;
 			}
 
 			if (rStabConstants[STAB_YAW].enable) {
 				stabilizationUpdate(STAB_YAW);
 			}
-			else {
-				rStabState[STAB_YAW].speedError = 0;
-			}
 
 			if (rStabConstants[STAB_DEPTH].enable) {
 				stabilizationUpdate(STAB_DEPTH);
-			}
-			else {
-				rStabState[STAB_DEPTH].speedError = 0;
 			}
 
 			xSemaphoreGive(mutDataHandle);
@@ -538,6 +526,12 @@ void tSilence_func(void const * argument)
 		}
 		HAL_UART_AbortReceive_IT(uartBus[SHORE_UART].huart);
 		HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
+
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
+			resetThrusters();
+			stabilizationInit();
+			xSemaphoreGive(mutDataHandle);
+		}
 	}
 	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
 	xTimerStart(SilenceTimer, 10);

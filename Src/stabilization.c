@@ -4,9 +4,6 @@
 #include "math.h"
 #include "robot.h"
 
-float depthSpeed = 0;
-float oldDepthSpeed = 0;
-
 void stabilizationInit()
 {
 	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
@@ -104,7 +101,7 @@ void stabilizationInit()
     rStabConstants[STAB_DEPTH].pThrustersMin = -127;
 
     rStabState[STAB_DEPTH].inputSignal = &rJoySpeed.depth;
-    rStabState[STAB_DEPTH].speedSignal = &rJoySpeed.depth;//&rStabState[STAB_DEPTH].posDerivative;
+    rStabState[STAB_DEPTH].speedSignal = &rStabState[STAB_DEPTH].posDerivative;
     rStabState[STAB_DEPTH].posSignal = &rSensors.pressure;
 }
 
@@ -142,6 +139,9 @@ void stabilizationUpdate(uint8_t contour)
     // Casted input signal integration
     state->joy_iValue += state->joyUnitCasted * diffTime;
 
+    // Position derviative calculation
+    state->posDerivative = (*state->posSignal - state->oldPos) / diffTime;
+
     // Position feedback filtering
     struct AperiodicFilter *filter = &constants->aFilter[POS_FILTER];
     if(filter->T != 0) {
@@ -177,15 +177,12 @@ void stabilizationUpdate(uint8_t contour)
 
     // Speed feedback filtering
     filter = &constants->aFilter[SPEED_FILTER];
-    //state->posDerivative = (*state->posSignal - state->oldPos) / diffTime;
-
     if(filter->T != 0) {
     	state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T) + state->oldSpeed*filter->K*(1-exp(-diffTime/filter->T));
     }
     else {
     	state->speedFiltered = *state->speedSignal;
     }
-
     state->oldSpeed = *state->speedSignal;
 
     // Speed feedback

@@ -32,6 +32,4 @@ float pidUpdate(struct PidRegulator_s *pid, float error, float deltaTime);
 void pidReset(struct PidRegulator_s *pid);
 void updatePidConstants();
 
-extern float depthSpeed;
-
 #endif
