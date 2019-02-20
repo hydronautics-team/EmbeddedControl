@@ -279,7 +279,7 @@ void func_tLedBlinkingTask(void const * argument)
 /* USER CODE END Header_func_tVmaCommTask */
 void func_tVmaCommTask(void const * argument)
 {
-	/* USER CODE BEGIN func_tVmaCommTask */
+  /* USER CODE BEGIN func_tVmaCommTask */
 	uint32_t sysTime = osKernelSysTick();
 	uint8_t transaction = 0;
 	/* Infinite loop */
@@ -306,7 +306,7 @@ void func_tVmaCommTask(void const * argument)
 		transaction = (transaction + 1) % THRUSTERS_NUMBER;
 		osDelayUntil(&sysTime, DELAY_THRUSTERS_TASK);
 	}
-	/* USER CODE END func_tVmaCommTask */
+  /* USER CODE END func_tVmaCommTask */
 }
 
 /* USER CODE BEGIN Header_func_tImuCommTask */
@@ -364,7 +364,7 @@ void func_tImuCommTask(void const * argument)
 /* USER CODE END Header_func_tStabilizationTask */
 void func_tStabilizationTask(void const * argument)
 {
-	/* USER CODE BEGIN func_tStabilizationTask */
+  /* USER CODE BEGIN func_tStabilizationTask */
 	uint32_t sysTime = osKernelSysTick();
 	/* Infinite loop */
 	for(;;)
@@ -403,7 +403,7 @@ void func_tStabilizationTask(void const * argument)
 
 		osDelayUntil(&sysTime, DELAY_STABILIZATION_TASK);
 	}
-	/* USER CODE END func_tStabilizationTask */
+  /* USER CODE END func_tStabilizationTask */
 }
 
 /* USER CODE BEGIN Header_func_tDevCommTask */

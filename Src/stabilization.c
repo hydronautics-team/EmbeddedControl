@@ -10,6 +10,7 @@ float oldDepthSpeed = 0;
 void stabilizationInit()
 {
 	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+		rStabState[i].posDerivative = 0;
 		rStabState[i].oldSpeed = 0;
 		rStabState[i].oldPos = 0;
 
@@ -103,7 +104,7 @@ void stabilizationInit()
     rStabConstants[STAB_DEPTH].pThrustersMin = -127;
 
     rStabState[STAB_DEPTH].inputSignal = &rJoySpeed.depth;
-    rStabState[STAB_DEPTH].speedSignal = &depthSpeed;
+    rStabState[STAB_DEPTH].speedSignal = &rJoySpeed.depth;//&rStabState[STAB_DEPTH].posDerivative;
     rStabState[STAB_DEPTH].posSignal = &rSensors.pressure;
 }
 
@@ -113,6 +114,7 @@ void stabilizationStart(uint8_t contour)
 
 	rStabState[contour].oldSpeed = *rStabState[contour].speedSignal;
 	rStabState[contour].oldPos = *rStabState[contour].posSignal;
+	rStabState[contour].posDerivative = 0;
 
 	rStabState[contour].joyUnitCasted = 0;
 	rStabState[contour].joy_iValue = *rStabState[contour].posSignal;
@@ -142,7 +144,12 @@ void stabilizationUpdate(uint8_t contour)
 
     // Position feedback filtering
     struct AperiodicFilter *filter = &constants->aFilter[POS_FILTER];
-    state->posFiltered = state->posFiltered*exp(-diffTime/filter->T) + state->oldPos*filter->K*(1-exp(-diffTime/filter->T));
+    if(filter->T != 0) {
+    	state->posFiltered = state->posFiltered*exp(-diffTime/filter->T) + state->oldPos*filter->K*(1-exp(-diffTime/filter->T));
+    }
+    else {
+    	state->posFiltered = *state->posSignal;
+    }
     state->oldPos = *state->posSignal;
 
     // Position feedback summator
@@ -170,10 +177,15 @@ void stabilizationUpdate(uint8_t contour)
 
     // Speed feedback filtering
     filter = &constants->aFilter[SPEED_FILTER];
-    if(contour == STAB_DEPTH) {
-    	depthSpeed = (depthSpeed - state->oldSpeed) / diffTime;
+    //state->posDerivative = (*state->posSignal - state->oldPos) / diffTime;
+
+    if(filter->T != 0) {
+    	state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T) + state->oldSpeed*filter->K*(1-exp(-diffTime/filter->T));
     }
-    state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T) + state->oldSpeed*filter->K*(1-exp(-diffTime/filter->T));
+    else {
+    	state->speedFiltered = *state->speedSignal;
+    }
+
     state->oldSpeed = *state->speedSignal;
 
     // Speed feedback

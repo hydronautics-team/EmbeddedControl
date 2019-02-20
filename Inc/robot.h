@@ -87,6 +87,10 @@ struct robotSensors_s {
 	float pitch;
 	float yaw;
 	float raw_yaw;
+
+	float old_yaw;
+	int16_t spins;
+
 	float rollSpeed;
 	float pitchSpeed;
 	float yawSpeed;
@@ -171,6 +175,8 @@ struct robotStabilizationState_s {
 	float *inputSignal; 		// Link to input signal. You need to set this on initialization
 	float *speedSignal;			// Link to speed signal. You need to set this on initialization
 	float *posSignal;			// Link to position signal. You need to set this on initialization
+
+	float posDerivative;		// Derivative from position (if you don't have separate speed signal)
 
 	float oldSpeed;
 	float oldPos;

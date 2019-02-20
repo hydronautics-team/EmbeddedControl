@@ -89,6 +89,9 @@ void variableInit() {
     rSensors.roll =  0;
     rSensors.pitch =  0;
 
+    rSensors.old_yaw = 0;
+    rSensors.spins = 0;
+
     rSensors.rollSpeed = 0;
     rSensors.pitchSpeed = 0;
     rSensors.yawSpeed = 0;
@@ -345,9 +348,11 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
 
 void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id)
 {
+	float input = 0;
 	switch(Sensor_id) {
 	case DEV_I2C:
-		rSensors.pressure = FloatFromUint8Reverse(buf, 0);
+		input = FloatFromUint8Reverse(buf, 0);
+		rSensors.pressure = 9.124*input-3.177;
 		break;
 	}
 }
@@ -505,7 +510,7 @@ void ShoreConfigRequest(uint8_t *requestBuf)
 		}
 
 		// TODO tuuuupooo
-		formThrustVectors();
+		//formThrustVectors();
 
 		++uartBus[SHORE_UART].successRxCounter;;
 	}
@@ -687,10 +692,10 @@ void formThrustVectors()
 	velocity[HRB] = - rJoySpeed.march - rJoySpeed.lag + bYaw;
 	velocity[HLF] = + rJoySpeed.march + rJoySpeed.lag + bYaw;
 	velocity[HRF] = - rJoySpeed.march + rJoySpeed.lag + bYaw;
-	velocity[VB] = - bDepth + bPitch;
-	velocity[VF] = - bDepth - bPitch;
-	velocity[VL] = - bDepth + bRoll;
-	velocity[VR] = - bDepth - bRoll;
+	velocity[VB] = + bDepth + bPitch;
+	velocity[VF] = + bDepth - bPitch;
+	velocity[VL] = + bDepth + bRoll;
+	velocity[VR] = + bDepth - bRoll;
 
 	for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
 		velocity[i] = (int8_t)(velocity[i] / 0xFF);
@@ -785,6 +790,17 @@ void ShoreConfigResponse(uint8_t *responseBuf)
 	AddCrc16Checksumm(responseBuf, SHORE_CONFIG_RESPONSE_LENGTH);
 }
 
+int16_t sign(int16_t in)
+{
+	if(in > 0) {
+		return 1;
+	}
+	else if(in < 0) {
+		return -1;
+	}
+	return 0;
+}
+
 void ImuReceive(uint8_t *ReceiveBuf)
 {
     for(uint8_t i = 0; i < IMU_CHECKSUMS; ++i) {
@@ -794,29 +810,28 @@ void ImuReceive(uint8_t *ReceiveBuf)
         }
     }
 
-
     rSensors.raw_yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
-    static float old_yaw = 0;
-    static int16_t spins = 0;
-    float diff = 0;
-    if(abs(old_yaw - rSensors.raw_yaw) > 180) {
+    if(abs(rSensors.old_yaw - rSensors.raw_yaw) > 180) {
     	if(rSensors.raw_yaw > 0) {
-    		spins--;
-    		rSensors.yaw = 360*spins+180;
-    		rSensors.yaw -= (180 - abs(rSensors.raw_yaw));
+    		rSensors.spins--;
     	}
     	else {
-    		spins++;
-    		rSensors.yaw = 360*spins-180;
-    		rSensors.yaw += (180 - abs(rSensors.raw_yaw));
+    		rSensors.spins++;
     	}
-        old_yaw = rSensors.raw_yaw;
+
+     	if(rSensors.spins == 0) {
+     		rSensors.yaw = rSensors.raw_yaw;
+     	}
+     	else {
+     		rSensors.yaw = 360*rSensors.spins-sign(rSensors.spins)*180;
+     		rSensors.yaw += sign(rSensors.spins)*(180 - abs(rSensors.raw_yaw));
+     	}
     }
     else {
-    	diff = rSensors.raw_yaw-old_yaw;
+    	float diff = rSensors.raw_yaw-rSensors.old_yaw;
     	rSensors.yaw += diff;
-        old_yaw = rSensors.raw_yaw;
     }
+    rSensors.old_yaw = rSensors.raw_yaw;
 
     //rSensors.yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
     rSensors.roll =  (float) (MergeBytes(&ReceiveBuf[EULER_PHI])) * 0.0109863;
