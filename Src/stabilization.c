@@ -21,6 +21,7 @@ void stabilizationInit()
 		rStabState[i].posErrorAmp = 0;
 		rStabState[i].speedFiltered = 0;
 		rStabState[i].posFiltered = 0;
+		rStabState[i].oldPosFiltered = 0;
 		rStabState[i].LastTick = 0;
 	}
 
@@ -123,6 +124,7 @@ void stabilizationStart(uint8_t contour)
 	rStabState[contour].posErrorAmp = 0;
 	rStabState[contour].speedFiltered = 0;
 	rStabState[contour].posFiltered = 0;
+	rStabState[contour].oldPosFiltered = 0;
 	rStabState[contour].LastTick = xTaskGetTickCount();
 }
 
@@ -139,18 +141,19 @@ void stabilizationUpdate(uint8_t contour)
     // Casted input signal integration
     state->joy_iValue += state->joyUnitCasted * diffTime;
 
-    // Position derviative calculation
-    state->posDerivative = (*state->posSignal - state->oldPos) / diffTime;
-
     // Position feedback filtering
     struct AperiodicFilter *filter = &constants->aFilter[POS_FILTER];
     if(filter->T != 0) {
     	state->posFiltered = state->posFiltered*exp(-diffTime/filter->T) + state->oldPos*filter->K*(1-exp(-diffTime/filter->T));
     }
     else {
-    	state->posFiltered = *state->posSignal;
+    	state->posFiltered = *state->posSignal*filter->K;
     }
     state->oldPos = *state->posSignal;
+
+    // Position derviative calculation
+    state->posDerivative = (state->posFiltered - state->oldPosFiltered) / diffTime;
+    state->oldPosFiltered = state->posFiltered;
 
     // Position feedback summator
     state->posError = state->joy_iValue - state->posFiltered;
@@ -181,7 +184,7 @@ void stabilizationUpdate(uint8_t contour)
     	state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T) + state->oldSpeed*filter->K*(1-exp(-diffTime/filter->T));
     }
     else {
-    	state->speedFiltered = *state->speedSignal;
+    	state->speedFiltered = *state->speedSignal*filter->K;
     }
     state->oldSpeed = *state->speedSignal;
 

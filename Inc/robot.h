@@ -191,6 +191,7 @@ struct robotStabilizationState_s {
 	float posErrorAmp;
 	float speedFiltered;
 	float posFiltered;
+	float oldPosFiltered;
 
 	float LastTick;
 };

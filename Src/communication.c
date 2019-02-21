@@ -590,28 +590,12 @@ void ShoreRequest(uint8_t *requestBuf)
 
         bool wasEnabled;
 
-        wasEnabled = rStabConstants[STAB_YAW].enable;
-        rStabConstants[STAB_YAW].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
-        if(wasEnabled == false && rStabConstants[STAB_YAW].enable == true) {
-        	stabilizationStart(STAB_YAW);
-        }
-
-        wasEnabled = rStabConstants[STAB_ROLL].enable;
-        rStabConstants[STAB_ROLL].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_ROLL_BIT);
-        if(wasEnabled == false && rStabConstants[STAB_ROLL].enable == true) {
-        	stabilizationStart(STAB_ROLL);
-        }
-
-        wasEnabled = rStabConstants[STAB_PITCH].enable;
-        rStabConstants[STAB_PITCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
-        if(wasEnabled == false && rStabConstants[STAB_PITCH].enable == true) {
-        	stabilizationStart(STAB_PITCH);
-        }
-
-        wasEnabled = rStabConstants[STAB_DEPTH].enable;
-        rStabConstants[STAB_DEPTH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
-        if(wasEnabled == false && rStabConstants[STAB_DEPTH].enable == true) {
-        	stabilizationStart(STAB_DEPTH);
+        for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+        	wasEnabled = rStabConstants[i].enable;
+        	rStabConstants[i].enable = PickBit(req.stabilize_flags, i);
+        	if(wasEnabled == false && rStabConstants[i].enable == true) {
+        		stabilizationStart(i);
+        	}
         }
 
         if(tempCameraNum != rState.cameraNum) {
@@ -711,10 +695,10 @@ void formThrustVectors()
 	velocity[HRB] = - rJoySpeed.march - rJoySpeed.lag + bYaw;
 	velocity[HLF] = + rJoySpeed.march + rJoySpeed.lag + bYaw;
 	velocity[HRF] = - rJoySpeed.march + rJoySpeed.lag + bYaw;
-	velocity[VB] = + bDepth + bPitch;
-	velocity[VF] = + bDepth - bPitch;
-	velocity[VL] = + bDepth + bRoll;
-	velocity[VR] = + bDepth - bRoll;
+	velocity[VB] = - bDepth + bPitch;
+	velocity[VF] = - bDepth - bPitch;
+	velocity[VL] = - bDepth + bRoll;
+	velocity[VR] = - bDepth - bRoll;
 
 	for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
 		velocity[i] = (int8_t)(velocity[i] / 0xFF);
@@ -831,19 +815,21 @@ void ImuReceive(uint8_t *ReceiveBuf)
 
     rSensors.raw_yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
     if(abs(rSensors.old_yaw - rSensors.raw_yaw) > 180) {
+    	int16_t direction = rSensors.spins;
     	if(rSensors.raw_yaw > 0) {
     		rSensors.spins--;
     	}
     	else {
     		rSensors.spins++;
     	}
+    	direction = rSensors.spins - direction;
 
      	if(rSensors.spins == 0) {
      		rSensors.yaw = rSensors.raw_yaw;
      	}
      	else {
-     		rSensors.yaw = 360*rSensors.spins-sign(rSensors.spins)*180;
-     		rSensors.yaw += sign(rSensors.spins)*(180 - abs(rSensors.raw_yaw));
+     		rSensors.yaw = 360*rSensors.spins-sign(direction)*180;
+     		rSensors.yaw += sign(direction)*(180 - abs(rSensors.raw_yaw));
      	}
     }
     else {
