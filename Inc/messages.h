@@ -90,6 +90,7 @@ struct devicesResponse_s
 #define SHORE_STABILIZE_PITCH_BIT 		2
 #define SHORE_STABILIZE_YAW_BIT 		3
 #define SHORE_STABILIZE_IMU_BIT 		4
+#define SHORE_STABILIZE_SAVE_BIT		5
 
 #define SHORE_DEVICE_AC_BIT 			0
 
@@ -153,6 +154,38 @@ struct shoreConfigRequest_s
 	float pThrustersMax;
 
     uint16_t checksum;
+};
+
+#define DIRECT_REQUEST_CODE 			0xAA
+#define SHORE_REQUEST_DIRECT_LENGTH		20
+
+struct shoreRequestDirect_s
+{
+	uint8_t type;
+	uint8_t number;
+	uint8_t id;
+
+	int16_t velocity;
+
+	uint8_t reverse;
+	float kForward;
+	float kBackward;
+
+	int16_t sForward;
+	int16_t sBackward;
+
+	uint16_t checksum;
+};
+
+#define SHORE_DIRECT_RESPONSE_LENGTH 6
+
+struct shoreResponseDirect_s
+{
+	uint8_t number;
+	uint8_t connection;
+	uint16_t current;
+
+	uint16_t checksum;
 };
 
 #define SHORE_RESPONSE_LENGTH			70
@@ -232,7 +265,7 @@ struct shoreConfigResponse_s
     uint16_t checksum;
 };
 
-#define SHORE_REQUEST_MODES_NUMBER 2
+#define SHORE_REQUEST_MODES_NUMBER 3
 
 enum ShoreRequestModes {
 	SHORE_REQUEST_NORMAL = 0,

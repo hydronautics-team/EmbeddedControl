@@ -61,6 +61,7 @@ enum I2C {
 struct robotState_s {
 	uint8_t cameraNum;	// Current camera ID (controls multiplexor)
 	uint8_t contourSelected; // Current contour selected for the configuration mode
+	uint8_t flash; // Was flash read successful
 };
 
 // Individual characteristics, controls and current state of each VMA
@@ -75,11 +76,11 @@ struct robotThrusters_s {
 	int8_t realSpeed;
 	int8_t speedError;
 	// characteristics (this parameters affects only sending data, they are not meant to be sent or received)
-	float kForward;	// this constants will be multiplied with desiredSpeed
-	float kBackward;	// this constants will be multiplied with desiredSpeed
-	float Saturation; // low and high thresholds for thruster signal
-	// current state (fresh data)t kBackward;
-	bool inverse; // inverts thruster
+	float kForward;		// this constants will be multiplied with desiredSpeed
+	float kBackward;
+	float sForward; 	// thresholds for thruster signal
+	float sBackward;
+	bool inverse; 		// inverts thruster
 };
 
 struct robotSensors_s {

@@ -172,8 +172,8 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, Stack
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-    variableInit();
     uartBusesInit();
+    variableInit();
     stabilizationInit();
 
     HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
@@ -495,6 +495,11 @@ void func_tUartTimer(void const * argument)
 					ShoreConfigResponse(uartBus[SHORE_UART].txBuffer);
 					uartBus[SHORE_UART].txLength = SHORE_CONFIG_RESPONSE_LENGTH;
 					break;
+				case DIRECT_REQUEST_CODE:
+					ShoreDirectRequest(uartBus[SHORE_UART].rxBuffer);
+					ShoreDirectResponse(uartBus[SHORE_UART].txBuffer);
+					uartBus[SHORE_UART].txLength = SHORE_DIRECT_RESPONSE_LENGTH;
+					break;
 			}
 			xSemaphoreGive(mutDataHandle);
 		}
@@ -529,7 +534,9 @@ void tSilence_func(void const * argument)
 
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
 			resetThrusters();
-			stabilizationInit();
+			for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+				rStabConstants[i].enable = false;
+			}
 			xSemaphoreGive(mutDataHandle);
 		}
 	}

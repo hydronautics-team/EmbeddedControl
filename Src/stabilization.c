@@ -7,6 +7,8 @@
 void stabilizationInit()
 {
 	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+		rStabConstants[i].enable = false;
+
 		rStabState[i].posDerivative = 0;
 		rStabState[i].oldSpeed = 0;
 		rStabState[i].oldPos = 0;
@@ -23,84 +25,37 @@ void stabilizationInit()
 		rStabState[i].posFiltered = 0;
 		rStabState[i].oldPosFiltered = 0;
 		rStabState[i].LastTick = 0;
+
+		if(!rState.flash) {
+			rStabConstants[i].pJoyUnitCast = 1;
+			rStabConstants[i].pSpeedDyn = 1;
+			rStabConstants[i].pErrGain = 1;
+			rStabConstants[i].aFilter[SPEED_FILTER].T = 0;
+			rStabConstants[i].aFilter[SPEED_FILTER].K = 1;
+			rStabConstants[i].aFilter[POS_FILTER].T = 0;
+			rStabConstants[i].aFilter[POS_FILTER].K = 1;
+			rStabConstants[i].pid.pGain = 1;
+			rStabConstants[i].pid.iGain = 1;
+			rStabConstants[i].pid.iMax = -1000;
+			rStabConstants[i].pid.iMin = 1000;
+			rStabConstants[i].pThrustersCast = 1;
+			rStabConstants[i].pThrustersMax = 5000;
+			rStabConstants[i].pThrustersMin = -5000;
+		}
 	}
-
-    rStabConstants[STAB_ROLL].enable = false;
-	rStabConstants[STAB_ROLL].pJoyUnitCast = 1;
-    rStabConstants[STAB_ROLL].pSpeedDyn = 1;
-    rStabConstants[STAB_ROLL].pErrGain = 1;
-    rStabConstants[STAB_ROLL].aFilter[SPEED_FILTER].T = 0;
-    rStabConstants[STAB_ROLL].aFilter[SPEED_FILTER].K = 1;
-    rStabConstants[STAB_ROLL].aFilter[POS_FILTER].T = 0;
-	rStabConstants[STAB_ROLL].aFilter[POS_FILTER].K = 1;
-    rStabConstants[STAB_ROLL].pid.pGain = 1;
-    rStabConstants[STAB_ROLL].pid.iGain = 1;
-    rStabConstants[STAB_ROLL].pid.iMax = 500;
-    rStabConstants[STAB_ROLL].pid.iMin = -500;
-    rStabConstants[STAB_ROLL].pThrustersCast = 1;
-    rStabConstants[STAB_ROLL].pThrustersMax = 127;
-    rStabConstants[STAB_ROLL].pThrustersMin = -127;
-
+	/////////////////////////////////////////////////////////////
     rStabState[STAB_ROLL].inputSignal = &rJoySpeed.roll;
     rStabState[STAB_ROLL].speedSignal = &rSensors.rollSpeed;
     rStabState[STAB_ROLL].posSignal = &rSensors.roll;
     /////////////////////////////////////////////////////////////
-    rStabConstants[STAB_PITCH].enable = false;
-	rStabConstants[STAB_PITCH].pJoyUnitCast = 1;
-    rStabConstants[STAB_PITCH].pSpeedDyn = 1;
-    rStabConstants[STAB_PITCH].pErrGain = 1;
-    rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].T = 0;
-    rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].K = 1;
-    rStabConstants[STAB_PITCH].aFilter[POS_FILTER].T = 0;
-	rStabConstants[STAB_PITCH].aFilter[POS_FILTER].K = 1;
-    rStabConstants[STAB_PITCH].pid.pGain = 1;
-    rStabConstants[STAB_PITCH].pid.iGain = 1;
-    rStabConstants[STAB_PITCH].pid.iMax = 500;
-    rStabConstants[STAB_PITCH].pid.iMin = -500;
-    rStabConstants[STAB_PITCH].pThrustersCast = 1;
-    rStabConstants[STAB_PITCH].pThrustersMax = 127;
-    rStabConstants[STAB_PITCH].pThrustersMin = -127;
-
     rStabState[STAB_PITCH].inputSignal = &rJoySpeed.pitch;
     rStabState[STAB_PITCH].speedSignal = &rSensors.pitchSpeed;
     rStabState[STAB_PITCH].posSignal = &rSensors.pitch;
     /////////////////////////////////////////////////////////////
-    rStabConstants[STAB_YAW].enable = true;
-	rStabConstants[STAB_YAW].pJoyUnitCast = 1;
-    rStabConstants[STAB_YAW].pSpeedDyn = 0;
-    rStabConstants[STAB_YAW].pErrGain = 100;
-    rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].T = 0;
-    rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].K = 9000;
-    rStabConstants[STAB_YAW].aFilter[POS_FILTER].T = 0;
-	rStabConstants[STAB_YAW].aFilter[POS_FILTER].K = 1;
-    rStabConstants[STAB_YAW].pid.pGain = 1;
-    rStabConstants[STAB_YAW].pid.iGain = 0.5;
-    rStabConstants[STAB_YAW].pid.iMax = 1000;
-    rStabConstants[STAB_YAW].pid.iMin = -1000;
-    rStabConstants[STAB_YAW].pThrustersCast = 1;
-    rStabConstants[STAB_YAW].pThrustersMax = 10000;
-    rStabConstants[STAB_YAW].pThrustersMin = -10000;
-
     rStabState[STAB_YAW].inputSignal = &rJoySpeed.yaw;
     rStabState[STAB_YAW].speedSignal = &rSensors.yawSpeed;
     rStabState[STAB_YAW].posSignal = &rSensors.yaw;
     /////////////////////////////////////////////////////////////
-    rStabConstants[STAB_DEPTH].enable = false;
-	rStabConstants[STAB_DEPTH].pJoyUnitCast = 1;
-    rStabConstants[STAB_DEPTH].pSpeedDyn = 1;
-    rStabConstants[STAB_DEPTH].pErrGain = 1;
-    rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].T = 0;
-    rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = 1;
-    rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].T = 0;
-	rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].K = 1;
-    rStabConstants[STAB_DEPTH].pid.pGain = 1;
-    rStabConstants[STAB_DEPTH].pid.iGain = 1;
-    rStabConstants[STAB_DEPTH].pid.iMax = 500;
-    rStabConstants[STAB_DEPTH].pid.iMin = -500;
-    rStabConstants[STAB_DEPTH].pThrustersCast = 1;
-    rStabConstants[STAB_DEPTH].pThrustersMax = 127;
-    rStabConstants[STAB_DEPTH].pThrustersMin = -127;
-
     rStabState[STAB_DEPTH].inputSignal = &rJoySpeed.depth;
     rStabState[STAB_DEPTH].speedSignal = &rStabState[STAB_DEPTH].posDerivative;
     rStabState[STAB_DEPTH].posSignal = &rSensors.pressure;

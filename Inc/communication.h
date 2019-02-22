@@ -82,9 +82,11 @@ void ShoreReceive();
 
 void ShoreRequest(uint8_t *requestBuf);
 void ShoreConfigRequest(uint8_t *requestBuf);
+void ShoreDirectRequest(uint8_t *requestBuf);
 
 void ShoreResponse(uint8_t *responseBuf);
 void ShoreConfigResponse(uint8_t *responseBuf);
+void ShoreDirectResponse(uint8_t *responseBuf);
 
 void ImuReceive(uint8_t *IMUReceiveBuf);
 
