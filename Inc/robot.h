@@ -150,6 +150,7 @@ struct RobotLogicDevices_s {
 
 struct robotStabilizationConstants_s {
 	bool enable;
+	bool joyIntegration; // allow integration of joy casted value
 	// Before P
 	float pJoyUnitCast;
 	float pSpeedDyn;
