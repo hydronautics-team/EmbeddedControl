@@ -88,13 +88,14 @@ void variableInit()
     rThrusters[VB].inverse = false;
     rThrusters[VF].inverse = false;
     rThrusters[VL].inverse = false;
-    rThrusters[VR].inverse = true;
+    rThrusters[VR].inverse = false;
 
     for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
+    	rThrusters[i].desiredSpeed = 0;
     	rThrusters[i].kForward = 1;
     	rThrusters[i].kBackward = 1;
     	rThrusters[i].sForward = 127;
-    	rThrusters[i].sBackward = -127;
+    	rThrusters[i].sBackward = 127;
     }
 
     rDevice[DEV1].address = 0x03;
@@ -446,18 +447,18 @@ void ThrustersRequestUpdate(uint8_t *buf, uint8_t thruster)
 
     // Multiplier constants
     if(rThrusters[thruster].desiredSpeed > 0) {
-    	res.velocity *= rThrusters[thruster].kForward;
+    	res.velocity = (int8_t) ((float) (res.velocity) * rThrusters[thruster].kForward);
     }
     else if(rThrusters[thruster].desiredSpeed < 0) {
-    	res.velocity *= rThrusters[thruster].kBackward;
+    	res.velocity = (int8_t) ((float) (res.velocity) * rThrusters[thruster].kBackward);
     }
 
     // Saturation
     if(rThrusters[thruster].desiredSpeed > rThrusters[thruster].sForward) {
     	rThrusters[thruster].desiredSpeed = rThrusters[thruster].sForward;
     }
-    else if(rThrusters[thruster].desiredSpeed < rThrusters[thruster].sBackward) {
-    	rThrusters[thruster].desiredSpeed = rThrusters[thruster].sBackward;
+    else if(rThrusters[thruster].desiredSpeed < -rThrusters[thruster].sBackward) {
+    	rThrusters[thruster].desiredSpeed = -rThrusters[thruster].sBackward;
     }
 
     memcpy((void*)buf, (void*)&res, THRUSTERS_REQUEST_LENGTH);

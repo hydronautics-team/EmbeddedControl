@@ -78,8 +78,8 @@ struct robotThrusters_s {
 	// characteristics (this parameters affects only sending data, they are not meant to be sent or received)
 	float kForward;		// this constants will be multiplied with desiredSpeed
 	float kBackward;
-	float sForward; 	// thresholds for thruster signal
-	float sBackward;
+	int8_t sForward; 	// thresholds for thruster signal
+	int8_t sBackward;
 	bool inverse; 		// inverts thruster
 };
 

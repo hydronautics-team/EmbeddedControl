@@ -157,7 +157,7 @@ struct shoreConfigRequest_s
 };
 
 #define DIRECT_REQUEST_CODE 			0xAA
-#define SHORE_REQUEST_DIRECT_LENGTH		20
+#define SHORE_REQUEST_DIRECT_LENGTH		17
 
 struct shoreRequestDirect_s
 {
@@ -165,14 +165,14 @@ struct shoreRequestDirect_s
 	uint8_t number;
 	uint8_t id;
 
-	int16_t velocity;
+	int8_t velocity;
 
 	uint8_t reverse;
 	float kForward;
 	float kBackward;
 
-	int16_t sForward;
-	int16_t sBackward;
+	int8_t sForward;
+	int8_t sBackward;
 
 	uint16_t checksum;
 };
