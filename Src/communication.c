@@ -68,7 +68,7 @@ void variableInit()
 	struct flashConfiguration_s config;
 	flashReadSettings(&config);
 	flashReadStructure(&config);
-	if(!rState.flash) {
+	if(rState.flash) {
 		return;
 	}
 
@@ -82,7 +82,7 @@ void variableInit()
     rThrusters[VR].address = 7;
 
     rThrusters[HLB].inverse = true;
-    rThrusters[HLF].inverse = false;
+    rThrusters[HLF].inverse = true;
     rThrusters[HRB].inverse = false;
     rThrusters[HRF].inverse = false;
     rThrusters[VB].inverse = false;
@@ -101,7 +101,7 @@ void variableInit()
     rDevice[DEV1].address = 0x03;
     rDevice[GRAB].address = 0x01;
     rDevice[GRAB_ROTATION].address = 0x02;
-    rDevice[TILT].address = 0x04;
+    rDevice[TILT].address = 0x06;
 }
 
 void uartBusesInit()
@@ -718,9 +718,9 @@ void formThrustVectors()
 	// what the fuck is happening here? this code is actually correct, why?
 	int16_t velocity[THRUSTERS_NUMBER];
 	velocity[HLB] = + rJoySpeed.march - rJoySpeed.lag + bYaw;
-	velocity[HRB] = - rJoySpeed.march - rJoySpeed.lag + bYaw;
+	velocity[HRB] = + rJoySpeed.march + rJoySpeed.lag - bYaw;
 	velocity[HLF] = + rJoySpeed.march + rJoySpeed.lag + bYaw;
-	velocity[HRF] = - rJoySpeed.march + rJoySpeed.lag + bYaw;
+	velocity[HRF] = + rJoySpeed.march - rJoySpeed.lag - bYaw;
 	velocity[VB] = - bDepth + bPitch;
 	velocity[VF] = - bDepth - bPitch;
 	velocity[VL] = - bDepth + bRoll;

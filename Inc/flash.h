@@ -39,7 +39,7 @@ struct flashConfiguration_s {
 		float kBackward;
 		float sForward;
 		float sBackward;
-		bool inverse;
+		uint8_t inverse;
 	} thrusters[THRUSTERS_NUMBER];
 };
 
