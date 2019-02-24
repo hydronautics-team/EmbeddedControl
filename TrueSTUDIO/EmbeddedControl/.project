@@ -137,6 +137,11 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Src/dma.c</locationURI>
 		</link>
 		<link>
+			<name>Application/Src/flash.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/flash.c</locationURI>
+		</link>
+		<link>
 			<name>Application/Src/freertos.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/freertos.c</locationURI>

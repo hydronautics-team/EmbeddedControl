@@ -13,6 +13,7 @@
 #include "checksum.h"
 #include "robot.h"
 #include "stabilization.h"
+#include "flash.h"
 
 #define PACKAGE_TOLLERANCE 	20
 
@@ -22,8 +23,8 @@ struct uartBus_s uartBus[UART_NUMBER];
 
 uint8_t VMAbrokenRxTolerance = 0;
 
-const uint16_t ShoreLength[SHORE_REQUEST_MODES_NUMBER] = {SHORE_REQUEST_LENGTH, REQUEST_CONFIG_LENGTH};
-const uint8_t ShoreCodes[SHORE_REQUEST_MODES_NUMBER] = {SHORE_REQUEST_CODE, REQUEST_CONFIG_CODE};
+const uint16_t ShoreLength[SHORE_REQUEST_MODES_NUMBER] = {SHORE_REQUEST_LENGTH, REQUEST_CONFIG_LENGTH, SHORE_REQUEST_DIRECT_LENGTH};
+const uint8_t ShoreCodes[SHORE_REQUEST_MODES_NUMBER] = {SHORE_REQUEST_CODE, REQUEST_CONFIG_CODE, DIRECT_REQUEST_CODE};
 
 uint16_t counterRx = 0;
 
@@ -33,47 +34,74 @@ bool i2c2PackageTransmit = false;
 bool i2c1PackageReceived = false;
 bool i2c2PackageReceived = false;
 
-void variableInit() {
-    Q100.thrusters[HLB].address = 6;
-    Q100.thrusters[HLF].address = 5;
-    Q100.thrusters[HRB].address = 3;
-    Q100.thrusters[HRF].address = 4;
-    Q100.thrusters[VB].address = 2;
-    Q100.thrusters[VF].address = 1;
-    Q100.thrusters[VL].address = 8;
-    Q100.thrusters[VR].address = 7;
+void variableInit()
+{
+	rState.flash = false;
 
-    Q100.thrusters[HLB].kForward = 1;
-    Q100.thrusters[HLF].kForward = 1;
-    Q100.thrusters[HRB].kForward = 1;
-    Q100.thrusters[HRF].kForward = 1;
-    Q100.thrusters[VB].kForward = 1;
-    Q100.thrusters[VF].kForward = 1;
-    Q100.thrusters[VL].kForward = 1;
-    Q100.thrusters[VR].kForward = 1;
+	rSensors.yaw = 0;
+	rSensors.raw_yaw = 0;
+	rSensors.roll =  0;
+	rSensors.pitch =  0;
 
-    Q100.thrusters[HLB].kBackward = 1;
-    Q100.thrusters[HLF].kBackward = 1;
-    Q100.thrusters[HRB].kBackward = 1;
-    Q100.thrusters[HRF].kBackward = 1;
-    Q100.thrusters[VB].kBackward = 1;
-    Q100.thrusters[VF].kBackward = 1;
-    Q100.thrusters[VL].kBackward = 1;
-    Q100.thrusters[VR].kBackward = 1;
+	rSensors.old_yaw = 0;
+	rSensors.spins = 0;
 
-    Q100.thrusters[HLB].inverse = true;
-    Q100.thrusters[HLF].inverse = false;
-    Q100.thrusters[HRB].inverse = false;
-    Q100.thrusters[HRF].inverse = false;
-    Q100.thrusters[VB].inverse = false;
-    Q100.thrusters[VF].inverse = false;
-    Q100.thrusters[VL].inverse = false;
-    Q100.thrusters[VR].inverse = true;
+	rSensors.rollSpeed = 0;
+	rSensors.pitchSpeed = 0;
+	rSensors.yawSpeed = 0;
 
-    Q100.device[DEV1].address = 0x03;
-    Q100.device[GRAB].address = 0x01;
-    Q100.device[GRAB_ROTATION].address = 0x02;
-    Q100.device[TILT].address = 0x04;
+	rSensors.accelX = 0;
+	rSensors.accelY = 0;
+	rSensors.accelZ = 0;
+
+	rSensors.magX = 0;
+	rSensors.magY = 0;
+	rSensors.magZ = 0;
+
+	rSensors.quatA = 0;
+	rSensors.quatB = 0;
+	rSensors.quatC = 0;
+	rSensors.quatD = 0;
+
+	rSensors.resetIMU = false;
+
+	struct flashConfiguration_s config;
+	flashReadSettings(&config);
+	flashReadStructure(&config);
+	if(rState.flash) {
+		return;
+	}
+
+    rThrusters[HLB].address = 6;
+    rThrusters[HLF].address = 5;
+    rThrusters[HRB].address = 3;
+    rThrusters[HRF].address = 4;
+    rThrusters[VB].address = 2;
+    rThrusters[VF].address = 1;
+    rThrusters[VL].address = 8;
+    rThrusters[VR].address = 7;
+
+    rThrusters[HLB].inverse = true;
+    rThrusters[HLF].inverse = true;
+    rThrusters[HRB].inverse = false;
+    rThrusters[HRF].inverse = false;
+    rThrusters[VB].inverse = false;
+    rThrusters[VF].inverse = false;
+    rThrusters[VL].inverse = false;
+    rThrusters[VR].inverse = false;
+
+    for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
+    	rThrusters[i].desiredSpeed = 0;
+    	rThrusters[i].kForward = 1;
+    	rThrusters[i].kBackward = 1;
+    	rThrusters[i].sForward = 127;
+    	rThrusters[i].sBackward = 127;
+    }
+
+    rDevice[DEV1].address = 0x03;
+    rDevice[GRAB].address = 0x01;
+    rDevice[GRAB_ROTATION].address = 0x02;
+    rDevice[TILT].address = 0x06;
 }
 
 void uartBusesInit()
@@ -135,6 +163,25 @@ void uartBusesInit()
 		uartBus[i].timeoutCounter = 0;
 		uartBus[i].lastMessage = 0;
 	}
+}
+
+void resetThrusters()
+{
+	rJoySpeed.depth = 0;
+	rJoySpeed.lag = 0;
+	rJoySpeed.march = 0;
+	rJoySpeed.pitch = 0;
+	rJoySpeed.roll = 0;
+	rJoySpeed.yaw = 0;
+
+	rThrusters[HLB].desiredSpeed = 0;
+	rThrusters[HLF].desiredSpeed = 0;
+	rThrusters[HRB].desiredSpeed = 0;
+	rThrusters[HRF].desiredSpeed = 0;
+	rThrusters[VB].desiredSpeed = 0;
+	rThrusters[VF].desiredSpeed = 0;
+	rThrusters[VL].desiredSpeed = 0;
+	rThrusters[VR].desiredSpeed = 0;
 }
 
 bool transmitPackage(struct uartBus_s *bus, bool isrMode)
@@ -254,18 +301,23 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 }
 
-void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
+bool receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length)
 {
-	TickType_t timeBegin = xTaskGetTickCount();
+	float timeBegin = fromTickToMs(xTaskGetTickCount());
 	i2c2PackageReceived = false;
 	switch(I2C) {
 	case DEV_I2C:
 		HAL_I2C_Master_Receive_IT(&hi2c2, addr>>1, buf, length);
-		while (!i2c2PackageReceived && xTaskGetTickCount() - timeBegin < WAITING_SENSORS) {
+		while (!i2c2PackageReceived) {
+			if(fromTickToMs(xTaskGetTickCount()) - timeBegin < WAITING_SENSORS) {
+				HAL_I2C_Master_Abort_IT(&hi2c2, addr>>1);
+				return false;
+			}
 			osDelay(DELAY_SENSOR_TASK);
 		}
 		break;
 	}
+	return true;
 }
 
 
@@ -287,29 +339,31 @@ void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	if(hi2c == &hi2c1) {
-		i2c1PackageTransmit = true;
+		i2c2PackageReceived = true;
 	}
 	else if(hi2c == &hi2c2) {
-		i2c2PackageTransmit = true;
+		i2c2PackageReceived = true;
 	}
 }
 
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	if(hi2c == &hi2c1) {
-		i2c1PackageReceived = true;
+		i2c1PackageTransmit = true;
 	}
 	else if(hi2c == &hi2c2) {
-		i2c2PackageReceived  = true;
+		i2c1PackageTransmit  = true;
 	}
 }
 
 
-void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id)
+void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id)
 {
+	float input = 0;
 	switch(Sensor_id) {
 	case DEV_I2C:
-		robot->sensors.pressure = FloatFromUint8Reverse(buf, 0);
+		input = FloatFromUint8Reverse(buf, 0);
+		rSensors.pressure = 9.124*input-3.177;
 		break;
 	}
 }
@@ -345,28 +399,28 @@ void ShoreReceive()
 	}
 }
 
-void DevicesRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
+void DevicesRequestUpdate(uint8_t *buf, uint8_t dev)
 {
 	struct devicesRequest_s req;
 
     req.AA1 = 0xAA;
     req.AA2 = 0xAA;
-    req.address = robot->device[dev].address;
-    req.setting = robot->device[dev].settings;
+    req.address = rDevice[dev].address;
+    req.setting = rDevice[dev].settings;
     req.velocity1 = 0;
-    req.velocity2 = robot->device[dev].force;
+    req.velocity2 = rDevice[dev].force;
 
     memcpy((void*)buf, (void*)&req, DEVICES_REQUEST_LENGTH);
     AddChecksumm8b(buf, DEVICES_REQUEST_LENGTH);
 }
 
-void DevicesResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
+void DevicesResponseUpdate(uint8_t *buf, uint8_t dev)
 {
     if(IsChecksumm8bCorrect(buf, DEVICES_RESPONSE_LENGTH)) {
     	struct devicesResponse_s res;
     	memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
 
-        robot->device[dev].current = res.current1;
+        rDevice[dev].current = res.current1;
         // TODO make errors work pls
         //writeBit(&(robot->device[dev].errors), res.errors, AGAR);
 
@@ -377,40 +431,48 @@ void DevicesResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t dev)
     }
 }
 
-void ThrustersRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster)
+void ThrustersRequestUpdate(uint8_t *buf, uint8_t thruster)
 {
     struct thrustersRequest_s res;
 
     res.AA = 0xAA;
     res.type = 0x01;
-    res.address = robot->thrusters[thruster].address;
-    res.velocity = robot->thrusters[thruster].desiredSpeed;
+    res.address = rThrusters[thruster].address;
+    res.velocity = rThrusters[thruster].desiredSpeed;
 
     // Inverting
-    if(robot->thrusters[thruster].inverse) {
+    if(rThrusters[thruster].inverse) {
     	res.velocity *= -1;
     }
 
     // Multiplier constants
-    if(robot->thrusters[thruster].desiredSpeed > 0) {
-    	res.velocity *= robot->thrusters[thruster].kForward;
+    if(rThrusters[thruster].desiredSpeed > 0) {
+    	res.velocity = (int8_t) ((float) (res.velocity) * rThrusters[thruster].kForward);
     }
-    else if(robot->thrusters[thruster].desiredSpeed < 0) {
-    	res.velocity *= robot->thrusters[thruster].kBackward;
+    else if(rThrusters[thruster].desiredSpeed < 0) {
+    	res.velocity = (int8_t) ((float) (res.velocity) * rThrusters[thruster].kBackward);
+    }
+
+    // Saturation
+    if(rThrusters[thruster].desiredSpeed > rThrusters[thruster].sForward) {
+    	rThrusters[thruster].desiredSpeed = rThrusters[thruster].sForward;
+    }
+    else if(rThrusters[thruster].desiredSpeed < -rThrusters[thruster].sBackward) {
+    	rThrusters[thruster].desiredSpeed = -rThrusters[thruster].sBackward;
     }
 
     memcpy((void*)buf, (void*)&res, THRUSTERS_REQUEST_LENGTH);
     AddChecksumm8bVma(buf, THRUSTERS_REQUEST_LENGTH);
 }
 
-void ThrustersResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster)
+void ThrustersResponseUpdate(uint8_t *buf, uint8_t thruster)
 {
 	//TODO errors parsing! and what is all this new stuff means
     if(IsChecksumm8bCorrectVma(buf, THRUSTERS_RESPONSE_LENGTH) && buf[0] != 0) {
     	struct thrustersResponse_s res;
     	memcpy((void*)&res, (void*)buf, THRUSTERS_RESPONSE_LENGTH);
 
-        robot->thrusters[thruster].current = res.current;
+        rThrusters[thruster].current = res.current;
 
         ++uartBus[THRUSTERS_UART].successRxCounter;
     }
@@ -419,55 +481,7 @@ void ThrustersResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster
     }
 }
 
-void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf)
-{
-	if(IsCrc16ChecksummCorrect(requestBuf, REQUEST_CONFIG_LENGTH)) {
-		struct shoreConfigRequest_s req;
-		memcpy((void*)&req, (void*)requestBuf, REQUEST_CONFIG_LENGTH);
-
-		robot->joySpeed.march = req.march;
-		robot->joySpeed.lag = req.lag;
-		robot->joySpeed.depth = req.depth;
-		robot->joySpeed.roll = req.roll;
-		robot->joySpeed.pitch = req.pitch;
-		robot->joySpeed.yaw = req.yaw;
-
-		robot->stabConstants[req.contour].pJoyUnitCast = req.pJoyUnitCast;
-		robot->stabConstants[req.contour].pSpeedDyn = req.pSpeedDyn;
-		robot->stabConstants[req.contour].pErrGain = req.pErrGain;
-
-		robot->stabConstants[req.contour].aFilter[POS_FILTER].T = req.posFilterT;
-		robot->stabConstants[req.contour].aFilter[POS_FILTER].K = req.posFilterK;
-		robot->stabConstants[req.contour].aFilter[SPEED_FILTER].T = req.speedFilterT;
-		robot->stabConstants[req.contour].aFilter[SPEED_FILTER].K = req.speedFilterK;
-
-		robot->stabConstants[req.contour].pid.pGain = req.pid_pGain;
-		robot->stabConstants[req.contour].pid.iGain = req.pid_iGain;
-		robot->stabConstants[req.contour].pid.iMax = req.pid_iMax;
-		robot->stabConstants[req.contour].pid.iMin = req.pid_iMin;
-
-		robot->stabConstants[req.contour].pThrustersCast = req.pThrustersCast;
-		robot->stabConstants[req.contour].pThrustersMin = req.pThrustersMin;
-		robot->stabConstants[req.contour].pThrustersMax = req.pThrustersMax;
-
-		ContourSelected = req.contour;
-
-		updatePidConstants();
-
-		for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
-			robot->stabConstants[i].enable = false;
-		}
-		robot->stabConstants[req.contour].enable = true;
-
-		++uartBus[SHORE_UART].successRxCounter;;
-	}
-	else {
-		++uartBus[SHORE_UART].brokenRxCounter;
-	}
-}
-
-
-void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
+void ShoreRequest(uint8_t *requestBuf)
 {
     if (IsCrc16ChecksummCorrect(requestBuf, SHORE_REQUEST_LENGTH)) {
     	struct shoreRequest_s req;
@@ -475,72 +489,66 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
 
     	uint8_t tempCameraNum = 0;
 
-        robot->joySpeed.march = req.march;
-        robot->joySpeed.lag = req.lag;
-        robot->joySpeed.depth = req.depth;
-        robot->joySpeed.roll = req.roll;
-        robot->joySpeed.pitch = req.pitch;
-        robot->joySpeed.yaw = req.yaw;
+        rJoySpeed.march = req.march;
+        rJoySpeed.lag = req.lag;
+        rJoySpeed.depth = req.depth;
+        rJoySpeed.roll = req.roll;
+        rJoySpeed.pitch = req.pitch;
+        rJoySpeed.yaw = req.yaw;
 
-        robot->device[LIGHT].force = req.light;
-        robot->device[GRAB].force = req.grab;
-        if (robot->device[GRAB].force < -127) {
-            robot->device[GRAB].force = -127;
+        rDevice[LIGHT].force = req.light;
+        rDevice[GRAB].force = req.grab;
+        if (rDevice[GRAB].force < -127) {
+            rDevice[GRAB].force = -127;
         }
-        robot->device[TILT].force = req.tilt;
-        if (robot->device[TILT].force < -127) {
-        	robot->device[TILT].force = -127;
+        rDevice[TILT].force = req.tilt;
+        if (rDevice[TILT].force < -127) {
+        	rDevice[TILT].force = -127;
         }
-        robot->device[GRAB_ROTATION].force  = req.grab_rotate;
-        if (robot->device[GRAB_ROTATION].force < -127) {
-            robot->device[GRAB_ROTATION].force = -127;
+        rDevice[GRAB_ROTATION].force  = req.grab_rotate;
+        if (rDevice[GRAB_ROTATION].force < -127) {
+            rDevice[GRAB_ROTATION].force = -127;
         }
 
-        robot->device[DEV1].force = req.dev1;
-        robot->device[DEV2].force = req.dev2;
+        rDevice[DEV1].force = req.dev1;
+        rDevice[DEV2].force = req.dev2;
+
+        rSensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
+
+        if(PickBit(req.stabilize_flags, SHORE_STABILIZE_SAVE_BIT)) {
+        	struct flashConfiguration_s config;
+        	flashFillStructure(&config);
+        	flashWriteSettings(&config);
+        }
+
+        tempCameraNum = req.cameras;
+
+        uint8_t old_reset = rComputer.reset;
+        if(old_reset != req.pc_reset) {
+            if(req.pc_reset == PC_ON_CODE) {
+            	HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_RESET); // RESET
+            	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+            }
+            else if(req.pc_reset == PC_OFF_CODE) {
+            	HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
+            	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+            }
+        }
+        rComputer.reset = req.pc_reset;
 
         bool wasEnabled;
 
-        //TODO govnokod
-        wasEnabled = robot->stabConstants[STAB_YAW].enable;
-        robot->stabConstants[STAB_YAW].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
-        if(wasEnabled == false && robot->stabConstants[STAB_YAW].enable == true) {
-        	stabilizationStart(STAB_YAW);
+        for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+        	wasEnabled = rStabConstants[i].enable;
+        	rStabConstants[i].enable = PickBit(req.stabilize_flags, i);
+        	if(wasEnabled == false && rStabConstants[i].enable == true) {
+        		stabilizationStart(i);
+        	}
         }
 
-        wasEnabled = robot->stabConstants[STAB_ROLL].enable;
-        robot->stabConstants[STAB_ROLL].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_ROLL_BIT);
-        if(wasEnabled == false && robot->stabConstants[STAB_ROLL].enable == true) {
-        	stabilizationStart(STAB_ROLL);
-        }
-
-        wasEnabled = robot->stabConstants[STAB_PITCH].enable;
-        robot->stabConstants[STAB_PITCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
-        if(wasEnabled == false && robot->stabConstants[STAB_PITCH].enable == true) {
-        	stabilizationStart(STAB_PITCH);
-        }
-
-        wasEnabled = robot->stabConstants[STAB_DEPTH].enable;
-        robot->stabConstants[STAB_DEPTH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
-        if(wasEnabled == false && robot->stabConstants[STAB_DEPTH].enable == true) {
-        	stabilizationStart(STAB_DEPTH);
-        }
-
-        robot->sensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
-
-        tempCameraNum = req.cameras;
-        robot->pc.reset = req.pc_reset;
-
-        if(robot->pc.reset == PC_ON_CODE) {
-        	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
-        }
-        else if(robot->pc.reset == PC_OFF_CODE) {
-        	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
-        }
-
-        if(tempCameraNum != robot->cameraNum) {
-        	robot->cameraNum = tempCameraNum;
-        	switch(robot->cameraNum) {
+        if(tempCameraNum != rState.cameraNum) {
+        	rState.cameraNum = tempCameraNum;
+        	switch(rState.cameraNum) {
         	case 0:
         		HAL_GPIO_WritePin(GPIOA, CAM1_Pin, GPIO_PIN_RESET);
         		HAL_GPIO_WritePin(GPIOA, CAM2_Pin, GPIO_PIN_RESET);
@@ -563,58 +571,8 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
         	}
         }
 
-        float bYaw, bRoll, bPitch, bDepth;
-        if(robot->stabConstants[STAB_ROLL].enable) {
-            bRoll = robot->stabState[STAB_ROLL].speedError;
-        }
-        else {
-            bRoll = robot->joySpeed.roll;
-        }
-
-        if(robot->stabConstants[STAB_PITCH].enable) {
-            bPitch = robot->stabState[STAB_PITCH].speedError;
-        }
-        else {
-            bPitch = robot->joySpeed.pitch;
-        }
-
-        if(robot->stabConstants[STAB_YAW].enable) {
-            bYaw = robot->stabState[STAB_YAW].speedError;
-        }
-        else {
-            bYaw = robot->joySpeed.yaw;
-        }
-
-        if(robot->stabConstants[STAB_DEPTH].enable) {
-        	bDepth = robot->stabState[STAB_DEPTH].speedError;
-        }
-        else {
-        	bDepth = robot->joySpeed.depth;
-        }
-
-        // what the fuck is happening here? this code is actually correct, why?
-        int16_t velocity[THRUSTERS_NUMBER];
-        velocity[HLB] = + robot->joySpeed.march - robot->joySpeed.lag + bYaw;
-        velocity[HRB] = - robot->joySpeed.march - robot->joySpeed.lag + bYaw;
-        velocity[HLF] = + robot->joySpeed.march + robot->joySpeed.lag + bYaw;
-        velocity[HRF] = - robot->joySpeed.march + robot->joySpeed.lag + bYaw;
-        velocity[VB] = - bDepth + bPitch;
-        velocity[VF] = - bDepth - bPitch;
-        velocity[VL] = - bDepth + bRoll;
-        velocity[VR] = - bDepth - bRoll;
-
-        for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
-            velocity[i] = (int8_t)(velocity[i] / 0xFF);
-            if (velocity[i] > 127) {
-                robot->thrusters[i].desiredSpeed = 127;
-            }
-            else if( velocity[i] > -127) {
-                robot->thrusters[i].desiredSpeed = velocity[i];
-            }
-            else {
-                robot->thrusters[i].desiredSpeed = -127;
-            }
-        }
+        // TODO tuuuupoooo
+        formThrustVectors(&req);
 
         ++uartBus[SHORE_UART].successRxCounter;
     }
@@ -648,87 +606,244 @@ void ShoreRequest(struct Robot *robot, uint8_t *requestBuf)
     }
 }
 
-void ShoreResponse(struct Robot *robot, uint8_t *responseBuf)
+void ShoreConfigRequest(uint8_t *requestBuf)
+{
+	if(IsCrc16ChecksummCorrect(requestBuf, REQUEST_CONFIG_LENGTH)) {
+		struct shoreConfigRequest_s req;
+		memcpy((void*)&req, (void*)requestBuf, REQUEST_CONFIG_LENGTH);
+
+		rJoySpeed.march = req.march;
+		rJoySpeed.lag = req.lag;
+		rJoySpeed.depth = req.depth;
+		rJoySpeed.roll = req.roll;
+		rJoySpeed.pitch = req.pitch;
+		rJoySpeed.yaw = req.yaw;
+
+		rStabConstants[req.contour].pJoyUnitCast = req.pJoyUnitCast;
+		rStabConstants[req.contour].pSpeedDyn = req.pSpeedDyn;
+		rStabConstants[req.contour].pErrGain = req.pErrGain;
+
+		rStabConstants[req.contour].aFilter[POS_FILTER].T = req.posFilterT;
+		rStabConstants[req.contour].aFilter[POS_FILTER].K = req.posFilterK;
+		rStabConstants[req.contour].aFilter[SPEED_FILTER].T = req.speedFilterT;
+		rStabConstants[req.contour].aFilter[SPEED_FILTER].K = req.speedFilterK;
+
+		rStabConstants[req.contour].pid.pGain = req.pid_pGain;
+		rStabConstants[req.contour].pid.iGain = req.pid_iGain;
+		rStabConstants[req.contour].pid.iMax = req.pid_iMax;
+		rStabConstants[req.contour].pid.iMin = req.pid_iMin;
+
+		rStabConstants[req.contour].pThrustersCast = req.pThrustersCast;
+		rStabConstants[req.contour].pThrustersMin = req.pThrustersMin;
+		rStabConstants[req.contour].pThrustersMax = req.pThrustersMax;
+
+		if(rState.contourSelected != req.contour) {
+			for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+				rStabConstants[i].enable = false;
+			}
+			rState.contourSelected = req.contour;
+			stabilizationStart(req.contour);
+		}
+
+		// TODO tuuuupooo
+		formThrustVectors();
+
+		++uartBus[SHORE_UART].successRxCounter;;
+	}
+	else {
+		++uartBus[SHORE_UART].brokenRxCounter;
+	}
+}
+
+void ShoreDirectRequest(uint8_t *requestBuf)
+{
+	if(IsCrc16ChecksummCorrect(requestBuf, SHORE_REQUEST_DIRECT_LENGTH)) {
+		struct shoreRequestDirect_s req;
+		memcpy((void*)&req, (void*)requestBuf, SHORE_REQUEST_DIRECT_LENGTH);
+
+		for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+			rStabConstants[i].enable = false;
+		}
+
+		for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
+			rThrusters[i].desiredSpeed = 0;
+		}
+
+		rThrusters[req.number].desiredSpeed = req.velocity;
+		rThrusters[req.number].address = req.id;
+		rThrusters[req.number].kForward = req.kForward;
+		rThrusters[req.number].kBackward = req.kBackward;
+		rThrusters[req.number].sForward = req.sForward;
+		rThrusters[req.number].sBackward = req.sBackward;
+		rThrusters[req.number].inverse = req.reverse;
+
+		++uartBus[SHORE_UART].successRxCounter;;
+	}
+	else {
+		++uartBus[SHORE_UART].brokenRxCounter;
+	}
+}
+
+void formThrustVectors()
+{
+	float bYaw, bRoll, bPitch, bDepth;
+	if(rStabConstants[STAB_ROLL].enable) {
+		bRoll = rStabState[STAB_ROLL].speedError;
+	}
+	else {
+		bRoll = rJoySpeed.roll;
+	}
+
+	if(rStabConstants[STAB_PITCH].enable) {
+		bPitch = rStabState[STAB_PITCH].speedError;
+	}
+	else {
+		bPitch = rJoySpeed.pitch;
+	}
+
+	if(rStabConstants[STAB_YAW].enable) {
+		bYaw = rStabState[STAB_YAW].speedError;
+	}
+	else {
+		bYaw = rJoySpeed.yaw;
+	}
+
+	if(rStabConstants[STAB_DEPTH].enable) {
+		bDepth = rStabState[STAB_DEPTH].speedError;
+	}
+	else {
+		bDepth = rJoySpeed.depth;
+	}
+
+	// what the fuck is happening here? this code is actually correct, why?
+	int16_t velocity[THRUSTERS_NUMBER];
+	velocity[HLB] = + rJoySpeed.march - rJoySpeed.lag + bYaw;
+	velocity[HRB] = + rJoySpeed.march + rJoySpeed.lag - bYaw;
+	velocity[HLF] = + rJoySpeed.march + rJoySpeed.lag + bYaw;
+	velocity[HRF] = + rJoySpeed.march - rJoySpeed.lag - bYaw;
+	velocity[VB] = - bDepth + bPitch;
+	velocity[VF] = - bDepth - bPitch;
+	velocity[VL] = - bDepth + bRoll;
+	velocity[VR] = - bDepth - bRoll;
+
+	for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
+		velocity[i] = (int8_t)(velocity[i] / 0xFF);
+		if (velocity[i] > 127) {
+			rThrusters[i].desiredSpeed = 127;
+		}
+		else if( velocity[i] > -127) {
+			rThrusters[i].desiredSpeed = velocity[i];
+		}
+		else {
+			rThrusters[i].desiredSpeed = -127;
+		}
+	}
+}
+
+void ShoreResponse(uint8_t *responseBuf)
 {
 	struct shoreResponse_s res;
 
-    res.roll = robot->sensors.roll;
-    res.pitch = robot->sensors.pitch;
-    res.yaw = robot->sensors.yaw;
-    res.rollSpeed = robot->sensors.rollSpeed;
-    res.pitchSpeed = robot->sensors.pitchSpeed;
-    res.yawSpeed = robot->sensors.yawSpeed;
+    res.roll = rSensors.roll;
+    res.pitch = rSensors.pitch;
+    res.yaw = rSensors.yaw;
+    res.rollSpeed = rSensors.rollSpeed;
+    res.pitchSpeed = rSensors.pitchSpeed;
+    res.yawSpeed = rSensors.yawSpeed;
 
-    res.pressure = robot->sensors.pressure;
+    res.pressure = rSensors.pressure;
 
     // TODO eyes bleeding again
-    res.vma_current_hlb = robot->thrusters[HLB].current;
-    res.vma_current_hlf = robot->thrusters[HLF].current;
-    res.vma_current_hrb = robot->thrusters[HRB].current;
-    res.vma_current_hrf = robot->thrusters[HRF].current;
-    res.vma_current_vb = robot->thrusters[VB].current;
-    res.vma_current_vf = robot->thrusters[VF].current;
-    res.vma_current_vl = robot->thrusters[VL].current;
-    res.vma_current_vr = robot->thrusters[VR].current;
+    res.vma_current_hlb = rThrusters[HLB].current;
+    res.vma_current_hlf = rThrusters[HLF].current;
+    res.vma_current_hrb = rThrusters[HRB].current;
+    res.vma_current_hrf = rThrusters[HRF].current;
+    res.vma_current_vb = rThrusters[VB].current;
+    res.vma_current_vf = rThrusters[VF].current;
+    res.vma_current_vl = rThrusters[VL].current;
+    res.vma_current_vr = rThrusters[VR].current;
 
-    res.dev_current_light = robot->device[LIGHT].current;
-    res.dev_current_tilt = robot->device[TILT].current;
-    res.dev_current_grab = robot->device[GRAB].current;
-    res.dev_current_grab_rotate = robot->device[GRAB_ROTATION].current;
-    res.dev_current_dev1 = robot->device[DEV1].current;
-    res.dev_current_dev2 = robot->device[DEV2].current;
+    res.dev_current_light = rDevice[LIGHT].current;
+    res.dev_current_tilt = rDevice[TILT].current;
+    res.dev_current_grab = rDevice[GRAB].current;
+    res.dev_current_grab_rotate = rDevice[GRAB_ROTATION].current;
+    res.dev_current_dev1 = rDevice[DEV1].current;
+    res.dev_current_dev2 = rDevice[DEV2].current;
 
     res.vma_errors = 0x55;         //!!!!!TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // TODO do this properly pls
     res.dev_errors = 0;//robot->device.errors;
-    res.pc_errors = robot->pc.errors;
+    res.pc_errors = rComputer.errors;
 
     memcpy((void*)responseBuf, (void*)&res, SHORE_RESPONSE_LENGTH);
 
     AddCrc16Checksumm(responseBuf, SHORE_RESPONSE_LENGTH);
 }
 
-void ShoreConfigResponse(struct Robot *robot, uint8_t *responseBuf)
+void ShoreConfigResponse(uint8_t *responseBuf)
 {
 	struct shoreConfigResponse_s res;
 
 	res.code = REQUEST_CONFIG_CODE;
 
-	res.roll = robot->sensors.roll;
-	res.pitch = robot->sensors.pitch;
-	res.yaw = robot->sensors.yaw;
-	res.rollSpeed = robot->sensors.rollSpeed;
-	res.pitchSpeed = robot->sensors.pitchSpeed;
-	res.yawSpeed = robot->sensors.yawSpeed;
+	res.roll = rSensors.roll;
+	res.pitch = rSensors.pitch;
+	res.yaw = rSensors.yaw;
+	res.raw_yaw = rSensors.raw_yaw;
 
-	res.pressure = robot->sensors.pressure;
+	res.rollSpeed = rSensors.rollSpeed;
+	res.pitchSpeed = rSensors.pitchSpeed;
+	res.yawSpeed = rSensors.yawSpeed;
+
+	res.pressure = rSensors.pressure;
 	res.in_pressure = 0;
 
-	res.inputSignal = *robot->stabState[ContourSelected].inputSignal;
-	res.speedSignal = *robot->stabState[ContourSelected].speedSignal;
-	res.posSignal = *robot->stabState[ContourSelected].posSignal;
+	res.inputSignal = *rStabState[rState.contourSelected].inputSignal;
+	res.speedSignal = *rStabState[rState.contourSelected].speedSignal;
+	res.posSignal = *rStabState[rState.contourSelected].posSignal;
 
-	res.oldSpeed = robot->stabState[ContourSelected].oldSpeed;
-	res.oldPos = robot->stabState[ContourSelected].oldPos;
+	res.joyUnitCasted = rStabState[rState.contourSelected].joyUnitCasted;
+	res.joy_iValue = rStabState[rState.contourSelected].joy_iValue;
+	res.posError = rStabState[rState.contourSelected].posError;
+	res.speedError = rStabState[rState.contourSelected].speedError;
+	res.dynSummator = rStabState[rState.contourSelected].dynSummator;
+	res.pidValue = rStabState[rState.contourSelected].pidValue;
+	res.posErrorAmp = rStabState[rState.contourSelected].posErrorAmp;
+	res.speedFiltered = rStabState[rState.contourSelected].speedFiltered;
+	res.posFiltered = rStabState[rState.contourSelected].posFiltered;
 
-	res.joyUnitCasted = robot->stabState[ContourSelected].joyUnitCasted;
-	res.joy_iValue = robot->stabState[ContourSelected].joy_iValue;
-	res.posError = robot->stabState[ContourSelected].posError;
-	res.speedError = robot->stabState[ContourSelected].speedError;
-	res.dynSummator = robot->stabState[ContourSelected].dynSummator;
-	res.pidValue = robot->stabState[ContourSelected].pidValue;
-	res.posErrorAmp = robot->stabState[ContourSelected].posErrorAmp;
-	res.speedFiltered = robot->stabState[ContourSelected].speedFiltered;
-	res.posFiltered = robot->stabState[ContourSelected].posFiltered;
-
-	res.LastTick = robot->stabState[ContourSelected].LastTick;
+	res.pid_iValue = rStabState[rState.contourSelected].pid_iValue;
 
 	memcpy((void*)responseBuf, (void*)&res, SHORE_CONFIG_RESPONSE_LENGTH);
 
 	AddCrc16Checksumm(responseBuf, SHORE_CONFIG_RESPONSE_LENGTH);
 }
 
-void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf)
+void ShoreDirectResponse(uint8_t *responseBuf)
+{
+	struct shoreResponseDirect_s res;
+
+	res.number = 0xFF;
+	res.connection = 0xAA;
+	res.current = 0xBB;
+
+    memcpy((void*)responseBuf, (void*)&res, SHORE_DIRECT_RESPONSE_LENGTH);
+
+    AddCrc16Checksumm(responseBuf, SHORE_DIRECT_RESPONSE_LENGTH);
+}
+
+int16_t sign(int16_t in)
+{
+	if(in > 0) {
+		return 1;
+	}
+	else if(in < 0) {
+		return -1;
+	}
+	return 0;
+}
+
+void ImuReceive(uint8_t *ReceiveBuf)
 {
     for(uint8_t i = 0; i < IMU_CHECKSUMS; ++i) {
         if(!IsChecksum16bSCorrect(&ReceiveBuf[i*IMU_RESPONSE_LENGTH], IMU_RESPONSE_LENGTH)) {
@@ -737,26 +852,51 @@ void ImuReceive(struct Robot *robot, uint8_t *ReceiveBuf)
         }
     }
 
-    robot->sensors.yaw = MergeBytes(ReceiveBuf[EULER_PSI], ReceiveBuf[EULER_PSI]+1) * 0.0109863;
-    robot->sensors.roll =  MergeBytes(ReceiveBuf[EULER_PHI], ReceiveBuf[EULER_PHI]+1) * 0.0109863;
-    robot->sensors.pitch =  MergeBytes(ReceiveBuf[EULER_TETA], ReceiveBuf[EULER_TETA]+1) * 0.0109863;
+    rSensors.raw_yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
+    if(abs(rSensors.old_yaw - rSensors.raw_yaw) > 180) {
+    	int16_t direction = rSensors.spins;
+    	if(rSensors.raw_yaw > 0) {
+    		rSensors.spins--;
+    	}
+    	else {
+    		rSensors.spins++;
+    	}
+    	direction = rSensors.spins - direction;
 
-    robot->sensors.rollSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_X], ReceiveBuf[GYRO_PROC_X+1]) * 0.000183105;
-    robot->sensors.pitchSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Y], ReceiveBuf[GYRO_PROC_Y+1]) * 0.000183105;
-    robot->sensors.yawSpeed = MergeBytes(ReceiveBuf[GYRO_PROC_Z], ReceiveBuf[GYRO_PROC_Z+1]) * 0.000183105;
+     	if(rSensors.spins == 0) {
+     		rSensors.yaw = rSensors.raw_yaw;
+     	}
+     	else {
+     		rSensors.yaw = 360*rSensors.spins-sign(direction)*180;
+     		rSensors.yaw += sign(direction)*(180 - abs(rSensors.raw_yaw));
+     	}
+    }
+    else {
+    	float diff = rSensors.raw_yaw-rSensors.old_yaw;
+    	rSensors.yaw += diff;
+    }
+    rSensors.old_yaw = rSensors.raw_yaw;
 
-    robot->sensors.accelX = MergeBytes(ReceiveBuf[ACCEL_PROC_X], ReceiveBuf[ACCEL_PROC_X+1]) * 0.0109863;
-    robot->sensors.accelY = MergeBytes(ReceiveBuf[ACCEL_PROC_Y], ReceiveBuf[ACCEL_PROC_Y+1]) * 0.0109863;
-    robot->sensors.accelZ = MergeBytes(ReceiveBuf[ACCEL_PROC_Z], ReceiveBuf[ACCEL_PROC_Z+1]) * 0.0109863;
+    //rSensors.yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
+    rSensors.roll =  (float) (MergeBytes(&ReceiveBuf[EULER_PHI])) * 0.0109863;
+    rSensors.pitch =  (float) (MergeBytes(&ReceiveBuf[EULER_TETA])) * 0.0109863;
 
-    robot->sensors.magX = MergeBytes(ReceiveBuf[MAG_PROC_X], ReceiveBuf[MAG_PROC_X+1]) * 0.000183105;
-    robot->sensors.magY = MergeBytes(ReceiveBuf[MAG_PROC_Y], ReceiveBuf[MAG_PROC_Y+1]) * 0.000183105;
-    robot->sensors.magZ = MergeBytes(ReceiveBuf[MAG_PROC_Z], ReceiveBuf[MAG_PROC_Z+1]) * 0.000183105;
+    rSensors.rollSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_X])) * 0.000183105;
+    rSensors.pitchSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Y])) * 0.000183105;
+    rSensors.yawSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Z])) * 0.000183105;
 
-    robot->sensors.quatA = MergeBytes(ReceiveBuf[QUAT_A], ReceiveBuf[QUAT_A+1]) * 0.0000335693;
-    robot->sensors.quatB = MergeBytes(ReceiveBuf[QUAT_B], ReceiveBuf[QUAT_B+1]) * 0.0000335693;
-    robot->sensors.quatC = MergeBytes(ReceiveBuf[QUAT_C], ReceiveBuf[QUAT_C+1]) * 0.0000335693;
-    robot->sensors.quatD = MergeBytes(ReceiveBuf[QUAT_D], ReceiveBuf[QUAT_D+1]) * 0.0000335693;
+    rSensors.accelX = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_X])) * 0.0109863;
+    rSensors.accelY = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_Y])) * 0.0109863;
+    rSensors.accelZ = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_Z])) * 0.0109863;
+
+    rSensors.magX = (float) (MergeBytes(&ReceiveBuf[MAG_PROC_X])) * 0.000183105;
+    rSensors.magY = (float) (MergeBytes(&ReceiveBuf[MAG_PROC_Y])) * 0.000183105;
+    rSensors.magZ = (float) (MergeBytes(&ReceiveBuf[MAG_PROC_Z])) * 0.000183105;
+
+    rSensors.quatA = (float) (MergeBytes(&ReceiveBuf[QUAT_A])) * 0.0000335693;
+    rSensors.quatB = (float) (MergeBytes(&ReceiveBuf[QUAT_B])) * 0.0000335693;
+    rSensors.quatC = (float) (MergeBytes(&ReceiveBuf[QUAT_C])) * 0.0000335693;
+    rSensors.quatD = (float) (MergeBytes(&ReceiveBuf[QUAT_D])) * 0.0000335693;
 
     ++uartBus[IMU_UART].successRxCounter;
 }

@@ -43,8 +43,8 @@ struct uartBus_s {
 	uint16_t successRxCounter;		// Successfully received packages counter (checksum is correct + timeout not reached)
 	uint32_t brokenRxCounter;		// Broken received packages counter (incorrect checksum)
 	uint32_t outdatedRxCounter;		// Outdated received packages counter (timeout reached)
-	TickType_t timeoutCounter;		// Timeout counter for receive and transmit
-	TickType_t lastMessage;
+	float timeoutCounter;			// Timeout counter for receive and transmit
+	float lastMessage;
 	// Bus configuration
 	uint8_t brokenRxTolerance;		// How many broken packages will be received until special event
 	uint32_t timeoutRxTolerance;	// How many milliseconds to wait new package and not cast special event
@@ -63,30 +63,35 @@ extern uint16_t counterRx; // TODO this needs to be refactored as shorestage or 
 // Initialization of user variables
 void variableInit(void);
 void uartBusesInit(void);
+void resetThrusters(void);
 
 // Custom UART DMA receive/transmit functions
 bool receivePackage(struct uartBus_s *bus, bool isrMode);
 bool transmitPackage(struct uartBus_s *bus, bool isrMode);
 bool transmitAndReceive(struct uartBus_s *bus, bool isrMode);
-void receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
+bool receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
 void transmitI2cPackageDMA(uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t length);
 
-void DevicesRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t device);
-void DevicesResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t device);
+void DevicesRequestUpdate(uint8_t *buf, uint8_t device);
+void DevicesResponseUpdate(uint8_t *buf, uint8_t device);
 
-void ThrustersRequestUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster);
-void ThrustersResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t thruster);
+void ThrustersRequestUpdate(uint8_t *buf, uint8_t thruster);
+void ThrustersResponseUpdate(uint8_t *buf, uint8_t thruster);
 
 void ShoreReceive();
 
-void ShoreRequest(struct Robot *robot, uint8_t *requestBuf);
-void ShoreConfigRequest(struct Robot *robot, uint8_t *requestBuf);
+void ShoreRequest(uint8_t *requestBuf);
+void ShoreConfigRequest(uint8_t *requestBuf);
+void ShoreDirectRequest(uint8_t *requestBuf);
 
-void ShoreResponse(struct Robot *robot, uint8_t *responseBuf);
-void ShoreConfigResponse(struct Robot *robot, uint8_t *responseBuf);
+void ShoreResponse(uint8_t *responseBuf);
+void ShoreConfigResponse(uint8_t *responseBuf);
+void ShoreDirectResponse(uint8_t *responseBuf);
 
-void ImuReceive(struct Robot *robot, uint8_t *IMUReceiveBuf);
+void ImuReceive(uint8_t *IMUReceiveBuf);
 
-void SensorsResponseUpdate(struct Robot *robot, uint8_t *buf, uint8_t Sensor_id);
+void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id);
+
+void formThrustVectors();
 
 #endif

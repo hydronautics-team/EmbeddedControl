@@ -172,14 +172,14 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, Stack
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-    variableInit();
     uartBusesInit();
-    stabilizationInit(&Q100);
+    variableInit();
+    stabilizationInit();
 
     HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
 
-    HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
-    HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+    HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_RESET); // RESET
+    HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -279,14 +279,14 @@ void func_tLedBlinkingTask(void const * argument)
 /* USER CODE END Header_func_tVmaCommTask */
 void func_tVmaCommTask(void const * argument)
 {
-	/* USER CODE BEGIN func_tVmaCommTask */
+  /* USER CODE BEGIN func_tVmaCommTask */
 	uint32_t sysTime = osKernelSysTick();
 	uint8_t transaction = 0;
 	/* Infinite loop */
 	for(;;)
 	{
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_THRUSTERS_TASK) == pdTRUE) {
-			ThrustersRequestUpdate(&Q100, ThrustersRequestBuffer, transaction);
+			ThrustersRequestUpdate(ThrustersRequestBuffer, transaction);
 			xSemaphoreGive(mutDataHandle);
 		}
 
@@ -299,14 +299,14 @@ void func_tVmaCommTask(void const * argument)
 		transmitAndReceive(&uartBus[THRUSTERS_UART], false);
 
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_THRUSTERS_TASK) == pdTRUE) {
-			ThrustersResponseUpdate(&Q100, ThrustersResponseBuffer[transaction], transaction);
+			ThrustersResponseUpdate(ThrustersResponseBuffer[transaction], transaction);
 			xSemaphoreGive(mutDataHandle);
 		}
 
 		transaction = (transaction + 1) % THRUSTERS_NUMBER;
 		osDelayUntil(&sysTime, DELAY_THRUSTERS_TASK);
 	}
-	/* USER CODE END func_tVmaCommTask */
+  /* USER CODE END func_tVmaCommTask */
 }
 
 /* USER CODE BEGIN Header_func_tImuCommTask */
@@ -323,12 +323,12 @@ void func_tImuCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  	if(Q100.sensors.resetIMU) {
+	  	if(rSensors.resetIMU) {
 			uartBus[IMU_UART].txBuffer = ImuResetRequestBuffer;
 			uartBus[IMU_UART].txLength = IMU_REQUEST_LENGTH;
 	  		transmitPackage(&uartBus[IMU_UART], false);
 
-	  		Q100.sensors.resetIMU = false;
+	  		rSensors.resetIMU = false;
 	  	}
 	  	else {
 	  		uartBus[IMU_UART].txBuffer = ImuRequestBuffer;
@@ -343,7 +343,7 @@ void func_tImuCommTask(void const * argument)
 
 	  		//if(transmitAndReceive(&uartBus[IMU_UART], false)) {
 	  			if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_IMU_TASK) == pdTRUE) {
-	  				ImuReceive(&Q100, ImuResponseBuffer);
+	  				ImuReceive(ImuResponseBuffer);
 	  				xSemaphoreGive(mutDataHandle);
 	  			}
 	  		//}
@@ -364,38 +364,26 @@ void func_tImuCommTask(void const * argument)
 /* USER CODE END Header_func_tStabilizationTask */
 void func_tStabilizationTask(void const * argument)
 {
-	/* USER CODE BEGIN func_tStabilizationTask */
+  /* USER CODE BEGIN func_tStabilizationTask */
 	uint32_t sysTime = osKernelSysTick();
 	/* Infinite loop */
 	for(;;)
 	{
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STABILIZATION_TASK) == pdTRUE) {
-			if (Q100.stabConstants[STAB_PITCH].enable) {
+			if (rStabConstants[STAB_PITCH].enable) {
 				stabilizationUpdate(STAB_PITCH);
 			}
-			else {
-				Q100.stabState[STAB_PITCH].speedError = 0;
-			}
 
-			if (Q100.stabConstants[STAB_ROLL].enable) {
+			if (rStabConstants[STAB_ROLL].enable) {
 				stabilizationUpdate(STAB_ROLL);
 			}
-			else {
-				Q100.stabState[STAB_ROLL].speedError = 0;
-			}
 
-			if (Q100.stabConstants[STAB_YAW].enable) {
+			if (rStabConstants[STAB_YAW].enable) {
 				stabilizationUpdate(STAB_YAW);
 			}
-			else {
-				Q100.stabState[STAB_YAW].speedError = 0;
-			}
 
-			if (Q100.stabConstants[STAB_DEPTH].enable) {
+			if (rStabConstants[STAB_DEPTH].enable) {
 				stabilizationUpdate(STAB_DEPTH);
-			}
-			else {
-				Q100.stabState[STAB_DEPTH].speedError = 0;
 			}
 
 			xSemaphoreGive(mutDataHandle);
@@ -403,7 +391,7 @@ void func_tStabilizationTask(void const * argument)
 
 		osDelayUntil(&sysTime, DELAY_STABILIZATION_TASK);
 	}
-	/* USER CODE END func_tStabilizationTask */
+  /* USER CODE END func_tStabilizationTask */
 }
 
 /* USER CODE BEGIN Header_func_tDevCommTask */
@@ -422,7 +410,7 @@ void func_tDevCommTask(void const * argument)
   for(;;)
   {
         if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_DEVICES_TASK) == pdTRUE) {
-            DevicesRequestUpdate(&Q100, DevicesRequestBuffer, transaction);
+            DevicesRequestUpdate(DevicesRequestBuffer, transaction);
             xSemaphoreGive(mutDataHandle);
         }
 
@@ -435,7 +423,7 @@ void func_tDevCommTask(void const * argument)
 		transmitAndReceive(&uartBus[DEVICES_UART], false);
 
         if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_DEVICES_TASK) == pdTRUE) {
-            DevicesResponseUpdate(&Q100, DevicesResponseBuffer[transaction], transaction);
+            DevicesResponseUpdate(DevicesResponseBuffer[transaction], transaction);
             xSemaphoreGive(mutDataHandle);
         }
 
@@ -459,9 +447,11 @@ void func_tSensCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  receiveI2cPackageDMA(DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
+	  //receiveI2cPackageDMA(DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
+	  HAL_I2C_Master_Receive_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
+	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
 	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
-	  	  SensorsResponseUpdate(&Q100, PressureResponseBuffer, DEV_I2C);
+	  	  SensorsResponseUpdate(PressureResponseBuffer, DEV_I2C);
 	  	  xSemaphoreGive(mutDataHandle);
 	  }
 	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
@@ -496,14 +486,19 @@ void func_tUartTimer(void const * argument)
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
 			switch(uartBus[SHORE_UART].rxBuffer[0]) {
 				case SHORE_REQUEST_CODE:
-					ShoreRequest(&Q100, uartBus[SHORE_UART].rxBuffer);
-					ShoreResponse(&Q100, uartBus[SHORE_UART].txBuffer);
+					ShoreRequest(uartBus[SHORE_UART].rxBuffer);
+					ShoreResponse(uartBus[SHORE_UART].txBuffer);
 					uartBus[SHORE_UART].txLength = SHORE_RESPONSE_LENGTH;
 					break;
 				case REQUEST_CONFIG_CODE:
-					ShoreConfigRequest(&Q100, uartBus[SHORE_UART].rxBuffer);
-					ShoreConfigResponse(&Q100, uartBus[SHORE_UART].txBuffer);
+					ShoreConfigRequest(uartBus[SHORE_UART].rxBuffer);
+					ShoreConfigResponse(uartBus[SHORE_UART].txBuffer);
 					uartBus[SHORE_UART].txLength = SHORE_CONFIG_RESPONSE_LENGTH;
+					break;
+				case DIRECT_REQUEST_CODE:
+					ShoreDirectRequest(uartBus[SHORE_UART].rxBuffer);
+					ShoreDirectResponse(uartBus[SHORE_UART].txBuffer);
+					uartBus[SHORE_UART].txLength = SHORE_DIRECT_RESPONSE_LENGTH;
 					break;
 			}
 			xSemaphoreGive(mutDataHandle);
@@ -536,6 +531,14 @@ void tSilence_func(void const * argument)
 		}
 		HAL_UART_AbortReceive_IT(uartBus[SHORE_UART].huart);
 		HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
+
+		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
+			resetThrusters();
+			for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+				rStabConstants[i].enable = false;
+			}
+			xSemaphoreGive(mutDataHandle);
+		}
 	}
 	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
 	xTimerStart(SilenceTimer, 10);

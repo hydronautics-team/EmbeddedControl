@@ -7,7 +7,16 @@
 #include "robot.h"
 #include "messages.h"
 
-extern struct Robot Q100;
+extern struct robotState_s 						rState;
+extern struct robotThrusters_s 					rThrusters[THRUSTERS_NUMBER];
+extern struct robotSensors_s 					rSensors;
+extern struct robotPc_s 						rComputer;
+extern struct robotJoystickSpeed_s 				rJoySpeed;
+extern struct robotPositionMovement_s 			rPosMov;
+extern struct robotDevices_s 					rDevice[DEV_AMOUNT];
+extern struct RobotLogicDevices_s 				rLogicDevice[LOGDEV_AMOUNT];
+extern struct robotStabilizationConstants_s 	rStabConstants[STABILIZATION_AMOUNT];
+extern struct robotStabilizationState_s 		rStabState[STABILIZATION_AMOUNT];
 
 extern uint8_t ShoreRequestBuffer[REQUEST_CONFIG_LENGTH];
 extern uint8_t ShoreResponseBuffer[SHORE_CONFIG_RESPONSE_LENGTH];

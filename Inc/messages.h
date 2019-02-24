@@ -90,6 +90,7 @@ struct devicesResponse_s
 #define SHORE_STABILIZE_PITCH_BIT 		2
 #define SHORE_STABILIZE_YAW_BIT 		3
 #define SHORE_STABILIZE_IMU_BIT 		4
+#define SHORE_STABILIZE_SAVE_BIT		5
 
 #define SHORE_DEVICE_AC_BIT 			0
 
@@ -155,6 +156,38 @@ struct shoreConfigRequest_s
     uint16_t checksum;
 };
 
+#define DIRECT_REQUEST_CODE 			0xAA
+#define SHORE_REQUEST_DIRECT_LENGTH		17
+
+struct shoreRequestDirect_s
+{
+	uint8_t type;
+	uint8_t number;
+	uint8_t id;
+
+	int8_t velocity;
+
+	uint8_t reverse;
+	float kForward;
+	float kBackward;
+
+	int8_t sForward;
+	int8_t sBackward;
+
+	uint16_t checksum;
+};
+
+#define SHORE_DIRECT_RESPONSE_LENGTH 6
+
+struct shoreResponseDirect_s
+{
+	uint8_t number;
+	uint8_t connection;
+	uint16_t current;
+
+	uint16_t checksum;
+};
+
 #define SHORE_RESPONSE_LENGTH			70
 
 struct shoreResponse_s
@@ -196,7 +229,7 @@ struct shoreResponse_s
     uint16_t checksum;
 };
 
-#define SHORE_CONFIG_RESPONSE_LENGTH			95
+#define SHORE_CONFIG_RESPONSE_LENGTH			91
 
 struct shoreConfigResponse_s
 {
@@ -205,6 +238,7 @@ struct shoreConfigResponse_s
 	float roll;
 	float pitch;
 	float yaw;
+	float raw_yaw;
 
 	float rollSpeed;
 	float pitchSpeed;
@@ -217,9 +251,6 @@ struct shoreConfigResponse_s
 	float speedSignal;
 	float posSignal;
 
-	float oldSpeed;
-	float oldPos;
-
 	float joyUnitCasted;
 	float joy_iValue;
 	float posError;
@@ -229,13 +260,12 @@ struct shoreConfigResponse_s
 	float posErrorAmp;
 	float speedFiltered;
 	float posFiltered;
-
-	float LastTick;
+	float pid_iValue;
 
     uint16_t checksum;
 };
 
-#define SHORE_REQUEST_MODES_NUMBER 2
+#define SHORE_REQUEST_MODES_NUMBER 3
 
 enum ShoreRequestModes {
 	SHORE_REQUEST_NORMAL = 0,
@@ -305,7 +335,7 @@ struct imuResponse_s
 #define DELAY_DEVICES_TASK 			10
 #define DELAY_IMU_TASK 				10
 #define DELAY_PC_TASK 				10
-#define DELAY_SENSOR_TASK 			10
+#define DELAY_SENSOR_TASK 			25
 #define DELAY_STABILIZATION_TASK 	10
 #define DELAY_TIMER_TASK 			30
 #define DELAY_SILENCE    			1000
@@ -315,7 +345,7 @@ struct imuResponse_s
 #define WAITING_IMU 				10
 #define WAITING_SHORE 				10
 #define WAITING_THRUSTERS 			10
-#define WAITING_SENSORS				10
+#define WAITING_SENSORS				5
 #define WAITING_PC					10
 #define WAITING_TIMER				5
 #define UART_SWITCH_DELAY			1000
