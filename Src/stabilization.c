@@ -9,6 +9,7 @@ void stabilizationInit()
 	for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
 		rStabConstants[i].enable = false;
 
+		rStabState[i].speedIntegral = 0;
 		rStabState[i].posDerivative = 0;
 		rStabState[i].oldSpeed = 0;
 		rStabState[i].oldPos = 0;
@@ -56,7 +57,7 @@ void stabilizationInit()
     /////////////////////////////////////////////////////////////
     rStabState[STAB_YAW].inputSignal = &rJoySpeed.yaw;
     rStabState[STAB_YAW].speedSignal = &rSensors.yawSpeed;
-    rStabState[STAB_YAW].posSignal = &rSensors.yaw;
+    rStabState[STAB_YAW].posSignal = &rStabState[STAB_YAW].speedIntegral;
     rStabConstants[STAB_YAW].joyIntegration = true;
     /////////////////////////////////////////////////////////////
     rStabState[STAB_DEPTH].inputSignal = &rJoySpeed.depth;
@@ -72,6 +73,7 @@ void stabilizationStart(uint8_t contour)
 	rStabState[contour].oldSpeed = *rStabState[contour].speedSignal;
 	rStabState[contour].oldPos = *rStabState[contour].posSignal;
 	rStabState[contour].posDerivative = 0;
+	rStabState[contour].speedIntegral = 0;
 
 	rStabState[contour].joyUnitCasted = 0;
 	rStabState[contour].joy_iValue = *rStabState[contour].posSignal;
@@ -94,6 +96,33 @@ void stabilizationUpdate(uint8_t contour)
 	float diffTime = fromTickToMs(xTaskGetTickCount() - state->LastTick) / 1000.0f;
 	state->LastTick = xTaskGetTickCount();
 
+	// Speed feedback filtering
+	struct AperiodicFilter *filter = &constants->aFilter[SPEED_FILTER];
+	if(filter->T != 0) {
+		state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T) + state->oldSpeed*filter->K*(1-exp(-diffTime/filter->T));
+	}
+	else {
+		state->speedFiltered = *state->speedSignal*filter->K;
+	}
+	state->oldSpeed = *state->speedSignal;
+
+	// Position feedback filtering
+	filter = &constants->aFilter[POS_FILTER];
+	if(filter->T != 0) {
+		state->posFiltered = state->posFiltered*exp(-diffTime/filter->T) + state->oldPos*filter->K*(1-exp(-diffTime/filter->T));
+	}
+	else {
+		state->posFiltered = *state->posSignal*filter->K;
+	}
+	state->oldPos = *state->posSignal;
+
+	// Speed integration calculation
+	state->speedIntegral += (*state->speedSignal * diffTime);
+
+    // Position derivative calculation
+    state->posDerivative = (state->posFiltered - state->oldPosFiltered) / diffTime;
+    state->oldPosFiltered = state->posFiltered;
+
 	// Input signal unit cast
 	state->joyUnitCasted = constants->pJoyUnitCast * *state->inputSignal;
 
@@ -104,20 +133,6 @@ void stabilizationUpdate(uint8_t contour)
 	else {
 		state->joy_iValue = state->joyUnitCasted;
 	}
-
-    // Position feedback filtering
-    struct AperiodicFilter *filter = &constants->aFilter[POS_FILTER];
-    if(filter->T != 0) {
-    	state->posFiltered = state->posFiltered*exp(-diffTime/filter->T) + state->oldPos*filter->K*(1-exp(-diffTime/filter->T));
-    }
-    else {
-    	state->posFiltered = *state->posSignal*filter->K;
-    }
-    state->oldPos = *state->posSignal;
-
-    // Position derviative calculation
-    state->posDerivative = (state->posFiltered - state->oldPosFiltered) / diffTime;
-    state->oldPosFiltered = state->posFiltered;
 
     // Position feedback summator
     state->posError = state->joy_iValue - state->posFiltered;
@@ -141,16 +156,6 @@ void stabilizationUpdate(uint8_t contour)
 
     // Dynamic summator
     state->dynSummator = state->pidValue + *state->inputSignal * constants->pSpeedDyn;
-
-    // Speed feedback filtering
-    filter = &constants->aFilter[SPEED_FILTER];
-    if(filter->T != 0) {
-    	state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T) + state->oldSpeed*filter->K*(1-exp(-diffTime/filter->T));
-    }
-    else {
-    	state->speedFiltered = *state->speedSignal*filter->K;
-    }
-    state->oldSpeed = *state->speedSignal;
 
     // Speed feedback
     state->speedError = state->dynSummator - state->speedFiltered;

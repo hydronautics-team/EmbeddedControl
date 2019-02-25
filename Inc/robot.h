@@ -178,6 +178,7 @@ struct robotStabilizationState_s {
 	float *speedSignal;			// Link to speed signal. You need to set this on initialization
 	float *posSignal;			// Link to position signal. You need to set this on initialization
 
+	float speedIntegral;		// Integral from speed (if you don't have separate position signal)
 	float posDerivative;		// Derivative from position (if you don't have separate speed signal)
 
 	float oldSpeed;

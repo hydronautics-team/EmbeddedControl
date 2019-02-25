@@ -63,6 +63,11 @@ void variableInit()
 	rSensors.quatC = 0;
 	rSensors.quatD = 0;
 
+    rDevice[DEV1].address = 0x03;
+    rDevice[GRAB].address = 0x01;
+    rDevice[GRAB_ROTATION].address = 0x02;
+    rDevice[TILT].address = 0x06;
+
 	rSensors.resetIMU = false;
 
 	struct flashConfiguration_s config;
@@ -97,11 +102,6 @@ void variableInit()
     	rThrusters[i].sForward = 127;
     	rThrusters[i].sBackward = 127;
     }
-
-    rDevice[DEV1].address = 0x03;
-    rDevice[GRAB].address = 0x01;
-    rDevice[GRAB_ROTATION].address = 0x02;
-    rDevice[TILT].address = 0x06;
 }
 
 void uartBusesInit()
@@ -362,8 +362,19 @@ void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id)
 	float input = 0;
 	switch(Sensor_id) {
 	case DEV_I2C:
-		input = FloatFromUint8Reverse(buf, 0);
-		rSensors.pressure = 9.124*input-3.177;
+		if(IsChecksumm8bCorrect(buf, PRESSURE_SENSOR_SIZE)) {
+			struct pressureResponse_s res;
+			memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
+
+			input = FloatFromUint8Reverse(buf, 0);
+			rSensors.pressure = 9.124*input-3.177;
+
+			/*
+			if(rSensors.pressure < 0) {
+				rSensors.pressure = 0;
+			}
+			*/
+		}
 		break;
 	}
 }
@@ -776,7 +787,6 @@ void ShoreResponse(uint8_t *responseBuf)
     res.pc_errors = rComputer.errors;
 
     memcpy((void*)responseBuf, (void*)&res, SHORE_RESPONSE_LENGTH);
-
     AddCrc16Checksumm(responseBuf, SHORE_RESPONSE_LENGTH);
 }
 
@@ -881,9 +891,9 @@ void ImuReceive(uint8_t *ReceiveBuf)
     rSensors.roll =  (float) (MergeBytes(&ReceiveBuf[EULER_PHI])) * 0.0109863;
     rSensors.pitch =  (float) (MergeBytes(&ReceiveBuf[EULER_TETA])) * 0.0109863;
 
-    rSensors.rollSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_X])) * 0.000183105;
-    rSensors.pitchSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Y])) * 0.000183105;
-    rSensors.yawSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Z])) * 0.000183105;
+    rSensors.rollSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_X])) * 0.0610352;
+    rSensors.pitchSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Y])) * 0.0610352;
+    rSensors.yawSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Z])) * 0.0610352;
 
     rSensors.accelX = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_X])) * 0.0109863;
     rSensors.accelY = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_Y])) * 0.0109863;

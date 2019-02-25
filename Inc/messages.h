@@ -201,10 +201,10 @@ struct shoreResponse_s
     float yawSpeed;
 
     float pressure;
-    float in_pressure;
+    float in_pressure; // 32
 
-    uint8_t dev_state;
-    int16_t leak_data;
+    uint8_t dev_state; // 33
+    int16_t leak_data; // 35
 
     uint16_t vma_current_hlb;
     uint16_t vma_current_hlf;
@@ -220,11 +220,11 @@ struct shoreResponse_s
     uint16_t dev_current_grab;
     uint16_t dev_current_grab_rotate;
     uint16_t dev_current_dev1;
-    uint16_t dev_current_dev2;
+    uint16_t dev_current_dev2; // 63
 
     uint16_t vma_errors;
-    uint16_t dev_errors;
-    uint8_t pc_errors;
+    uint16_t dev_errors; // 67
+    uint8_t pc_errors; // 68
 
     uint16_t checksum;
 };
@@ -322,11 +322,19 @@ struct imuResponse_s
 /* --- I2C2 Sensors communication info --- */
 
 #define SENSORS_DEVICES_NUM 		3
-#define PRESSURE_SENSOR_SIZE 		4
+#define PRESSURE_SENSOR_SIZE 		6
+#define PRESSURE_RESPONSE_CODE 		0xAA
 
 #define SENSORS_ADC1_ADDR 			0
 #define SENSORS_ADC2_ADDR 			1
 #define SENSORS_PRESSURE_ADDR 		15
+
+struct pressureResponse_s
+{
+	uint8_t code;
+	float value;
+	uint8_t checksum;
+};
 
 /* --- Delays and waiting rates --- */
 
@@ -345,7 +353,7 @@ struct imuResponse_s
 #define WAITING_IMU 				10
 #define WAITING_SHORE 				10
 #define WAITING_THRUSTERS 			10
-#define WAITING_SENSORS				5
+#define WAITING_SENSORS				10
 #define WAITING_PC					10
 #define WAITING_TIMER				5
 #define UART_SWITCH_DELAY			1000
