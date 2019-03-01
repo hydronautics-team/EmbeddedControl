@@ -16,10 +16,17 @@
 #include "flash.h"
 
 #define PACKAGE_TOLLERANCE 	20
+#define THRUSTER_FILTERS_NUMBER 2
+
+enum thrusterContours {
+	CONTOUR_MARCH = 0,
+	CONTOUR_LAG
+};
 
 extern TimerHandle_t UARTTimer;
 
 struct uartBus_s uartBus[UART_NUMBER];
+struct thrusterFilter_s thrusterFilter[THRUSTER_FILTERS_NUMBER];
 
 uint8_t VMAbrokenRxTolerance = 0;
 
@@ -64,11 +71,26 @@ void variableInit()
 	rSensors.quatD = 0;
 
     rDevice[DEV1].address = 0x03;
+    rDevice[DEV2].address = 0x05;
     rDevice[GRAB].address = 0x01;
     rDevice[GRAB_ROTATION].address = 0x02;
     rDevice[TILT].address = 0x06;
 
 	rSensors.resetIMU = false;
+
+	thrusterFilter[CONTOUR_MARCH].K = &rStabConstants[STAB_PITCH].aFilter[POS_FILTER].K;
+	thrusterFilter[CONTOUR_MARCH].T = &rStabConstants[STAB_PITCH].aFilter[POS_FILTER].T;
+	thrusterFilter[CONTOUR_MARCH].input = &rJoySpeed.march;
+	thrusterFilter[CONTOUR_MARCH].LastTick = 0;
+	thrusterFilter[CONTOUR_MARCH].oldState = 0;
+	thrusterFilter[CONTOUR_MARCH].output = 0;
+
+	thrusterFilter[CONTOUR_LAG].K = &rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].K;
+	thrusterFilter[CONTOUR_LAG].T = &rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].T;
+	thrusterFilter[CONTOUR_LAG].input = &rJoySpeed.lag;
+	thrusterFilter[CONTOUR_LAG].LastTick = 0;
+	thrusterFilter[CONTOUR_LAG].oldState = 0;
+	thrusterFilter[CONTOUR_LAG].output = 0;
 
 	struct flashConfiguration_s config;
 	flashReadSettings(&config);
@@ -94,6 +116,14 @@ void variableInit()
     rThrusters[VF].inverse = false;
     rThrusters[VL].inverse = false;
     rThrusters[VR].inverse = false;
+
+    for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
+    	rThrusters[i].desiredSpeed = 0;
+    	rThrusters[i].kForward = 1;
+    	rThrusters[i].kBackward = 1;
+    	rThrusters[i].sForward = 127;
+    	rThrusters[i].sBackward = 127;
+    }
 
     for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
     	rThrusters[i].desiredSpeed = 0;
@@ -309,7 +339,7 @@ bool receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
 	case DEV_I2C:
 		HAL_I2C_Master_Receive_IT(&hi2c2, addr>>1, buf, length);
 		while (!i2c2PackageReceived) {
-			if(fromTickToMs(xTaskGetTickCount()) - timeBegin < WAITING_SENSORS) {
+			if(fromTickToMs(xTaskGetTickCount()) - timeBegin > WAITING_SENSORS) {
 				HAL_I2C_Master_Abort_IT(&hi2c2, addr>>1);
 				return false;
 			}
@@ -359,21 +389,12 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
 
 void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id)
 {
-	float input = 0;
 	switch(Sensor_id) {
 	case DEV_I2C:
 		if(IsChecksumm8bCorrect(buf, PRESSURE_SENSOR_SIZE)) {
 			struct pressureResponse_s res;
 			memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
-
-			input = FloatFromUint8Reverse(buf, 0);
-			rSensors.pressure = 9.124*input-3.177;
-
-			/*
-			if(rSensors.pressure < 0) {
-				rSensors.pressure = 0;
-			}
-			*/
+			rSensors.pressure = 9.124*res.value-3.177;
 		}
 		break;
 	}
@@ -507,7 +528,6 @@ void ShoreRequest(uint8_t *requestBuf)
         rJoySpeed.pitch = req.pitch;
         rJoySpeed.yaw = req.yaw;
 
-        rDevice[LIGHT].force = req.light;
         rDevice[GRAB].force = req.grab;
         if (rDevice[GRAB].force < -127) {
             rDevice[GRAB].force = -127;
@@ -549,12 +569,36 @@ void ShoreRequest(uint8_t *requestBuf)
 
         bool wasEnabled;
 
-        for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
-        	wasEnabled = rStabConstants[i].enable;
-        	rStabConstants[i].enable = PickBit(req.stabilize_flags, i);
-        	if(wasEnabled == false && rStabConstants[i].enable == true) {
-        		stabilizationStart(i);
-        	}
+//        for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+//        	wasEnabled = rStabConstants[i].enable;
+//        	rStabConstants[i].enable = PickBit(req.stabilize_flags, i);
+//        	if(wasEnabled == false && rStabConstants[i].enable == true) {
+//        		stabilizationStart(i);
+//        	}
+//        }
+
+        wasEnabled = rStabConstants[STAB_YAW].enable;
+        rStabConstants[STAB_YAW].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_YAW].enable == true) {
+        	stabilizationStart(STAB_YAW);
+        }
+
+        wasEnabled = rStabConstants[STAB_ROLL].enable;
+        rStabConstants[STAB_ROLL].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_ROLL_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_ROLL].enable == true) {
+        	stabilizationStart(STAB_ROLL);
+        }
+
+        wasEnabled = rStabConstants[STAB_PITCH].enable;
+        rStabConstants[STAB_PITCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_PITCH].enable == true) {
+        	stabilizationStart(STAB_PITCH);
+        }
+
+        wasEnabled = rStabConstants[STAB_DEPTH].enable;
+        rStabConstants[STAB_DEPTH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_DEPTH].enable == true) {
+        	stabilizationStart(STAB_DEPTH);
         }
 
         if(tempCameraNum != rState.cameraNum) {
@@ -697,6 +741,24 @@ void ShoreDirectRequest(uint8_t *requestBuf)
 
 void formThrustVectors()
 {
+	for(uint8_t i=0; i<THRUSTER_FILTERS_NUMBER; i++) {
+		float diffTime = fromTickToMs(xTaskGetTickCount() - thrusterFilter[i].LastTick) / 1000.0f;
+		thrusterFilter[i].LastTick = xTaskGetTickCount();
+
+		float K = *thrusterFilter[i].K;
+		float T = *thrusterFilter[i].T;
+		float input = *thrusterFilter[i].input;
+		float old = thrusterFilter[i].oldState;
+
+		if(T != 0) {
+			thrusterFilter[i].output = thrusterFilter[i].output*exp(-diffTime/T) + old*K*(1-exp(-diffTime/T));
+		}
+		else {
+			thrusterFilter[i].output = input*K;
+		}
+		thrusterFilter[i].oldState = input;
+	}
+
 	float bYaw, bRoll, bPitch, bDepth;
 	if(rStabConstants[STAB_ROLL].enable) {
 		bRoll = rStabState[STAB_ROLL].speedError;
@@ -726,12 +788,11 @@ void formThrustVectors()
 		bDepth = rJoySpeed.depth;
 	}
 
-	// what the fuck is happening here? this code is actually correct, why?
 	int16_t velocity[THRUSTERS_NUMBER];
-	velocity[HLB] = + rJoySpeed.march - rJoySpeed.lag + bYaw;
-	velocity[HRB] = + rJoySpeed.march + rJoySpeed.lag - bYaw;
-	velocity[HLF] = + rJoySpeed.march + rJoySpeed.lag + bYaw;
-	velocity[HRF] = + rJoySpeed.march - rJoySpeed.lag - bYaw;
+	velocity[HLB] = + thrusterFilter[CONTOUR_MARCH].output - thrusterFilter[CONTOUR_LAG].output + bYaw;
+	velocity[HRB] = + thrusterFilter[CONTOUR_MARCH].output + thrusterFilter[CONTOUR_LAG].output - bYaw;
+	velocity[HLF] = + thrusterFilter[CONTOUR_MARCH].output + thrusterFilter[CONTOUR_LAG].output + bYaw;
+	velocity[HRF] = + thrusterFilter[CONTOUR_MARCH].output - thrusterFilter[CONTOUR_LAG].output - bYaw;
 	velocity[VB] = - bDepth + bPitch;
 	velocity[VF] = - bDepth - bPitch;
 	velocity[VL] = - bDepth + bRoll;
@@ -763,23 +824,6 @@ void ShoreResponse(uint8_t *responseBuf)
     res.yawSpeed = rSensors.yawSpeed;
 
     res.pressure = rSensors.pressure;
-
-    // TODO eyes bleeding again
-    res.vma_current_hlb = rThrusters[HLB].current;
-    res.vma_current_hlf = rThrusters[HLF].current;
-    res.vma_current_hrb = rThrusters[HRB].current;
-    res.vma_current_hrf = rThrusters[HRF].current;
-    res.vma_current_vb = rThrusters[VB].current;
-    res.vma_current_vf = rThrusters[VF].current;
-    res.vma_current_vl = rThrusters[VL].current;
-    res.vma_current_vr = rThrusters[VR].current;
-
-    res.dev_current_light = rDevice[LIGHT].current;
-    res.dev_current_tilt = rDevice[TILT].current;
-    res.dev_current_grab = rDevice[GRAB].current;
-    res.dev_current_grab_rotate = rDevice[GRAB_ROTATION].current;
-    res.dev_current_dev1 = rDevice[DEV1].current;
-    res.dev_current_dev2 = rDevice[DEV2].current;
 
     res.vma_errors = 0x55;         //!!!!!TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // TODO do this properly pls

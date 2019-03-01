@@ -54,7 +54,7 @@ struct thrustersResponse_s
 #define DEVICES_REQUEST_LENGTH 			7
 #define DEVICES_NULL					-1
 #define DEVICES_RESPONSE_LENGTH			10
-#define DEVICES_NUMBER      			4
+#define DEVICES_NUMBER      			6
 
 struct devicesRequest_s
 {
@@ -91,6 +91,7 @@ struct devicesResponse_s
 #define SHORE_STABILIZE_YAW_BIT 		3
 #define SHORE_STABILIZE_IMU_BIT 		4
 #define SHORE_STABILIZE_SAVE_BIT		5
+#define SHORE_STABILIZE_QUAL_BIT		6
 
 #define SHORE_DEVICE_AC_BIT 			0
 
@@ -206,25 +207,12 @@ struct shoreResponse_s
     uint8_t dev_state; // 33
     int16_t leak_data; // 35
 
-    uint16_t vma_current_hlb;
-    uint16_t vma_current_hlf;
-    uint16_t vma_current_hrb;
-    uint16_t vma_current_hrf;
-    uint16_t vma_current_vb;
-    uint16_t vma_current_vf;
-    uint16_t vma_current_vl;
-    uint16_t vma_current_vr;
-
-    uint16_t dev_current_light;
-    uint16_t dev_current_tilt;
-    uint16_t dev_current_grab;
-    uint16_t dev_current_grab_rotate;
-    uint16_t dev_current_dev1;
-    uint16_t dev_current_dev2; // 63
+    uint16_t thrusterCurrent[THRUSTERS_NUMBER];
+    uint16_t devCurrent[DEVICES_NUMBER];
 
     uint16_t vma_errors;
-    uint16_t dev_errors; // 67
-    uint8_t pc_errors; // 68
+    uint16_t dev_errors;
+    uint8_t pc_errors;
 
     uint16_t checksum;
 };

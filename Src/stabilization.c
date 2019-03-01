@@ -73,7 +73,7 @@ void stabilizationStart(uint8_t contour)
 	rStabState[contour].oldSpeed = *rStabState[contour].speedSignal;
 	rStabState[contour].oldPos = *rStabState[contour].posSignal;
 	rStabState[contour].posDerivative = 0;
-	rStabState[contour].speedIntegral = 0;
+	//rStabState[contour].speedIntegral = 0;
 
 	rStabState[contour].joyUnitCasted = 0;
 	rStabState[contour].joy_iValue = *rStabState[contour].posSignal;

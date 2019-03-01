@@ -113,6 +113,7 @@ uint32_t tPcCommTaskBuffer[ 128 ];
 osStaticThreadDef_t tPcCommTaskControlBlock;
 osTimerId tUartTimerHandle;
 osTimerId tSilenceHandle;
+osTimerId tTechCommTImerHandle;
 osMutexId mutDataHandle;
 osStaticMutexDef_t mutDataControlBlock;
 
@@ -130,6 +131,7 @@ void func_tSensCommTask(void const * argument);
 void func_tPcCommTask(void const * argument);
 void func_tUartTimer(void const * argument);
 void tSilence_func(void const * argument);
+void tTechCommTImer_callback(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -203,6 +205,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of tSilence */
   osTimerDef(tSilence, tSilence_func);
   tSilenceHandle = osTimerCreate(osTimer(tSilence), osTimerOnce, NULL);
+
+  /* definition and creation of tTechCommTImer */
+  osTimerDef(tTechCommTImer, tTechCommTImer_callback);
+  tTechCommTImerHandle = osTimerCreate(osTimer(tTechCommTImer), osTimerOnce, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   SilenceTimer = xTimerCreate("silence", DELAY_SILENCE/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) tSilence_func);
@@ -503,9 +509,7 @@ void func_tUartTimer(void const * argument)
 			xSemaphoreGive(mutDataHandle);
 		}
 
-		if(uartBus[SHORE_UART].huart == &huart1) {
-			HAL_UART_Transmit_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].txBuffer, uartBus[SHORE_UART].txLength);
-		}
+		HAL_UART_Transmit_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].txBuffer, uartBus[SHORE_UART].txLength);
 	}
 	else {
 		++uartBus[SHORE_UART].outdatedRxCounter;
@@ -542,6 +546,14 @@ void tSilence_func(void const * argument)
 	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
 	xTimerStart(SilenceTimer, 10);
   /* USER CODE END tSilence_func */
+}
+
+/* tTechCommTImer_callback function */
+void tTechCommTImer_callback(void const * argument)
+{
+  /* USER CODE BEGIN tTechCommTImer_callback */
+  
+  /* USER CODE END tTechCommTImer_callback */
 }
 
 /* Private application code --------------------------------------------------*/

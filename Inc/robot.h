@@ -18,14 +18,13 @@ enum VMA {
     VR
 };
 
-#define DEV_AMOUNT 7
+#define DEV_AMOUNT 6
 
 enum DEV {
     AGAR = 0,
     GRAB,
     GRAB_ROTATION,
     TILT,
-    LIGHT,
     DEV1,
 	DEV2
 };
@@ -57,11 +56,17 @@ enum I2C {
 	I2C_PC
 };
 
+enum OPERATION_MODES {
+	OP_NORMAL = 0,
+	OP_QUALIFICATION
+};
+
 // Structure for overall robot state
 struct robotState_s {
 	uint8_t cameraNum;	// Current camera ID (controls multiplexor)
 	uint8_t contourSelected; // Current contour selected for the configuration mode
 	uint8_t flash; // Was flash read successful
+	uint8_t operationMode; // Currrent operation type
 };
 
 // Individual characteristics, controls and current state of each VMA
