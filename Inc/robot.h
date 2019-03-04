@@ -32,7 +32,7 @@ enum DEV {
 #define LOGDEV_AMOUNT 1
 
 enum LOGDEV {
-	ACOUSTIC = 0
+	LOGDEV_LIFTER = 0
 };
 
 #define STABILIZATION_AMOUNT 4
@@ -59,6 +59,14 @@ enum I2C {
 enum OPERATION_MODES {
 	OP_NORMAL = 0,
 	OP_QUALIFICATION
+};
+
+enum LOGDEV_STATE {
+	LOGDEV_NULL = 0,
+	LOGDEV_FORWARD,
+	LOGDEV_BACKWARD,
+	LOGDEV_FORWARD_SAT,
+	LOGDEV_BACKWARD_SAT
 };
 
 // Structure for overall robot state
@@ -145,6 +153,9 @@ struct robotDevices_s {
 	int8_t force;
 	uint16_t current;
 	uint8_t errors;
+
+	uint8_t velocity1;
+	uint8_t velocity2;
 };
 
 struct RobotLogicDevices_s {

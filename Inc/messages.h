@@ -62,8 +62,8 @@ struct devicesRequest_s
 	uint8_t AA2;
 	uint8_t address;
 	uint8_t setting;
-	uint8_t velocity1;
-	uint8_t velocity2;
+	int8_t velocity1;
+	int8_t velocity2;
 	uint8_t checksum;
 };
 
@@ -91,7 +91,7 @@ struct devicesResponse_s
 #define SHORE_STABILIZE_YAW_BIT 		3
 #define SHORE_STABILIZE_IMU_BIT 		4
 #define SHORE_STABILIZE_SAVE_BIT		5
-#define SHORE_STABILIZE_QUAL_BIT		6
+#define SHORE_STABILIZE_LOGDEV_BIT		6
 
 #define SHORE_DEVICE_AC_BIT 			0
 
@@ -331,7 +331,7 @@ struct pressureResponse_s
 #define DELAY_DEVICES_TASK 			10
 #define DELAY_IMU_TASK 				10
 #define DELAY_PC_TASK 				10
-#define DELAY_SENSOR_TASK 			25
+#define DELAY_SENSOR_TASK 			10
 #define DELAY_STABILIZATION_TASK 	10
 #define DELAY_TIMER_TASK 			30
 #define DELAY_SILENCE    			1000

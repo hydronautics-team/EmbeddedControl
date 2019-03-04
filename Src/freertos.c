@@ -488,6 +488,7 @@ void func_tUartTimer(void const * argument)
 {
   /* USER CODE BEGIN func_tUartTimer */
 	if (uartBus[SHORE_UART].packageReceived) {
+		bool package = true;
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
 			switch(uartBus[SHORE_UART].rxBuffer[0]) {
 				case SHORE_REQUEST_CODE:
@@ -505,11 +506,14 @@ void func_tUartTimer(void const * argument)
 					ShoreDirectResponse(uartBus[SHORE_UART].txBuffer);
 					uartBus[SHORE_UART].txLength = SHORE_DIRECT_RESPONSE_LENGTH;
 					break;
+				default:
+					package = false;
 			}
 			xSemaphoreGive(mutDataHandle);
 		}
-
-		HAL_UART_Transmit_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].txBuffer, uartBus[SHORE_UART].txLength);
+		if(package) {
+			HAL_UART_Transmit_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].txBuffer, uartBus[SHORE_UART].txLength);
+		}
 	}
 	else {
 		++uartBus[SHORE_UART].outdatedRxCounter;

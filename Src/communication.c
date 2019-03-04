@@ -73,8 +73,8 @@ void variableInit()
     rDevice[DEV1].address = 0x03;
     rDevice[DEV2].address = 0x05;
     rDevice[GRAB].address = 0x01;
-    rDevice[GRAB_ROTATION].address = 0x02;
-    rDevice[TILT].address = 0x06;
+    rDevice[GRAB_ROTATION].address = 0x06;
+    rDevice[TILT].address = 0x02;
 
 	rSensors.resetIMU = false;
 
@@ -340,7 +340,8 @@ bool receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
 		HAL_I2C_Master_Receive_IT(&hi2c2, addr>>1, buf, length);
 		while (!i2c2PackageReceived) {
 			if(fromTickToMs(xTaskGetTickCount()) - timeBegin > WAITING_SENSORS) {
-				HAL_I2C_Master_Abort_IT(&hi2c2, addr>>1);
+				//HAL_I2C_Master_Abort_IT(&hi2c2, addr>>1);
+				HAL_I2C_Init(&hi2c2);
 				return false;
 			}
 			osDelay(DELAY_SENSOR_TASK);
@@ -394,7 +395,9 @@ void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id)
 		if(IsChecksumm8bCorrect(buf, PRESSURE_SENSOR_SIZE)) {
 			struct pressureResponse_s res;
 			memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
-			rSensors.pressure = 9.124*res.value-3.177;
+			if(res.code == 0xAA) {
+				rSensors.pressure = 9.124*res.value-3.177;
+			}
 		}
 		break;
 	}
@@ -442,6 +445,42 @@ void DevicesRequestUpdate(uint8_t *buf, uint8_t dev)
     req.velocity1 = 0;
     req.velocity2 = rDevice[dev].force;
 
+    if(dev == TILT) {
+    	switch(rLogicDevice[LOGDEV_LIFTER].state) {
+    	case LOGDEV_FORWARD:
+    		req.velocity2 = 60;
+    		break;
+    	case LOGDEV_BACKWARD:
+    		req.velocity2 = -60;
+    		break;
+    	case LOGDEV_FORWARD_SAT:
+    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
+    		req.velocity2 = 0;
+    		break;
+    	case LOGDEV_BACKWARD_SAT:
+    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
+    		req.velocity2 = 0;
+    	}
+    }
+
+//    if(rLogicDevice[LOGDEV_LIFTER].state == LOGDEV_FORWARD_SAT) {
+//    	if(req.velocity2 > 0) {
+//    		req.velocity2 = 0;
+//    	}
+//    	else if(req.velocity2 < 0) {
+//    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
+//    	}
+//    }
+//    else if(rLogicDevice[LOGDEV_LIFTER].state == LOGDEV_BACKWARD_SAT) {
+//    	if(req.velocity2 < 0) {
+//    		req.velocity2 = 0;
+//    	}
+//    	else if(req.velocity2 > 0) {
+//    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
+//    	}
+//    }
+
+
     memcpy((void*)buf, (void*)&req, DEVICES_REQUEST_LENGTH);
     AddChecksumm8b(buf, DEVICES_REQUEST_LENGTH);
 }
@@ -453,6 +492,15 @@ void DevicesResponseUpdate(uint8_t *buf, uint8_t dev)
     	memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
 
         rDevice[dev].current = res.current1;
+        rDevice[dev].velocity1 = res.velocity1;
+        rDevice[dev].velocity2 = res.velocity2;
+
+        if(rDevice[DEV2].velocity1 == 0x00 && dev == DEV2) {
+        	rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_FORWARD_SAT;
+        }
+        else if(rDevice[DEV2].velocity2 == 0x00 && dev == DEV2) {
+        	rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_BACKWARD_SAT;
+        }
         // TODO make errors work pls
         //writeBit(&(robot->device[dev].errors), res.errors, AGAR);
 
@@ -567,17 +615,7 @@ void ShoreRequest(uint8_t *requestBuf)
         }
         rComputer.reset = req.pc_reset;
 
-        bool wasEnabled;
-
-//        for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
-//        	wasEnabled = rStabConstants[i].enable;
-//        	rStabConstants[i].enable = PickBit(req.stabilize_flags, i);
-//        	if(wasEnabled == false && rStabConstants[i].enable == true) {
-//        		stabilizationStart(i);
-//        	}
-//        }
-
-        wasEnabled = rStabConstants[STAB_YAW].enable;
+        bool wasEnabled = rStabConstants[STAB_YAW].enable;
         rStabConstants[STAB_YAW].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
         if(wasEnabled == false && rStabConstants[STAB_YAW].enable == true) {
         	stabilizationStart(STAB_YAW);
@@ -599,6 +637,17 @@ void ShoreRequest(uint8_t *requestBuf)
         rStabConstants[STAB_DEPTH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
         if(wasEnabled == false && rStabConstants[STAB_DEPTH].enable == true) {
         	stabilizationStart(STAB_DEPTH);
+        }
+
+        wasEnabled = rLogicDevice[LOGDEV_LIFTER].control;
+        rLogicDevice[LOGDEV_LIFTER].control = PickBit(req.stabilize_flags, SHORE_STABILIZE_LOGDEV_BIT);
+        if(wasEnabled != rLogicDevice[LOGDEV_LIFTER].control) {
+        	if(rLogicDevice[LOGDEV_LIFTER].control) {
+        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_FORWARD;
+        	}
+        	else {
+        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_BACKWARD;
+        	}
         }
 
         if(tempCameraNum != rState.cameraNum) {
