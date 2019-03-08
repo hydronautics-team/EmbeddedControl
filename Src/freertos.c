@@ -391,7 +391,7 @@ void func_tStabilizationTask(void const * argument)
 			if (rStabConstants[STAB_DEPTH].enable) {
 				stabilizationUpdate(STAB_DEPTH);
 			}
-
+			formThrustVectors();
 			xSemaphoreGive(mutDataHandle);
 		}
 
@@ -545,6 +545,24 @@ void tSilence_func(void const * argument)
 				rStabConstants[i].enable = false;
 			}
 			xSemaphoreGive(mutDataHandle);
+		}
+
+		if(uartBus[SHORE_UART].lastMessage == 0) {
+			rState.pcCounter++;
+			switch(rState.pcCounter) {
+			case PC_POWERON_DELAY:
+				HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
+				HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+				break;
+			case PC_POWERON_DELAY+1:
+				HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_RESET); // RESET
+				HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+				break;
+			case PC_POWERON_DELAY+2:
+				HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
+				HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+				break;
+			}
 		}
 	}
 	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF

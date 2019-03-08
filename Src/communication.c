@@ -43,7 +43,13 @@ bool i2c2PackageReceived = false;
 
 void variableInit()
 {
-	rState.flash = false;
+	rComputer.reset = 0;
+
+	rState.cameraNum = 0;
+	rState.contourSelected = 0;
+	rState.flash = 0;
+	rState.operationMode = 0;
+	rState.pcCounter = 0;
 
 	rSensors.yaw = 0;
 	rSensors.raw_yaw = 0;
@@ -808,20 +814,20 @@ void formThrustVectors()
 		thrusterFilter[i].oldState = input;
 	}
 
-	float bYaw, bRoll, bPitch, bDepth;
-	if(rStabConstants[STAB_ROLL].enable) {
-		bRoll = rStabState[STAB_ROLL].speedError;
-	}
-	else {
-		bRoll = rJoySpeed.roll;
-	}
-
-	if(rStabConstants[STAB_PITCH].enable) {
-		bPitch = rStabState[STAB_PITCH].speedError;
-	}
-	else {
-		bPitch = rJoySpeed.pitch;
-	}
+	float bYaw, bDepth;//, bRoll, bPitch;
+//	if(rStabConstants[STAB_ROLL].enable) {
+//		bRoll = rStabState[STAB_ROLL].speedError;
+//	}
+//	else {
+//		bRoll = rJoySpeed.roll;
+//	}
+//
+//	if(rStabConstants[STAB_PITCH].enable) {
+//		bPitch = rStabState[STAB_PITCH].speedError;
+//	}
+//	else {
+//		bPitch = rJoySpeed.pitch;
+//	}
 
 	if(rStabConstants[STAB_YAW].enable) {
 		bYaw = rStabState[STAB_YAW].speedError;
@@ -837,27 +843,72 @@ void formThrustVectors()
 		bDepth = rJoySpeed.depth;
 	}
 
-	int16_t velocity[THRUSTERS_NUMBER];
-	velocity[HLB] = + thrusterFilter[CONTOUR_MARCH].output - thrusterFilter[CONTOUR_LAG].output + bYaw;
-	velocity[HRB] = + thrusterFilter[CONTOUR_MARCH].output + thrusterFilter[CONTOUR_LAG].output - bYaw;
-	velocity[HLF] = + thrusterFilter[CONTOUR_MARCH].output + thrusterFilter[CONTOUR_LAG].output + bYaw;
-	velocity[HRF] = + thrusterFilter[CONTOUR_MARCH].output - thrusterFilter[CONTOUR_LAG].output - bYaw;
-	velocity[VB] = - bDepth + bPitch;
-	velocity[VF] = - bDepth - bPitch;
-	velocity[VL] = - bDepth + bRoll;
-	velocity[VR] = - bDepth - bRoll;
+	int32_t velocity[THRUSTERS_NUMBER];
+	// March contour summator
+	velocity[HLB] = + thrusterFilter[CONTOUR_MARCH].output;
+	velocity[HRB] = + thrusterFilter[CONTOUR_MARCH].output;
+	velocity[HLF] = + thrusterFilter[CONTOUR_MARCH].output;
+	velocity[HRF] = + thrusterFilter[CONTOUR_MARCH].output;
+	// March contour saturation
+	for(uint8_t i=0; i<4; i++) {
+		if(velocity[i] > rStabConstants[STAB_PITCH].pThrustersMax) {
+			velocity[i] = rStabConstants[STAB_PITCH].pThrustersMax;
+		}
+		else if(velocity[i] < rStabConstants[STAB_PITCH].pThrustersMin) {
+			velocity[i] = rStabConstants[STAB_PITCH].pThrustersMin;
+		}
+	}
+	// Lag contour saturation
+	int16_t pLag = thrusterFilter[CONTOUR_LAG].output;
+	if(pLag > rStabConstants[STAB_PITCH].pid.iMax) {
+		pLag = rStabConstants[STAB_PITCH].pid.iMax;
+	}
+	else if(pLag < rStabConstants[STAB_PITCH].pid.iMin) {
+		pLag = rStabConstants[STAB_PITCH].pid.iMin;
+	}
+	// Lag contour summator
+	velocity[HLB] += - pLag;
+	velocity[HRB] += + pLag;
+	velocity[HLF] += + pLag;
+	velocity[HRF] += - pLag;
+	// Lag sumator saturation
+	for(uint8_t i=0; i<4; i++) {
+		if(velocity[i] > rStabConstants[STAB_ROLL].pThrustersMax) {
+			velocity[i] = rStabConstants[STAB_ROLL].pThrustersMax;
+		}
+		else if(velocity[i] < rStabConstants[STAB_ROLL].pThrustersMin) {
+			velocity[i] = rStabConstants[STAB_ROLL].pThrustersMin;
+		}
+	}
+	// Yaw contour summator
+	velocity[HLB] += + bYaw;
+	velocity[HRB] += - bYaw;
+	velocity[HLF] += + bYaw;
+	velocity[HRF] += - bYaw;
+	// Yaw summator saturation
+	for(uint8_t i=0; i<4; i++) {
+		if(velocity[i] > rStabConstants[STAB_ROLL].pid.iMax) {
+			velocity[i] = rStabConstants[STAB_ROLL].pid.iMax;
+		}
+		else if(velocity[i] < rStabConstants[STAB_ROLL].pid.iMin) {
+			velocity[i] = rStabConstants[STAB_ROLL].pid.iMin;
+		}
+	}
+
+	velocity[VB] = - bDepth;// + bPitch;
+	velocity[VF] = - bDepth;// - bPitch;
+	velocity[VL] = - bDepth;// + bRoll;
+	velocity[VR] = - bDepth;// - bRoll;
 
 	for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
-		velocity[i] = (int8_t)(velocity[i] / 0xFF);
+		velocity[i] = velocity[i] / 0xFF;
 		if (velocity[i] > 127) {
 			rThrusters[i].desiredSpeed = 127;
 		}
-		else if( velocity[i] > -127) {
-			rThrusters[i].desiredSpeed = velocity[i];
-		}
-		else {
+		else if(velocity[i] < -127) {
 			rThrusters[i].desiredSpeed = -127;
 		}
+		rThrusters[i].desiredSpeed = velocity[i];
 	}
 }
 

@@ -69,12 +69,15 @@ enum LOGDEV_STATE {
 	LOGDEV_BACKWARD_SAT
 };
 
+#define PC_POWERON_DELAY 2
+
 // Structure for overall robot state
 struct robotState_s {
 	uint8_t cameraNum;	// Current camera ID (controls multiplexor)
 	uint8_t contourSelected; // Current contour selected for the configuration mode
 	uint8_t flash; // Was flash read successful
 	uint8_t operationMode; // Currrent operation type
+	uint8_t pcCounter;
 };
 
 // Individual characteristics, controls and current state of each VMA
@@ -119,8 +122,12 @@ struct robotSensors_s {
 	float quatC;
 	float quatD;
 	bool resetIMU;
+
 	float pressure;
+	float pressure_null;
+
 	float in_pressure;
+
 	float leak;
 };
 
