@@ -59,6 +59,9 @@ void variableInit()
 	rSensors.old_yaw = 0;
 	rSensors.spins = 0;
 
+	rSensors.pressure = 0;
+	rSensors.pressure_null = 0;
+
 	rSensors.rollSpeed = 0;
 	rSensors.pitchSpeed = 0;
 	rSensors.yawSpeed = 0;
@@ -78,9 +81,9 @@ void variableInit()
 
     rDevice[DEV1].address = 0x03;
     rDevice[DEV2].address = 0x05;
-    rDevice[GRAB].address = 0x01;
+    rDevice[GRAB].address = 0x02;
     rDevice[GRAB_ROTATION].address = 0x06;
-    rDevice[TILT].address = 0x02;
+    rDevice[TILT].address = 0x01;
 
 	rSensors.resetIMU = false;
 
@@ -402,7 +405,7 @@ void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id)
 			struct pressureResponse_s res;
 			memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
 			if(res.code == 0xAA) {
-				rSensors.pressure = 9.124*res.value-3.177;
+				rSensors.pressure = (9.124*res.value - 3.177) - rSensors.pressure_null;
 			}
 		}
 		break;
@@ -451,23 +454,28 @@ void DevicesRequestUpdate(uint8_t *buf, uint8_t dev)
     req.velocity1 = 0;
     req.velocity2 = rDevice[dev].force;
 
-    if(dev == TILT) {
-    	switch(rLogicDevice[LOGDEV_LIFTER].state) {
-    	case LOGDEV_FORWARD:
-    		req.velocity2 = 60;
-    		break;
-    	case LOGDEV_BACKWARD:
-    		req.velocity2 = -60;
-    		break;
-    	case LOGDEV_FORWARD_SAT:
-    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
-    		req.velocity2 = 0;
-    		break;
-    	case LOGDEV_BACKWARD_SAT:
-    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
-    		req.velocity2 = 0;
-    	}
+    if(dev == GRAB) {
+    	req.velocity1 = rDevice[GRAB_ROTATION].force;
+    	req.velocity2 = rDevice[GRAB].force;
     }
+
+//    if(dev == TILT) {
+//    	switch(rLogicDevice[LOGDEV_LIFTER].state) {
+//    	case LOGDEV_FORWARD:
+//    		req.velocity2 = 60;
+//    		break;
+//    	case LOGDEV_BACKWARD:
+//    		req.velocity2 = -60;
+//    		break;
+//    	case LOGDEV_FORWARD_SAT:
+//    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
+//    		req.velocity2 = 0;
+//    		break;
+//    	case LOGDEV_BACKWARD_SAT:
+//    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
+//    		req.velocity2 = 0;
+//    	}
+//    }
 
 //    if(rLogicDevice[LOGDEV_LIFTER].state == LOGDEV_FORWARD_SAT) {
 //    	if(req.velocity2 > 0) {
@@ -531,21 +539,23 @@ void ThrustersRequestUpdate(uint8_t *buf, uint8_t thruster)
     	res.velocity *= -1;
     }
 
+    //int16_t velocity = res.velocity;
     // Multiplier constants
-    if(rThrusters[thruster].desiredSpeed > 0) {
-    	res.velocity = (int8_t) ((float) (res.velocity) * rThrusters[thruster].kForward);
+    /*if(rThrusters[thruster].desiredSpeed > 0) {
+    	velocity = (int16_t) ((float) (res.velocity) * rThrusters[thruster].kForward);
     }
     else if(rThrusters[thruster].desiredSpeed < 0) {
-    	res.velocity = (int8_t) ((float) (res.velocity) * rThrusters[thruster].kBackward);
+    	velocity = (int16_t) ((float) (res.velocity) * rThrusters[thruster].kBackward);
     }
-
+*/
     // Saturation
-    if(rThrusters[thruster].desiredSpeed > rThrusters[thruster].sForward) {
-    	rThrusters[thruster].desiredSpeed = rThrusters[thruster].sForward;
+    /*if(velocity > rThrusters[thruster].sForward) {
+    	velocity = rThrusters[thruster].sForward;
     }
-    else if(rThrusters[thruster].desiredSpeed < -rThrusters[thruster].sBackward) {
-    	rThrusters[thruster].desiredSpeed = -rThrusters[thruster].sBackward;
-    }
+    else if(velocity < -rThrusters[thruster].sBackward) {
+    	velocity = -rThrusters[thruster].sBackward;
+    }*/
+    //res.velocity = velocity;
 
     memcpy((void*)buf, (void*)&res, THRUSTERS_REQUEST_LENGTH);
     AddChecksumm8bVma(buf, THRUSTERS_REQUEST_LENGTH);
@@ -903,10 +913,10 @@ void formThrustVectors()
 	for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
 		velocity[i] = velocity[i] / 0xFF;
 		if (velocity[i] > 127) {
-			rThrusters[i].desiredSpeed = 127;
+			velocity[i] = 127;
 		}
 		else if(velocity[i] < -127) {
-			rThrusters[i].desiredSpeed = -127;
+			velocity[i] = -127;
 		}
 		rThrusters[i].desiredSpeed = velocity[i];
 	}

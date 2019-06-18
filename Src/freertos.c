@@ -334,6 +334,7 @@ void func_tImuCommTask(void const * argument)
 			uartBus[IMU_UART].txLength = IMU_REQUEST_LENGTH;
 	  		transmitPackage(&uartBus[IMU_UART], false);
 
+	  		rSensors.pressure_null = rSensors.pressure;
 	  		rSensors.resetIMU = false;
 	  	}
 	  	else {
@@ -376,13 +377,13 @@ void func_tStabilizationTask(void const * argument)
 	for(;;)
 	{
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STABILIZATION_TASK) == pdTRUE) {
-			if (rStabConstants[STAB_PITCH].enable) {
-				stabilizationUpdate(STAB_PITCH);
-			}
-
-			if (rStabConstants[STAB_ROLL].enable) {
-				stabilizationUpdate(STAB_ROLL);
-			}
+//			if (rStabConstants[STAB_PITCH].enable) {
+//				stabilizationUpdate(STAB_PITCH);
+//			}
+//
+//			if (rStabConstants[STAB_ROLL].enable) {
+//				stabilizationUpdate(STAB_ROLL);
+//			}
 
 			if (rStabConstants[STAB_YAW].enable) {
 				stabilizationUpdate(STAB_YAW);
