@@ -214,7 +214,27 @@ void nullIntArray(uint8_t *array, uint8_t size)
 
 bool PickBit(uint8_t input, uint8_t bit)
 {
-	return (bool) ((input << (8 - bit)) >> 8);
+	//return (bool) ((input << (7 - bit)) >> 7);
+
+	switch(bit) {
+	case 0:
+			return (bool) (input & 0b00000001);
+	case 1:
+			return (bool) (input & 0b00000010);
+	case 2:
+			return (bool) (input & 0b00000100);
+	case 3:
+			return (bool) (input & 0b00001000);
+	case 4:
+			return (bool) (input & 0b00010000);
+	case 5:
+			return (bool) (input & 0b00100000);
+	case 6:
+			return (bool) (input & 0b01000000);
+	case 7:
+			return (bool) (input & 0b10000000);
+	}
+	return false;
 }
 
 void SetBit(uint8_t *byte, uint8_t bit, bool state)

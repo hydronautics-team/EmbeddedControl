@@ -113,6 +113,7 @@ uint32_t tPcCommTaskBuffer[ 128 ];
 osStaticThreadDef_t tPcCommTaskControlBlock;
 osTimerId tUartTimerHandle;
 osTimerId tSilenceHandle;
+osTimerId tTechCommTImerHandle;
 osMutexId mutDataHandle;
 osStaticMutexDef_t mutDataControlBlock;
 
@@ -130,6 +131,7 @@ void func_tSensCommTask(void const * argument);
 void func_tPcCommTask(void const * argument);
 void func_tUartTimer(void const * argument);
 void tSilence_func(void const * argument);
+void tTechCommTImer_callback(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -203,6 +205,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of tSilence */
   osTimerDef(tSilence, tSilence_func);
   tSilenceHandle = osTimerCreate(osTimer(tSilence), osTimerOnce, NULL);
+
+  /* definition and creation of tTechCommTImer */
+  osTimerDef(tTechCommTImer, tTechCommTImer_callback);
+  tTechCommTImerHandle = osTimerCreate(osTimer(tTechCommTImer), osTimerOnce, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   SilenceTimer = xTimerCreate("silence", DELAY_SILENCE/portTICK_RATE_MS, pdFALSE, 0, (TimerCallbackFunction_t) tSilence_func);
@@ -328,6 +334,7 @@ void func_tImuCommTask(void const * argument)
 			uartBus[IMU_UART].txLength = IMU_REQUEST_LENGTH;
 	  		transmitPackage(&uartBus[IMU_UART], false);
 
+	  		rSensors.pressure_null = rSensors.pressure;
 	  		rSensors.resetIMU = false;
 	  	}
 	  	else {
@@ -370,13 +377,13 @@ void func_tStabilizationTask(void const * argument)
 	for(;;)
 	{
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STABILIZATION_TASK) == pdTRUE) {
-			if (rStabConstants[STAB_PITCH].enable) {
-				stabilizationUpdate(STAB_PITCH);
-			}
-
-			if (rStabConstants[STAB_ROLL].enable) {
-				stabilizationUpdate(STAB_ROLL);
-			}
+//			if (rStabConstants[STAB_PITCH].enable) {
+//				stabilizationUpdate(STAB_PITCH);
+//			}
+//
+//			if (rStabConstants[STAB_ROLL].enable) {
+//				stabilizationUpdate(STAB_ROLL);
+//			}
 
 			if (rStabConstants[STAB_YAW].enable) {
 				stabilizationUpdate(STAB_YAW);
@@ -385,7 +392,7 @@ void func_tStabilizationTask(void const * argument)
 			if (rStabConstants[STAB_DEPTH].enable) {
 				stabilizationUpdate(STAB_DEPTH);
 			}
-
+			formThrustVectors();
 			xSemaphoreGive(mutDataHandle);
 		}
 
@@ -447,8 +454,7 @@ void func_tSensCommTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  //receiveI2cPackageDMA(DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
-	  HAL_I2C_Master_Receive_IT(&hi2c2, SENSORS_PRESSURE_ADDR>>1, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
+	  receiveI2cPackageDMA(DEV_I2C, SENSORS_PRESSURE_ADDR, PressureResponseBuffer, PRESSURE_SENSOR_SIZE);
 	  osDelayUntil(&sysTime, DELAY_SENSOR_TASK);
 	  if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_SENSOR_TASK) == pdTRUE) {
 	  	  SensorsResponseUpdate(PressureResponseBuffer, DEV_I2C);
@@ -483,6 +489,7 @@ void func_tUartTimer(void const * argument)
 {
   /* USER CODE BEGIN func_tUartTimer */
 	if (uartBus[SHORE_UART].packageReceived) {
+		bool package = true;
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
 			switch(uartBus[SHORE_UART].rxBuffer[0]) {
 				case SHORE_REQUEST_CODE:
@@ -500,11 +507,12 @@ void func_tUartTimer(void const * argument)
 					ShoreDirectResponse(uartBus[SHORE_UART].txBuffer);
 					uartBus[SHORE_UART].txLength = SHORE_DIRECT_RESPONSE_LENGTH;
 					break;
+				default:
+					package = false;
 			}
 			xSemaphoreGive(mutDataHandle);
 		}
-
-		if(uartBus[SHORE_UART].huart == &huart1) {
+		if(package) {
 			HAL_UART_Transmit_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].txBuffer, uartBus[SHORE_UART].txLength);
 		}
 	}
@@ -539,10 +547,36 @@ void tSilence_func(void const * argument)
 			}
 			xSemaphoreGive(mutDataHandle);
 		}
+
+		if(uartBus[SHORE_UART].lastMessage == 0) {
+			rState.pcCounter++;
+			switch(rState.pcCounter) {
+			case PC_POWERON_DELAY:
+				HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
+				HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+				break;
+			case PC_POWERON_DELAY+1:
+				HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_RESET); // RESET
+				HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+				break;
+			case PC_POWERON_DELAY+2:
+				HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
+				HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+				break;
+			}
+		}
 	}
 	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
 	xTimerStart(SilenceTimer, 10);
   /* USER CODE END tSilence_func */
+}
+
+/* tTechCommTImer_callback function */
+void tTechCommTImer_callback(void const * argument)
+{
+  /* USER CODE BEGIN tTechCommTImer_callback */
+  
+  /* USER CODE END tTechCommTImer_callback */
 }
 
 /* Private application code --------------------------------------------------*/

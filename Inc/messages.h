@@ -54,7 +54,7 @@ struct thrustersResponse_s
 #define DEVICES_REQUEST_LENGTH 			7
 #define DEVICES_NULL					-1
 #define DEVICES_RESPONSE_LENGTH			10
-#define DEVICES_NUMBER      			4
+#define DEVICES_NUMBER      			6
 
 struct devicesRequest_s
 {
@@ -62,8 +62,8 @@ struct devicesRequest_s
 	uint8_t AA2;
 	uint8_t address;
 	uint8_t setting;
-	uint8_t velocity1;
-	uint8_t velocity2;
+	int8_t velocity1;
+	int8_t velocity2;
 	uint8_t checksum;
 };
 
@@ -91,6 +91,7 @@ struct devicesResponse_s
 #define SHORE_STABILIZE_YAW_BIT 		3
 #define SHORE_STABILIZE_IMU_BIT 		4
 #define SHORE_STABILIZE_SAVE_BIT		5
+#define SHORE_STABILIZE_LOGDEV_BIT		6
 
 #define SHORE_DEVICE_AC_BIT 			0
 
@@ -201,26 +202,13 @@ struct shoreResponse_s
     float yawSpeed;
 
     float pressure;
-    float in_pressure;
+    float in_pressure; // 32
 
-    uint8_t dev_state;
-    int16_t leak_data;
+    uint8_t dev_state; // 33
+    int16_t leak_data; // 35
 
-    uint16_t vma_current_hlb;
-    uint16_t vma_current_hlf;
-    uint16_t vma_current_hrb;
-    uint16_t vma_current_hrf;
-    uint16_t vma_current_vb;
-    uint16_t vma_current_vf;
-    uint16_t vma_current_vl;
-    uint16_t vma_current_vr;
-
-    uint16_t dev_current_light;
-    uint16_t dev_current_tilt;
-    uint16_t dev_current_grab;
-    uint16_t dev_current_grab_rotate;
-    uint16_t dev_current_dev1;
-    uint16_t dev_current_dev2;
+    uint16_t thrusterCurrent[THRUSTERS_NUMBER];
+    uint16_t devCurrent[DEVICES_NUMBER];
 
     uint16_t vma_errors;
     uint16_t dev_errors;
@@ -322,11 +310,19 @@ struct imuResponse_s
 /* --- I2C2 Sensors communication info --- */
 
 #define SENSORS_DEVICES_NUM 		3
-#define PRESSURE_SENSOR_SIZE 		4
+#define PRESSURE_SENSOR_SIZE 		6
+#define PRESSURE_RESPONSE_CODE 		0xAA
 
 #define SENSORS_ADC1_ADDR 			0
 #define SENSORS_ADC2_ADDR 			1
 #define SENSORS_PRESSURE_ADDR 		15
+
+struct pressureResponse_s
+{
+	uint8_t code;
+	float value;
+	uint8_t checksum;
+};
 
 /* --- Delays and waiting rates --- */
 
@@ -335,7 +331,7 @@ struct imuResponse_s
 #define DELAY_DEVICES_TASK 			10
 #define DELAY_IMU_TASK 				10
 #define DELAY_PC_TASK 				10
-#define DELAY_SENSOR_TASK 			25
+#define DELAY_SENSOR_TASK 			10
 #define DELAY_STABILIZATION_TASK 	10
 #define DELAY_TIMER_TASK 			30
 #define DELAY_SILENCE    			1000
@@ -345,7 +341,7 @@ struct imuResponse_s
 #define WAITING_IMU 				10
 #define WAITING_SHORE 				10
 #define WAITING_THRUSTERS 			10
-#define WAITING_SENSORS				5
+#define WAITING_SENSORS				10
 #define WAITING_PC					10
 #define WAITING_TIMER				5
 #define UART_SWITCH_DELAY			1000

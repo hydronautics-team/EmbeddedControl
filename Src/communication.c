@@ -16,10 +16,17 @@
 #include "flash.h"
 
 #define PACKAGE_TOLLERANCE 	20
+#define THRUSTER_FILTERS_NUMBER 2
+
+enum thrusterContours {
+	CONTOUR_MARCH = 0,
+	CONTOUR_LAG
+};
 
 extern TimerHandle_t UARTTimer;
 
 struct uartBus_s uartBus[UART_NUMBER];
+struct thrusterFilter_s thrusterFilter[THRUSTER_FILTERS_NUMBER];
 
 uint8_t VMAbrokenRxTolerance = 0;
 
@@ -36,7 +43,13 @@ bool i2c2PackageReceived = false;
 
 void variableInit()
 {
-	rState.flash = false;
+	rComputer.reset = 0;
+
+	rState.cameraNum = 0;
+	rState.contourSelected = 0;
+	rState.flash = 0;
+	rState.operationMode = 0;
+	rState.pcCounter = 0;
 
 	rSensors.yaw = 0;
 	rSensors.raw_yaw = 0;
@@ -45,6 +58,9 @@ void variableInit()
 
 	rSensors.old_yaw = 0;
 	rSensors.spins = 0;
+
+	rSensors.pressure = 0;
+	rSensors.pressure_null = 0;
 
 	rSensors.rollSpeed = 0;
 	rSensors.pitchSpeed = 0;
@@ -63,7 +79,27 @@ void variableInit()
 	rSensors.quatC = 0;
 	rSensors.quatD = 0;
 
+    rDevice[DEV1].address = 0x03;
+    rDevice[DEV2].address = 0x05;
+    rDevice[GRAB].address = 0x02;
+    rDevice[GRAB_ROTATION].address = 0x06;
+    rDevice[TILT].address = 0x01;
+
 	rSensors.resetIMU = false;
+
+	thrusterFilter[CONTOUR_MARCH].K = &rStabConstants[STAB_PITCH].aFilter[POS_FILTER].K;
+	thrusterFilter[CONTOUR_MARCH].T = &rStabConstants[STAB_PITCH].aFilter[POS_FILTER].T;
+	thrusterFilter[CONTOUR_MARCH].input = &rJoySpeed.march;
+	thrusterFilter[CONTOUR_MARCH].LastTick = 0;
+	thrusterFilter[CONTOUR_MARCH].oldState = 0;
+	thrusterFilter[CONTOUR_MARCH].output = 0;
+
+	thrusterFilter[CONTOUR_LAG].K = &rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].K;
+	thrusterFilter[CONTOUR_LAG].T = &rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].T;
+	thrusterFilter[CONTOUR_LAG].input = &rJoySpeed.lag;
+	thrusterFilter[CONTOUR_LAG].LastTick = 0;
+	thrusterFilter[CONTOUR_LAG].oldState = 0;
+	thrusterFilter[CONTOUR_LAG].output = 0;
 
 	struct flashConfiguration_s config;
 	flashReadSettings(&config);
@@ -98,10 +134,13 @@ void variableInit()
     	rThrusters[i].sBackward = 127;
     }
 
-    rDevice[DEV1].address = 0x03;
-    rDevice[GRAB].address = 0x01;
-    rDevice[GRAB_ROTATION].address = 0x02;
-    rDevice[TILT].address = 0x06;
+    for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
+    	rThrusters[i].desiredSpeed = 0;
+    	rThrusters[i].kForward = 1;
+    	rThrusters[i].kBackward = 1;
+    	rThrusters[i].sForward = 127;
+    	rThrusters[i].sBackward = 127;
+    }
 }
 
 void uartBusesInit()
@@ -309,8 +348,9 @@ bool receiveI2cPackageDMA (uint8_t I2C, uint16_t addr, uint8_t *buf, uint8_t len
 	case DEV_I2C:
 		HAL_I2C_Master_Receive_IT(&hi2c2, addr>>1, buf, length);
 		while (!i2c2PackageReceived) {
-			if(fromTickToMs(xTaskGetTickCount()) - timeBegin < WAITING_SENSORS) {
-				HAL_I2C_Master_Abort_IT(&hi2c2, addr>>1);
+			if(fromTickToMs(xTaskGetTickCount()) - timeBegin > WAITING_SENSORS) {
+				//HAL_I2C_Master_Abort_IT(&hi2c2, addr>>1);
+				HAL_I2C_Init(&hi2c2);
 				return false;
 			}
 			osDelay(DELAY_SENSOR_TASK);
@@ -359,11 +399,15 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
 
 void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id)
 {
-	float input = 0;
 	switch(Sensor_id) {
 	case DEV_I2C:
-		input = FloatFromUint8Reverse(buf, 0);
-		rSensors.pressure = 9.124*input-3.177;
+		if(IsChecksumm8bCorrect(buf, PRESSURE_SENSOR_SIZE)) {
+			struct pressureResponse_s res;
+			memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
+			if(res.code == 0xAA) {
+				rSensors.pressure = (9.124*res.value - 3.177) - rSensors.pressure_null;
+			}
+		}
 		break;
 	}
 }
@@ -410,6 +454,47 @@ void DevicesRequestUpdate(uint8_t *buf, uint8_t dev)
     req.velocity1 = 0;
     req.velocity2 = rDevice[dev].force;
 
+    if(dev == GRAB) {
+    	req.velocity1 = rDevice[GRAB_ROTATION].force;
+    	req.velocity2 = rDevice[GRAB].force;
+    }
+
+//    if(dev == TILT) {
+//    	switch(rLogicDevice[LOGDEV_LIFTER].state) {
+//    	case LOGDEV_FORWARD:
+//    		req.velocity2 = 60;
+//    		break;
+//    	case LOGDEV_BACKWARD:
+//    		req.velocity2 = -60;
+//    		break;
+//    	case LOGDEV_FORWARD_SAT:
+//    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
+//    		req.velocity2 = 0;
+//    		break;
+//    	case LOGDEV_BACKWARD_SAT:
+//    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
+//    		req.velocity2 = 0;
+//    	}
+//    }
+
+//    if(rLogicDevice[LOGDEV_LIFTER].state == LOGDEV_FORWARD_SAT) {
+//    	if(req.velocity2 > 0) {
+//    		req.velocity2 = 0;
+//    	}
+//    	else if(req.velocity2 < 0) {
+//    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
+//    	}
+//    }
+//    else if(rLogicDevice[LOGDEV_LIFTER].state == LOGDEV_BACKWARD_SAT) {
+//    	if(req.velocity2 < 0) {
+//    		req.velocity2 = 0;
+//    	}
+//    	else if(req.velocity2 > 0) {
+//    		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_NULL;
+//    	}
+//    }
+
+
     memcpy((void*)buf, (void*)&req, DEVICES_REQUEST_LENGTH);
     AddChecksumm8b(buf, DEVICES_REQUEST_LENGTH);
 }
@@ -421,6 +506,15 @@ void DevicesResponseUpdate(uint8_t *buf, uint8_t dev)
     	memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
 
         rDevice[dev].current = res.current1;
+        rDevice[dev].velocity1 = res.velocity1;
+        rDevice[dev].velocity2 = res.velocity2;
+
+        if(rDevice[DEV2].velocity1 == 0x00 && dev == DEV2) {
+        	rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_FORWARD_SAT;
+        }
+        else if(rDevice[DEV2].velocity2 == 0x00 && dev == DEV2) {
+        	rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_BACKWARD_SAT;
+        }
         // TODO make errors work pls
         //writeBit(&(robot->device[dev].errors), res.errors, AGAR);
 
@@ -445,21 +539,23 @@ void ThrustersRequestUpdate(uint8_t *buf, uint8_t thruster)
     	res.velocity *= -1;
     }
 
+    //int16_t velocity = res.velocity;
     // Multiplier constants
-    if(rThrusters[thruster].desiredSpeed > 0) {
-    	res.velocity = (int8_t) ((float) (res.velocity) * rThrusters[thruster].kForward);
+    /*if(rThrusters[thruster].desiredSpeed > 0) {
+    	velocity = (int16_t) ((float) (res.velocity) * rThrusters[thruster].kForward);
     }
     else if(rThrusters[thruster].desiredSpeed < 0) {
-    	res.velocity = (int8_t) ((float) (res.velocity) * rThrusters[thruster].kBackward);
+    	velocity = (int16_t) ((float) (res.velocity) * rThrusters[thruster].kBackward);
     }
-
+*/
     // Saturation
-    if(rThrusters[thruster].desiredSpeed > rThrusters[thruster].sForward) {
-    	rThrusters[thruster].desiredSpeed = rThrusters[thruster].sForward;
+    /*if(velocity > rThrusters[thruster].sForward) {
+    	velocity = rThrusters[thruster].sForward;
     }
-    else if(rThrusters[thruster].desiredSpeed < -rThrusters[thruster].sBackward) {
-    	rThrusters[thruster].desiredSpeed = -rThrusters[thruster].sBackward;
-    }
+    else if(velocity < -rThrusters[thruster].sBackward) {
+    	velocity = -rThrusters[thruster].sBackward;
+    }*/
+    //res.velocity = velocity;
 
     memcpy((void*)buf, (void*)&res, THRUSTERS_REQUEST_LENGTH);
     AddChecksumm8bVma(buf, THRUSTERS_REQUEST_LENGTH);
@@ -496,7 +592,6 @@ void ShoreRequest(uint8_t *requestBuf)
         rJoySpeed.pitch = req.pitch;
         rJoySpeed.yaw = req.yaw;
 
-        rDevice[LIGHT].force = req.light;
         rDevice[GRAB].force = req.grab;
         if (rDevice[GRAB].force < -127) {
             rDevice[GRAB].force = -127;
@@ -536,13 +631,38 @@ void ShoreRequest(uint8_t *requestBuf)
         }
         rComputer.reset = req.pc_reset;
 
-        bool wasEnabled;
+        bool wasEnabled = rStabConstants[STAB_YAW].enable;
+        rStabConstants[STAB_YAW].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_YAW].enable == true) {
+        	stabilizationStart(STAB_YAW);
+        }
 
-        for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
-        	wasEnabled = rStabConstants[i].enable;
-        	rStabConstants[i].enable = PickBit(req.stabilize_flags, i);
-        	if(wasEnabled == false && rStabConstants[i].enable == true) {
-        		stabilizationStart(i);
+        wasEnabled = rStabConstants[STAB_ROLL].enable;
+        rStabConstants[STAB_ROLL].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_ROLL_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_ROLL].enable == true) {
+        	stabilizationStart(STAB_ROLL);
+        }
+
+        wasEnabled = rStabConstants[STAB_PITCH].enable;
+        rStabConstants[STAB_PITCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_PITCH].enable == true) {
+        	stabilizationStart(STAB_PITCH);
+        }
+
+        wasEnabled = rStabConstants[STAB_DEPTH].enable;
+        rStabConstants[STAB_DEPTH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_DEPTH].enable == true) {
+        	stabilizationStart(STAB_DEPTH);
+        }
+
+        wasEnabled = rLogicDevice[LOGDEV_LIFTER].control;
+        rLogicDevice[LOGDEV_LIFTER].control = PickBit(req.stabilize_flags, SHORE_STABILIZE_LOGDEV_BIT);
+        if(wasEnabled != rLogicDevice[LOGDEV_LIFTER].control) {
+        	if(rLogicDevice[LOGDEV_LIFTER].control) {
+        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_FORWARD;
+        	}
+        	else {
+        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_BACKWARD;
         	}
         }
 
@@ -686,20 +806,38 @@ void ShoreDirectRequest(uint8_t *requestBuf)
 
 void formThrustVectors()
 {
-	float bYaw, bRoll, bPitch, bDepth;
-	if(rStabConstants[STAB_ROLL].enable) {
-		bRoll = rStabState[STAB_ROLL].speedError;
-	}
-	else {
-		bRoll = rJoySpeed.roll;
+	for(uint8_t i=0; i<THRUSTER_FILTERS_NUMBER; i++) {
+		float diffTime = fromTickToMs(xTaskGetTickCount() - thrusterFilter[i].LastTick) / 1000.0f;
+		thrusterFilter[i].LastTick = xTaskGetTickCount();
+
+		float K = *thrusterFilter[i].K;
+		float T = *thrusterFilter[i].T;
+		float input = *thrusterFilter[i].input;
+		float old = thrusterFilter[i].oldState;
+
+		if(T != 0) {
+			thrusterFilter[i].output = thrusterFilter[i].output*exp(-diffTime/T) + old*K*(1-exp(-diffTime/T));
+		}
+		else {
+			thrusterFilter[i].output = input*K;
+		}
+		thrusterFilter[i].oldState = input;
 	}
 
-	if(rStabConstants[STAB_PITCH].enable) {
-		bPitch = rStabState[STAB_PITCH].speedError;
-	}
-	else {
-		bPitch = rJoySpeed.pitch;
-	}
+	float bYaw, bDepth;//, bRoll, bPitch;
+//	if(rStabConstants[STAB_ROLL].enable) {
+//		bRoll = rStabState[STAB_ROLL].speedError;
+//	}
+//	else {
+//		bRoll = rJoySpeed.roll;
+//	}
+//
+//	if(rStabConstants[STAB_PITCH].enable) {
+//		bPitch = rStabState[STAB_PITCH].speedError;
+//	}
+//	else {
+//		bPitch = rJoySpeed.pitch;
+//	}
 
 	if(rStabConstants[STAB_YAW].enable) {
 		bYaw = rStabState[STAB_YAW].speedError;
@@ -715,28 +853,72 @@ void formThrustVectors()
 		bDepth = rJoySpeed.depth;
 	}
 
-	// what the fuck is happening here? this code is actually correct, why?
-	int16_t velocity[THRUSTERS_NUMBER];
-	velocity[HLB] = + rJoySpeed.march - rJoySpeed.lag + bYaw;
-	velocity[HRB] = + rJoySpeed.march + rJoySpeed.lag - bYaw;
-	velocity[HLF] = + rJoySpeed.march + rJoySpeed.lag + bYaw;
-	velocity[HRF] = + rJoySpeed.march - rJoySpeed.lag - bYaw;
-	velocity[VB] = - bDepth + bPitch;
-	velocity[VF] = - bDepth - bPitch;
-	velocity[VL] = - bDepth + bRoll;
-	velocity[VR] = - bDepth - bRoll;
+	int32_t velocity[THRUSTERS_NUMBER];
+	// March contour summator
+	velocity[HLB] = + thrusterFilter[CONTOUR_MARCH].output;
+	velocity[HRB] = + thrusterFilter[CONTOUR_MARCH].output;
+	velocity[HLF] = + thrusterFilter[CONTOUR_MARCH].output;
+	velocity[HRF] = + thrusterFilter[CONTOUR_MARCH].output;
+	// March contour saturation
+	for(uint8_t i=0; i<4; i++) {
+		if(velocity[i] > rStabConstants[STAB_PITCH].pThrustersMax) {
+			velocity[i] = rStabConstants[STAB_PITCH].pThrustersMax;
+		}
+		else if(velocity[i] < rStabConstants[STAB_PITCH].pThrustersMin) {
+			velocity[i] = rStabConstants[STAB_PITCH].pThrustersMin;
+		}
+	}
+	// Lag contour saturation
+	int16_t pLag = thrusterFilter[CONTOUR_LAG].output;
+	if(pLag > rStabConstants[STAB_PITCH].pid.iMax) {
+		pLag = rStabConstants[STAB_PITCH].pid.iMax;
+	}
+	else if(pLag < rStabConstants[STAB_PITCH].pid.iMin) {
+		pLag = rStabConstants[STAB_PITCH].pid.iMin;
+	}
+	// Lag contour summator
+	velocity[HLB] += - pLag;
+	velocity[HRB] += + pLag;
+	velocity[HLF] += + pLag;
+	velocity[HRF] += - pLag;
+	// Lag sumator saturation
+	for(uint8_t i=0; i<4; i++) {
+		if(velocity[i] > rStabConstants[STAB_ROLL].pThrustersMax) {
+			velocity[i] = rStabConstants[STAB_ROLL].pThrustersMax;
+		}
+		else if(velocity[i] < rStabConstants[STAB_ROLL].pThrustersMin) {
+			velocity[i] = rStabConstants[STAB_ROLL].pThrustersMin;
+		}
+	}
+	// Yaw contour summator
+	velocity[HLB] += + bYaw;
+	velocity[HRB] += - bYaw;
+	velocity[HLF] += + bYaw;
+	velocity[HRF] += - bYaw;
+	// Yaw summator saturation
+	for(uint8_t i=0; i<4; i++) {
+		if(velocity[i] > rStabConstants[STAB_ROLL].pid.iMax) {
+			velocity[i] = rStabConstants[STAB_ROLL].pid.iMax;
+		}
+		else if(velocity[i] < rStabConstants[STAB_ROLL].pid.iMin) {
+			velocity[i] = rStabConstants[STAB_ROLL].pid.iMin;
+		}
+	}
+
+	velocity[VB] = - bDepth;// + bPitch;
+	velocity[VF] = - bDepth;// - bPitch;
+	velocity[VL] = - bDepth;// + bRoll;
+	velocity[VR] = - bDepth;// - bRoll;
 
 	for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
-		velocity[i] = (int8_t)(velocity[i] / 0xFF);
+		velocity[i] = velocity[i] / 0xFF;
 		if (velocity[i] > 127) {
-			rThrusters[i].desiredSpeed = 127;
+			velocity[i] = 127;
 		}
-		else if( velocity[i] > -127) {
-			rThrusters[i].desiredSpeed = velocity[i];
+		else if(velocity[i] < -127) {
+			velocity[i] = -127;
 		}
-		else {
-			rThrusters[i].desiredSpeed = -127;
-		}
+		rThrusters[i].desiredSpeed = velocity[i];
 	}
 }
 
@@ -753,30 +935,12 @@ void ShoreResponse(uint8_t *responseBuf)
 
     res.pressure = rSensors.pressure;
 
-    // TODO eyes bleeding again
-    res.vma_current_hlb = rThrusters[HLB].current;
-    res.vma_current_hlf = rThrusters[HLF].current;
-    res.vma_current_hrb = rThrusters[HRB].current;
-    res.vma_current_hrf = rThrusters[HRF].current;
-    res.vma_current_vb = rThrusters[VB].current;
-    res.vma_current_vf = rThrusters[VF].current;
-    res.vma_current_vl = rThrusters[VL].current;
-    res.vma_current_vr = rThrusters[VR].current;
-
-    res.dev_current_light = rDevice[LIGHT].current;
-    res.dev_current_tilt = rDevice[TILT].current;
-    res.dev_current_grab = rDevice[GRAB].current;
-    res.dev_current_grab_rotate = rDevice[GRAB_ROTATION].current;
-    res.dev_current_dev1 = rDevice[DEV1].current;
-    res.dev_current_dev2 = rDevice[DEV2].current;
-
     res.vma_errors = 0x55;         //!!!!!TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // TODO do this properly pls
     res.dev_errors = 0;//robot->device.errors;
     res.pc_errors = rComputer.errors;
 
     memcpy((void*)responseBuf, (void*)&res, SHORE_RESPONSE_LENGTH);
-
     AddCrc16Checksumm(responseBuf, SHORE_RESPONSE_LENGTH);
 }
 
@@ -881,9 +1045,9 @@ void ImuReceive(uint8_t *ReceiveBuf)
     rSensors.roll =  (float) (MergeBytes(&ReceiveBuf[EULER_PHI])) * 0.0109863;
     rSensors.pitch =  (float) (MergeBytes(&ReceiveBuf[EULER_TETA])) * 0.0109863;
 
-    rSensors.rollSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_X])) * 0.000183105;
-    rSensors.pitchSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Y])) * 0.000183105;
-    rSensors.yawSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Z])) * 0.000183105;
+    rSensors.rollSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_X])) * 0.0610352;
+    rSensors.pitchSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Y])) * 0.0610352;
+    rSensors.yawSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Z])) * 0.0610352;
 
     rSensors.accelX = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_X])) * 0.0109863;
     rSensors.accelY = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_Y])) * 0.0109863;

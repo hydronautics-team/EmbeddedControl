@@ -56,6 +56,20 @@ struct uartBus_s {
 	uint8_t txrxType;				// How to send and receive messages (use DMA or regular interruptions)
 };
 
+
+// Structure for thrusters aperiodic filters
+struct thrusterFilter_s {
+	// Filter constants
+	float *T;
+	float *K;
+	// Filter state
+	float LastTick;
+	float oldState;
+	float output;
+	// Links
+	float *input;
+};
+
 extern struct uartBus_s uartBus[UART_NUMBER];
 
 extern uint16_t counterRx; // TODO this needs to be refactored as shorestage or smth

@@ -18,14 +18,13 @@ enum VMA {
     VR
 };
 
-#define DEV_AMOUNT 7
+#define DEV_AMOUNT 6
 
 enum DEV {
     AGAR = 0,
     GRAB,
     GRAB_ROTATION,
     TILT,
-    LIGHT,
     DEV1,
 	DEV2
 };
@@ -33,7 +32,7 @@ enum DEV {
 #define LOGDEV_AMOUNT 1
 
 enum LOGDEV {
-	ACOUSTIC = 0
+	LOGDEV_LIFTER = 0
 };
 
 #define STABILIZATION_AMOUNT 4
@@ -57,11 +56,28 @@ enum I2C {
 	I2C_PC
 };
 
+enum OPERATION_MODES {
+	OP_NORMAL = 0,
+	OP_QUALIFICATION
+};
+
+enum LOGDEV_STATE {
+	LOGDEV_NULL = 0,
+	LOGDEV_FORWARD,
+	LOGDEV_BACKWARD,
+	LOGDEV_FORWARD_SAT,
+	LOGDEV_BACKWARD_SAT
+};
+
+#define PC_POWERON_DELAY 2
+
 // Structure for overall robot state
 struct robotState_s {
 	uint8_t cameraNum;	// Current camera ID (controls multiplexor)
 	uint8_t contourSelected; // Current contour selected for the configuration mode
 	uint8_t flash; // Was flash read successful
+	uint8_t operationMode; // Currrent operation type
+	uint8_t pcCounter;
 };
 
 // Individual characteristics, controls and current state of each VMA
@@ -106,8 +122,12 @@ struct robotSensors_s {
 	float quatC;
 	float quatD;
 	bool resetIMU;
+
 	float pressure;
+	float pressure_null;
+
 	float in_pressure;
+
 	float leak;
 };
 
@@ -140,6 +160,9 @@ struct robotDevices_s {
 	int8_t force;
 	uint16_t current;
 	uint8_t errors;
+
+	uint8_t velocity1;
+	uint8_t velocity2;
 };
 
 struct RobotLogicDevices_s {
@@ -178,6 +201,7 @@ struct robotStabilizationState_s {
 	float *speedSignal;			// Link to speed signal. You need to set this on initialization
 	float *posSignal;			// Link to position signal. You need to set this on initialization
 
+	float speedIntegral;		// Integral from speed (if you don't have separate position signal)
 	float posDerivative;		// Derivative from position (if you don't have separate speed signal)
 
 	float oldSpeed;
