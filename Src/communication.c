@@ -621,12 +621,12 @@ void ShoreRequest(uint8_t *requestBuf)
         uint8_t old_reset = rComputer.reset;
         if(old_reset != req.pc_reset) {
             if(req.pc_reset == PC_ON_CODE) {
-            	HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_RESET); // RESET
-            	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+            	HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_RESET); // RESET
+            	HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_RESET); // ONOFF
             }
             else if(req.pc_reset == PC_OFF_CODE) {
-            	HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
-            	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+            	HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
+            	HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
             }
         }
         rComputer.reset = req.pc_reset;

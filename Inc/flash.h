@@ -45,9 +45,8 @@ struct flashConfiguration_s {
 
 #pragma pack(pop)
 
-#define CONFIG_PAGE_NUMB 	255
-#define CONFIG_PAGE_ADDR 	0x0803F800
-#define FLASH_END_ADDR   	0x08040000
+#define CONFIG_PAGE_ADDR 	0x0803F7FF
+#define FLASH_END_ADDR   	0x08040000		// This is just visual, not used
 #define SETTINGS_WORDS 		sizeof(struct flashConfiguration_s)/4
 
 void flashReadSettings(struct flashConfiguration_s *config);

@@ -180,8 +180,8 @@ void MX_FREERTOS_Init(void) {
 
     HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
 
-    HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_RESET); // RESET
-    HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+    HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_RESET); // RESET
+    HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_RESET); // ONOFF
   /* USER CODE END Init */
 
   /* Create the mutex(es) */
@@ -217,6 +217,10 @@ void MX_FREERTOS_Init(void) {
   xTimerStart(SilenceTimer, 10);
   /* USER CODE END RTOS_TIMERS */
 
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
   /* Create the thread(s) */
   /* definition and creation of tLedBlinkingTask */
   osThreadStaticDef(tLedBlinkingTask, func_tLedBlinkingTask, osPriorityLow, 0, 128, tLedBlinkingTaskBuffer, &tLedBlinkingTaskControlBlock);
@@ -250,9 +254,6 @@ void MX_FREERTOS_Init(void) {
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
 }
 
 /* USER CODE BEGIN Header_func_tLedBlinkingTask */
@@ -270,7 +271,11 @@ void func_tLedBlinkingTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-        HAL_GPIO_TogglePin(DBG_LED_GPIO_Port, DBG_LED_Pin);
+        HAL_GPIO_TogglePin(DEBUG_LED1_GPIO_Port, DEBUG_LED1_Pin);
+        osDelayUntil(&sysTime, DELAY_LED_TASK);
+        HAL_GPIO_TogglePin(DEBUG_LED2_GPIO_Port, DEBUG_LED2_Pin);
+        osDelayUntil(&sysTime, DELAY_LED_TASK);
+        HAL_GPIO_TogglePin(DEBUG_LED3_GPIO_Port, DEBUG_LED3_Pin);
         osDelayUntil(&sysTime, DELAY_LED_TASK);
   }
   /* USER CODE END func_tLedBlinkingTask */
@@ -552,16 +557,16 @@ void tSilence_func(void const * argument)
 			rState.pcCounter++;
 			switch(rState.pcCounter) {
 			case PC_POWERON_DELAY:
-				HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
-				HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+				HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
+				HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
 				break;
 			case PC_POWERON_DELAY+1:
-				HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_RESET); // RESET
-				HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+				HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_RESET); // RESET
+				HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_RESET); // ONOFF
 				break;
 			case PC_POWERON_DELAY+2:
-				HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
-				HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+				HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
+				HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
 				break;
 			}
 		}
