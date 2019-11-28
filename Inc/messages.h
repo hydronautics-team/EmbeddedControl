@@ -122,7 +122,7 @@ struct shoreRequest_s
 };
 
 #define REQUEST_CONFIG_CODE             0x55
-#define REQUEST_CONFIG_LENGTH           72
+#define REQUEST_CONFIG_LENGTH           84
 
 struct shoreConfigRequest_s
 {
@@ -134,7 +134,7 @@ struct shoreConfigRequest_s
     int16_t depth;
     int16_t roll;
     int16_t pitch;
-    int16_t yaw;
+    int16_t yaw; // 14
 
 	float pJoyUnitCast;
 	float pSpeedDyn;
@@ -150,9 +150,14 @@ struct shoreConfigRequest_s
 	float pid_iMax;
 	float pid_iMin;
 
-	float pThrustersCast;
 	float pThrustersMin;
 	float pThrustersMax;
+
+	float thrustersFilterT;
+	float thrustersFilterK;
+
+	float sOutSummatorMax;
+	float sOutSummatorMin;
 
     uint16_t checksum;
 };
@@ -202,10 +207,10 @@ struct shoreResponse_s
     float yawSpeed;
 
     float pressure;
-    float in_pressure; // 32
+    float in_pressure;
 
-    uint8_t dev_state; // 33
-    int16_t leak_data; // 35
+    uint8_t dev_state;
+    int16_t leak_data;
 
     uint16_t thrusterCurrent[THRUSTERS_NUMBER];
     uint16_t devCurrent[DEVICES_NUMBER];
@@ -217,7 +222,7 @@ struct shoreResponse_s
     uint16_t checksum;
 };
 
-#define SHORE_CONFIG_RESPONSE_LENGTH			91
+#define SHORE_CONFIG_RESPONSE_LENGTH			99
 
 struct shoreConfigResponse_s
 {
@@ -249,6 +254,9 @@ struct shoreConfigResponse_s
 	float speedFiltered;
 	float posFiltered;
 	float pid_iValue;
+	float thrustersFiltered;
+
+	float outputSignal;
 
     uint16_t checksum;
 };

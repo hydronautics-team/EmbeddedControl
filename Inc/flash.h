@@ -28,9 +28,14 @@ struct flashConfiguration_s {
 		float pid_iMax;
 		float pid_iMin;
 		// Thrusters unit cast
-		float pThrustersCast;
 		float pThrustersMin;
 		float pThrustersMax;
+		// Output aperiodic filter
+		float aFilter_thrusters_T;
+		float aFilter_thrusters_K;
+		// Output summator saturation
+		float sOutSummatorMax;
+		float sOutSummatorMin;
 	} stabConstants[STABILIZATION_AMOUNT];
 
 	struct flashThrusters_s {

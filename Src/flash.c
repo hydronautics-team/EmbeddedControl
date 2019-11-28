@@ -70,9 +70,12 @@ void flashFillStructure(struct flashConfiguration_s *config)
 		config->stabConstants[i].pid_iGain = rStabConstants[i].pid.iGain;
 		config->stabConstants[i].pid_iMax = rStabConstants[i].pid.iMax;
 		config->stabConstants[i].pid_iMin = rStabConstants[i].pid.iMin;
-		config->stabConstants[i].pThrustersCast = rStabConstants[i].pThrustersCast;
 		config->stabConstants[i].pThrustersMin = rStabConstants[i].pThrustersMin;
 		config->stabConstants[i].pThrustersMax = rStabConstants[i].pThrustersMax;
+		config->stabConstants[i].aFilter_thrusters_T = rStabConstants[i].aFilter[THRUSTERS_FILTER].T;
+		config->stabConstants[i].aFilter_thrusters_K = rStabConstants[i].aFilter[THRUSTERS_FILTER].K;
+		config->stabConstants[i].sOutSummatorMax = rStabConstants[i].sOutSummatorMax;
+		config->stabConstants[i].sOutSummatorMin = rStabConstants[i].sOutSummatorMin;
 	}
 
 	for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
@@ -99,9 +102,12 @@ void flashReadStructure(struct flashConfiguration_s *config)
 		rStabConstants[i].pid.iGain = config->stabConstants[i].pid_iGain;
 		rStabConstants[i].pid.iMax = config->stabConstants[i].pid_iMax;
 		rStabConstants[i].pid.iMin = config->stabConstants[i].pid_iMin;
-		rStabConstants[i].pThrustersCast = config->stabConstants[i].pThrustersCast;
 		rStabConstants[i].pThrustersMin = config->stabConstants[i].pThrustersMin;
 		rStabConstants[i].pThrustersMax = config->stabConstants[i].pThrustersMax;
+		rStabConstants[i].aFilter[THRUSTERS_FILTER].T = config->stabConstants[i].aFilter_thrusters_T;
+		rStabConstants[i].aFilter[THRUSTERS_FILTER].K = config->stabConstants[i].aFilter_thrusters_K;
+		rStabConstants[i].sOutSummatorMax = config->stabConstants[i].sOutSummatorMax;
+		rStabConstants[i].sOutSummatorMin = config->stabConstants[i].sOutSummatorMin;
 	}
 
 	for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {

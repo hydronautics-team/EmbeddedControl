@@ -25,6 +25,10 @@ void stabilizationInit()
 		rStabState[i].speedFiltered = 0;
 		rStabState[i].posFiltered = 0;
 		rStabState[i].oldPosFiltered = 0;
+		rStabState[i].oldSpeedError = 0;
+		rStabState[i].thrustersFiltered = 0;
+		rStabState[i].outputSignal = 0;
+
 		rStabState[i].LastTick = 0;
 
 		if(!rState.flash) {
@@ -39,9 +43,10 @@ void stabilizationInit()
 			rStabConstants[i].pid.iGain = 1;
 			rStabConstants[i].pid.iMax = -1000;
 			rStabConstants[i].pid.iMin = 1000;
-			rStabConstants[i].pThrustersCast = 1;
 			rStabConstants[i].pThrustersMax = 5000;
 			rStabConstants[i].pThrustersMin = -5000;
+			rStabConstants[i].sOutSummatorMax = 32000;
+			rStabConstants[i].sOutSummatorMin = -32000;
 		}
 	}
 	/////////////////////////////////////////////////////////////
@@ -64,6 +69,16 @@ void stabilizationInit()
     rStabState[STAB_DEPTH].speedSignal = &rStabState[STAB_DEPTH].posDerivative;
     rStabState[STAB_DEPTH].posSignal = &rSensors.pressure;
     rStabConstants[STAB_DEPTH].joyIntegration = false;
+    /////////////////////////////////////////////////////////////
+    rStabState[STAB_LAG].inputSignal = &rJoySpeed.lag;
+    rStabState[STAB_LAG].speedSignal = &rStabState[STAB_DEPTH].posDerivative;
+    rStabState[STAB_LAG].posSignal = &rSensors.pressure;
+    rStabConstants[STAB_LAG].joyIntegration = false;
+    /////////////////////////////////////////////////////////////
+    rStabState[STAB_MARCH].inputSignal = &rJoySpeed.march;
+    rStabState[STAB_MARCH].speedSignal = &rStabState[STAB_DEPTH].posDerivative;
+    rStabState[STAB_MARCH].posSignal = &rSensors.pressure;
+    rStabConstants[STAB_MARCH].joyIntegration = false;
 }
 
 void stabilizationStart(uint8_t contour)
@@ -86,6 +101,9 @@ void stabilizationStart(uint8_t contour)
 	rStabState[contour].speedFiltered = 0;
 	rStabState[contour].posFiltered = 0;
 	rStabState[contour].oldPosFiltered = 0;
+	rStabState[contour].oldSpeedError = 0;
+	rStabState[contour].thrustersFiltered = 0;
+	rStabState[contour].outputSignal = 0;
 	rStabState[contour].LastTick = xTaskGetTickCount();
 }
 
@@ -160,13 +178,23 @@ void stabilizationUpdate(uint8_t contour)
     // Speed feedback
     state->speedError = state->dynSummator - state->speedFiltered;
 
-    // Thrusters unit cast
-    state->speedError *= constants->pThrustersCast;
-    if(state->speedError > constants->pThrustersMax) {
-    	state->speedError = constants->pThrustersMax;
+    // Out filtering
+    filter = &constants->aFilter[THRUSTERS_FILTER];
+    if(filter->T != 0) {
+    	state->thrustersFiltered = state->thrustersFiltered*exp(-diffTime/filter->T) + state->oldSpeedError*filter->K*(1-exp(-diffTime/filter->T));
     }
-    else if(state->speedError < constants->pThrustersMin) {
-    	state->speedError = constants->pThrustersMin;
+    else {
+    	state->thrustersFiltered = state->speedError*filter->K;
     }
+    state->oldSpeedError = state->speedError;
+
+    if(state->thrustersFiltered > constants->pThrustersMax) {
+    	state->thrustersFiltered = constants->pThrustersMax;
+    }
+    else if(state->thrustersFiltered < constants->pThrustersMin) {
+    	state->thrustersFiltered = constants->pThrustersMin;
+    }
+
+    state->outputSignal = state->thrustersFiltered;
 }
 

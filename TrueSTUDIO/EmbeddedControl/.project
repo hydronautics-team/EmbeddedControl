@@ -192,6 +192,11 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Src/stm32f3xx_it.c</locationURI>
 		</link>
 		<link>
+			<name>Application/Src/thrusters.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/thrusters.c</locationURI>
+		</link>
+		<link>
 			<name>Application/Src/tim.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/tim.c</locationURI>

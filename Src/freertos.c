@@ -65,6 +65,7 @@
 #include "communication.h"
 #include "stabilization.h"
 #include "checksum.h"
+#include "thrusters.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -297,7 +298,7 @@ void func_tVmaCommTask(void const * argument)
 	for(;;)
 	{
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_THRUSTERS_TASK) == pdTRUE) {
-			ThrustersRequestUpdate(ThrustersRequestBuffer, transaction);
+			fillThrustersRequest(ThrustersRequestBuffer, transaction);
 			xSemaphoreGive(mutDataHandle);
 		}
 
@@ -310,7 +311,7 @@ void func_tVmaCommTask(void const * argument)
 		transmitAndReceive(&uartBus[THRUSTERS_UART], false);
 
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_THRUSTERS_TASK) == pdTRUE) {
-			ThrustersResponseUpdate(ThrustersResponseBuffer[transaction], transaction);
+			fillThrustersResponse(ThrustersResponseBuffer[transaction], transaction);
 			xSemaphoreGive(mutDataHandle);
 		}
 
@@ -382,20 +383,10 @@ void func_tStabilizationTask(void const * argument)
 	for(;;)
 	{
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) DELAY_STABILIZATION_TASK) == pdTRUE) {
-//			if (rStabConstants[STAB_PITCH].enable) {
-//				stabilizationUpdate(STAB_PITCH);
-//			}
-//
-//			if (rStabConstants[STAB_ROLL].enable) {
-//				stabilizationUpdate(STAB_ROLL);
-//			}
-
-			if (rStabConstants[STAB_YAW].enable) {
-				stabilizationUpdate(STAB_YAW);
-			}
-
-			if (rStabConstants[STAB_DEPTH].enable) {
-				stabilizationUpdate(STAB_DEPTH);
+			for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
+				if (rStabConstants[i].enable) {
+					stabilizationUpdate(i);
+				}
 			}
 			formThrustVectors();
 			xSemaphoreGive(mutDataHandle);
