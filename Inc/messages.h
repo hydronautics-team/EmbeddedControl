@@ -5,16 +5,25 @@
 
 #pragma pack(push, 1)
 
-/* STM send requests and VMA send responses */
+/// Number of polling thrusters
 #define THRUSTERS_NUMBER             		8
 
+/// Request length for normal thrusters polling message (request from master)
 #define THRUSTERS_REQUEST_LENGTH   			5
+/// Request length for configation thrusters polling message (request from master)
 #define THRUSTERS_CONFIG_REQUEST_LENGTH  	13
+/// Response length for all thrusters answer message (response to master)
 #define THRUSTERS_RESPONSE_LENGTH  			9
 
+/// Code of the normal request message
 #define THRUSTERS_NORMAL_REQUEST_TYPE 		0x01
+/// Code of the configation request message
 #define THRUSTERS_CONFIG_REQUEST_TYPE 		0x02
 
+/** \brief Template for thrusters request message (main MCU to thrusters)
+  *
+  * Used to control thrusters velocity
+  */
 struct thrustersRequest_s
 {
 	uint8_t AA;
@@ -24,6 +33,10 @@ struct thrustersRequest_s
 	uint8_t crc;
 };
 
+/** \brief Template for thrusters configuration request message (main MCU to thrusters)
+  *
+  * Used to configure thrusters parameters or update firmware
+  */
 struct thrustersConfigRequest_s
 {
 	uint8_t AA;
@@ -38,6 +51,10 @@ struct thrustersConfigRequest_s
 	uint8_t crc;
 };
 
+/** \brief Template for thrusters response message (thrusters to main MCU)
+  *
+  * Response from thrusters with telemetry
+  */
 struct thrustersResponse_s
 {
 	uint8_t AA;
@@ -49,13 +66,15 @@ struct thrustersResponse_s
 	uint8_t crc;
 };
 
-/* STM send requests and DEV send responses */
-
 #define DEVICES_REQUEST_LENGTH 			7
 #define DEVICES_NULL					-1
 #define DEVICES_RESPONSE_LENGTH			10
 #define DEVICES_NUMBER      			6
 
+/** \brief Template for devices request message (main MCU to devices)
+  *
+  * Used to control devices velocity or/and other parameters
+  */
 struct devicesRequest_s
 {
 	uint8_t AA1;
@@ -67,6 +86,10 @@ struct devicesRequest_s
 	uint8_t checksum;
 };
 
+/** \brief Template for devices response message (devices to main MCU)
+  *
+  * Response from devices with telemetry or/and additional information
+  */
 struct devicesResponse_s
 {
     uint8_t AA;
@@ -79,8 +102,6 @@ struct devicesResponse_s
     uint8_t checksum;
 };
 
-///* Shore send requests and STM send responses */
-///* --- SHORE REQUEST NORMAL MODE --- */
 #define SHORE_REQUEST_CODE             0xA5
 
 #define SHORE_REQUEST_LENGTH           26
@@ -98,6 +119,10 @@ struct devicesResponse_s
 #define PC_ON_CODE 0xAA
 #define PC_OFF_CODE 0x00
 
+/** \brief Template for shore normal request message (control unit to main MCU)
+  *
+  * Used to control various paramaters of underwater vehicle
+  */
 struct shoreRequest_s
 {
 	uint8_t type;
@@ -124,6 +149,10 @@ struct shoreRequest_s
 #define REQUEST_CONFIG_CODE             0x55
 #define REQUEST_CONFIG_LENGTH           84
 
+/** \brief Template for shore configuration request message (surface control unit to main MCU)
+  *
+  * Response from main MCU with telemetry or/and additional information
+  */
 struct shoreConfigRequest_s
 {
     uint8_t type;
@@ -165,6 +194,10 @@ struct shoreConfigRequest_s
 #define DIRECT_REQUEST_CODE 			0xAA
 #define SHORE_REQUEST_DIRECT_LENGTH		17
 
+/** \brief Template for shore direct message (surface control unit to main MCU)
+  *
+  * Response from main MCU with telemetry or/and additional information
+  */
 struct shoreRequestDirect_s
 {
 	uint8_t type;

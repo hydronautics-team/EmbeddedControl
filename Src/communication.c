@@ -578,7 +578,7 @@ void ShoreRequest(uint8_t *requestBuf)
         }
 
         // TODO tuuuupoooo
-        formThrustVectors(&req);
+        formThrustVectors();
 
         ++uartBus[SHORE_UART].successRxCounter;
     }
@@ -677,16 +677,19 @@ void ShoreDirectRequest(uint8_t *requestBuf)
 		}
 
 		for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
-			rThrusters[i].desiredSpeed = 0;
+			if(i != req.number) {
+				rThrusters[i].desiredSpeed = 0;
+			}
+			else {
+				rThrusters[req.number].desiredSpeed = req.velocity;
+				rThrusters[req.number].address = req.id;
+				rThrusters[req.number].kForward = req.kForward;
+				rThrusters[req.number].kBackward = req.kBackward;
+				rThrusters[req.number].sForward = req.sForward;
+				rThrusters[req.number].sBackward = req.sBackward;
+				rThrusters[req.number].inverse = req.reverse;
+			}
 		}
-
-		rThrusters[req.number].desiredSpeed = req.velocity;
-		rThrusters[req.number].address = req.id;
-		rThrusters[req.number].kForward = req.kForward;
-		rThrusters[req.number].kBackward = req.kBackward;
-		rThrusters[req.number].sForward = req.sForward;
-		rThrusters[req.number].sBackward = req.sBackward;
-		rThrusters[req.number].inverse = req.reverse;
 
 		++uartBus[SHORE_UART].successRxCounter;;
 	}

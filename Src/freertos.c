@@ -388,7 +388,7 @@ void func_tStabilizationTask(void const * argument)
 					stabilizationUpdate(i);
 				}
 			}
-			formThrustVectors();
+			//formThrustVectors();
 			xSemaphoreGive(mutDataHandle);
 		}
 

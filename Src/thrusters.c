@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "robot.h"
 #include "messages.h"
@@ -42,7 +43,7 @@ void thrustersInit()
 		rThrusters[i].kForward = 1;
 		rThrusters[i].kBackward = 1;
 		rThrusters[i].sForward = 127;
-		rThrusters[i].sBackward = -127;
+		rThrusters[i].sBackward = 127;
 	}
 }
 
@@ -72,28 +73,27 @@ void fillThrustersRequest(uint8_t *buf, uint8_t thruster)
     res.AA = 0xAA;
     res.type = 0x01;
     res.address = rThrusters[thruster].address;
-    res.velocity = rThrusters[thruster].desiredSpeed;
+    int16_t velocity = rThrusters[thruster].desiredSpeed;
 
     // Inverting
     if(rThrusters[thruster].inverse) {
-    	res.velocity *= -1;
+    	velocity *= -1;
     }
 
-    int16_t velocity = res.velocity;
     // Multiplier constants
-    if(rThrusters[thruster].desiredSpeed > 0) {
-    	velocity = (int16_t) ((float) (res.velocity) * rThrusters[thruster].kForward);
+    if(velocity > 0) {
+    	velocity = (int16_t) ( (float) (velocity) * rThrusters[thruster].kForward);
     }
-    else if(rThrusters[thruster].desiredSpeed < 0) {
-    	velocity = (int16_t) ((float) (res.velocity) * rThrusters[thruster].kBackward);
+    else if(velocity < 0) {
+    	velocity = (int16_t) ((float) (velocity) * rThrusters[thruster].kBackward);
     }
 
     // Saturation
     if(velocity > rThrusters[thruster].sForward) {
     	velocity = rThrusters[thruster].sForward;
     }
-    else if(velocity < rThrusters[thruster].sBackward) {
-    	velocity = rThrusters[thruster].sBackward;
+    else if(velocity < -rThrusters[thruster].sBackward) {
+    	velocity = -rThrusters[thruster].sBackward;
     }
     res.velocity = velocity;
 
@@ -120,16 +120,19 @@ void fillThrustersResponse(uint8_t *buf, uint8_t thruster)
 void formThrustVectors()
 {
 	float velocity[THRUSTERS_NUMBER];
+	for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
+		velocity[i] = 0;
+	}
 	// March thrusters1
-	addMarchToSumm(&velocity);
+	addMarchToSumm(velocity);
 	// Lag Thrusters
-	addYawToSumm(&velocity);
-	addLagToSumm(&velocity);
+	addYawToSumm(velocity);
+	addLagToSumm(velocity);
 	// Two vertical thrusters
-	addDepthToSumm(&velocity);
-	addRollToSumm(&velocity);
+	addDepthToSumm(velocity);
+	addRollToSumm(velocity);
 	// One vertical corrective thruster
-	addPitchToSumm(&velocity);
+	addPitchToSumm(velocity);
 
 	for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
 		rThrusters[i].desiredSpeed = resizeFloatToUint8(velocity[i]);
@@ -289,5 +292,5 @@ uint8_t resizeFloatToUint8(float input)
 	else if(cast < -127) {
 		cast = -127;
 	}
-	return (uint8_t) cast;
+	return (int8_t) cast;
 }
