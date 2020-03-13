@@ -20,8 +20,8 @@ uint8_t resizeFloatToUint8(float input);
 
 void thrustersInit()
 {
-	rThrusters[HML].address = 1;
-	rThrusters[HMR].address = 2;
+	rThrusters[HRB].address = 1;
+	rThrusters[HRF].address = 2;
 	rThrusters[HLB].address = 3;
 	rThrusters[HLF].address = 4;
 	rThrusters[VL].address 	= 5;
@@ -29,8 +29,8 @@ void thrustersInit()
 	rThrusters[VB].address 	= 7;
 	rThrusters[VF].address 	= 8;
 
-	rThrusters[HML].inverse = false;
-	rThrusters[HMR].inverse = false;
+	rThrusters[HRB].address = 1;
+	rThrusters[HRF].address = 2;
 	rThrusters[HLB].inverse = false;
 	rThrusters[HLF].inverse = false;
 	rThrusters[VL].inverse 	= false;
@@ -56,8 +56,8 @@ void resetThrusters()
 	rJoySpeed.roll = 0;
 	rJoySpeed.yaw = 0;
 
-	rThrusters[HML].desiredSpeed = 0;
-	rThrusters[HMR].desiredSpeed = 0;
+	rThrusters[HRB].desiredSpeed = 0;
+	rThrusters[HRF].desiredSpeed = 0;
 	rThrusters[HLB].desiredSpeed = 0;
 	rThrusters[HLF].desiredSpeed = 0;
 	rThrusters[VL].desiredSpeed = 0;
@@ -150,10 +150,12 @@ void addMarchToSumm(float *velocity)
 		value = rJoySpeed.march;
 	}
 	// March contour summ
-	velocity[HML] += value;
-	velocity[HMR] += value;
+	velocity[HLB] += value;
+	velocity[HLF] += value;
+	velocity[HRB] += value;
+	velocity[HRF] += value;
 	// March summ saturation
-	for(uint8_t i=HML; i<HMR+1; i++) {
+	for(uint8_t i=HLB; i<HRF+1; i++) {
 		if(velocity[i] > rStabConstants[STAB_MARCH].sOutSummatorMax) {
 			velocity[i] = rStabConstants[STAB_MARCH].sOutSummatorMax;
 		}
@@ -174,10 +176,12 @@ void addLagToSumm(float *velocity)
 		value = rJoySpeed.lag;
 	}
 	// Lag contour summ
-	velocity[HLB] += value;
+	velocity[HLB] -= value;
 	velocity[HLF] += value;
+	velocity[HRB] += value;
+	velocity[HRF] -= value;
 	// Lag summ saturation
-	for(uint8_t i=HLB; i<HLF+1; i++) {
+	for(uint8_t i=HLB; i<HRF+1; i++) {
 		if(velocity[i] > rStabConstants[STAB_LAG].sOutSummatorMax) {
 			velocity[i] = rStabConstants[STAB_LAG].sOutSummatorMax;
 		}
@@ -200,8 +204,10 @@ void addDepthToSumm(float *velocity)
 	// Depth contour summ
 	velocity[VL] -= value;
 	velocity[VR] -= value;
+	velocity[VB] -= value;
+	velocity[VF] -= value;
 	// Depth summ saturation
-	for(uint8_t i=VL; i<VB+1; i++) {
+	for(uint8_t i=VL; i<VF+1; i++) {
 		if(velocity[i] > rStabConstants[STAB_DEPTH].sOutSummatorMax) {
 			velocity[i] = rStabConstants[STAB_DEPTH].sOutSummatorMax;
 		}
@@ -223,9 +229,11 @@ void addYawToSumm(float *velocity)
 	}
 	// Yaw contour summ
 	velocity[HLB] += value;
-	velocity[HLF] -= value;
+	velocity[HLF] += value;
+	velocity[HRB] -= value;
+	velocity[HRF] -= value;
 	// Yaw summ saturation
-	for(uint8_t i=HLB; i<HLF+1; i++) {
+	for(uint8_t i=HLB; i<HRF+1; i++) {
 		if(velocity[i] > rStabConstants[STAB_YAW].sOutSummatorMax) {
 			velocity[i] = rStabConstants[STAB_YAW].sOutSummatorMax;
 		}
@@ -271,8 +279,9 @@ void addPitchToSumm(float *velocity)
 	}
 	// Pitch contour summ
 	velocity[VB] += value;
+	velocity[VF] -= value;
 	// Pitch summ saturation
-	for(uint8_t i=VB; i<VB+1; i++) {
+	for(uint8_t i=VB; i<VF+1; i++) {
 		if(velocity[i] > rStabConstants[STAB_PITCH].sOutSummatorMax) {
 			velocity[i] = rStabConstants[STAB_PITCH].sOutSummatorMax;
 		}

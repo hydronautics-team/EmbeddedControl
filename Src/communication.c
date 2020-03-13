@@ -50,6 +50,7 @@ void variableInit()
 	rState.flash = 0;
 	rState.operationMode = 0;
 	rState.pcCounter = 0;
+	rState.lag_error = 0;
 
 	rSensors.yaw = 0;
 	rSensors.raw_yaw = 0;
@@ -494,6 +495,8 @@ void ShoreRequest(uint8_t *requestBuf)
         rDevice[DEV1].force = req.dev1;
         rDevice[DEV2].force = req.dev2;
 
+        rState.lag_error = (float) req.lag_error;
+
         rSensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
 
         if(PickBit(req.stabilize_flags, SHORE_STABILIZE_SAVE_BIT)) {
@@ -541,16 +544,28 @@ void ShoreRequest(uint8_t *requestBuf)
         	stabilizationStart(STAB_DEPTH);
         }
 
-        wasEnabled = rLogicDevice[LOGDEV_LIFTER].control;
-        rLogicDevice[LOGDEV_LIFTER].control = PickBit(req.stabilize_flags, SHORE_STABILIZE_LOGDEV_BIT);
-        if(wasEnabled != rLogicDevice[LOGDEV_LIFTER].control) {
-        	if(rLogicDevice[LOGDEV_LIFTER].control) {
-        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_FORWARD;
-        	}
-        	else {
-        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_BACKWARD;
-        	}
+        wasEnabled = rStabConstants[STAB_LAG].enable;
+        rStabConstants[STAB_LAG].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_LAG_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_LAG].enable == true) {
+        	stabilizationStart(STAB_LAG);
         }
+
+        wasEnabled = rStabConstants[STAB_MARCH].enable;
+        rStabConstants[STAB_MARCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_MARCH_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_MARCH].enable == true) {
+        	stabilizationStart(STAB_MARCH);
+        }
+
+//        wasEnabled = rLogicDevice[LOGDEV_LIFTER].control;
+//        rLogicDevice[LOGDEV_LIFTER].control = PickBit(req.stabilize_flags, SHORE_STABILIZE_LOGDEV_BIT);
+//        if(wasEnabled != rLogicDevice[LOGDEV_LIFTER].control) {
+//        	if(rLogicDevice[LOGDEV_LIFTER].control) {
+//        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_FORWARD;
+//        	}
+//        	else {
+//        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_BACKWARD;
+//        	}
+//        }
 
         if(tempCameraNum != rState.cameraNum) {
         	rState.cameraNum = tempCameraNum;

@@ -71,13 +71,13 @@ void stabilizationInit()
     rStabConstants[STAB_DEPTH].joyIntegration = false;
     /////////////////////////////////////////////////////////////
     rStabState[STAB_LAG].inputSignal = &rJoySpeed.lag;
-    rStabState[STAB_LAG].speedSignal = &rStabState[STAB_DEPTH].posDerivative;
-    rStabState[STAB_LAG].posSignal = &rSensors.pressure;
+    rStabState[STAB_LAG].speedSignal = &rStabState[STAB_LAG].posDerivative;
+    rStabState[STAB_LAG].posSignal = &rState.lag_error;
     rStabConstants[STAB_LAG].joyIntegration = false;
     /////////////////////////////////////////////////////////////
     rStabState[STAB_MARCH].inputSignal = &rJoySpeed.march;
-    rStabState[STAB_MARCH].speedSignal = &rStabState[STAB_DEPTH].posDerivative;
-    rStabState[STAB_MARCH].posSignal = &rSensors.pressure;
+    rStabState[STAB_MARCH].speedSignal = &rStabState[STAB_MARCH].posDerivative;
+    rStabState[STAB_MARCH].posSignal = &rJoySpeed.march;
     rStabConstants[STAB_MARCH].joyIntegration = false;
 }
 

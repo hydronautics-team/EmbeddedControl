@@ -90,6 +90,8 @@
 TimerHandle_t UARTTimer;
 TimerHandle_t SilenceTimer;
 
+uint8_t silence_ticks = 0;
+
 /* USER CODE END Variables */
 osThreadId tLedBlinkingTaskHandle;
 uint32_t tLedBlinkingTaskBuffer[ 128 ];
@@ -552,13 +554,13 @@ void tSilence_func(void const * argument)
 				HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
 				break;
 			case PC_POWERON_DELAY+1:
-				HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_RESET); // RESET
-				HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_RESET); // ONOFF
-				break;
+			HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_RESET); // RESET
+			HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_RESET); // ONOFF
+			break;
 			case PC_POWERON_DELAY+2:
-				HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
-				HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
-				break;
+			HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
+			HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
+			break;
 			}
 		}
 	}

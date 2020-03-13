@@ -8,15 +8,26 @@
 #include "messages.h"
 
 enum VMA {
-	HML = 0, 	// Horizontal march left
-	HMR,		// Horizontal march right
-	HLB,		// Horizontal lag back
-	HLF,		// Horizontal lag front
-	VL,			// Vertical left
-	VR,			// Vertical right
-	VB,			// Vertical back
-	VF			// Vertical front
+	HLB = 0,
+    HLF,
+    HRB,
+    HRF,
+    VB,
+    VF,
+    VL,
+    VR
 };
+
+//enum VMA {
+//	HML = 0, 	// Horizontal march left
+//	HMR,		// Horizontal march right
+//	HLB,		// Horizontal lag back
+//	HLF,		// Horizontal lag front
+//	VL,			// Vertical left
+//	VR,			// Vertical right
+//	VB,			// Vertical back
+//	VF			// Vertical front
+//};
 
 #define DEV_AMOUNT 6
 
@@ -81,6 +92,7 @@ struct robotState_s {
 	uint8_t flash; // Was flash read successful
 	uint8_t operationMode; // Currrent operation type
 	uint8_t pcCounter;
+	float lag_error;
 };
 
 // Individual characteristics, controls and current state of each VMA

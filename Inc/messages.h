@@ -104,15 +104,16 @@ struct devicesResponse_s
 
 #define SHORE_REQUEST_CODE             0xA5
 
-#define SHORE_REQUEST_LENGTH           26
+#define SHORE_REQUEST_LENGTH           30
 
-#define SHORE_STABILIZE_DEPTH_BIT 		0
-#define SHORE_STABILIZE_ROLL_BIT 		1
-#define SHORE_STABILIZE_PITCH_BIT 		2
-#define SHORE_STABILIZE_YAW_BIT 		3
-#define SHORE_STABILIZE_IMU_BIT 		4
-#define SHORE_STABILIZE_SAVE_BIT		5
-#define SHORE_STABILIZE_LOGDEV_BIT		6
+#define SHORE_STABILIZE_DEPTH_BIT       0
+#define SHORE_STABILIZE_ROLL_BIT        1
+#define SHORE_STABILIZE_PITCH_BIT       2
+#define SHORE_STABILIZE_YAW_BIT         3
+#define SHORE_STABILIZE_LAG_BIT         4
+#define SHORE_STABILIZE_MARCH_BIT       5
+#define SHORE_STABILIZE_IMU_BIT         6
+#define SHORE_STABILIZE_SAVE_BIT        7
 
 #define SHORE_DEVICE_AC_BIT 			0
 
@@ -139,6 +140,7 @@ struct shoreRequest_s
 	int8_t grab_rotate;
 	int8_t dev1;
 	int8_t dev2;
+	int32_t lag_error;
 	uint8_t dev_flags;
 	uint8_t stabilize_flags;
 	uint8_t cameras;
@@ -386,6 +388,7 @@ struct pressureResponse_s
 #define WAITING_PC					10
 #define WAITING_TIMER				5
 #define UART_SWITCH_DELAY			1000
+#define SILENCE_DELAY				10000
 
 
 #pragma pack(pop)
