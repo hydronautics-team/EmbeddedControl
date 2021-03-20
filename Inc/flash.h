@@ -28,9 +28,14 @@ struct flashConfiguration_s {
 		float pid_iMax;
 		float pid_iMin;
 		// Thrusters unit cast
-		float pThrustersCast;
 		float pThrustersMin;
 		float pThrustersMax;
+		// Output aperiodic filter
+		float aFilter_thrusters_T;
+		float aFilter_thrusters_K;
+		// Output summator saturation
+		float sOutSummatorMax;
+		float sOutSummatorMin;
 	} stabConstants[STABILIZATION_AMOUNT];
 
 	struct flashThrusters_s {
@@ -45,9 +50,8 @@ struct flashConfiguration_s {
 
 #pragma pack(pop)
 
-#define CONFIG_PAGE_NUMB 	255
 #define CONFIG_PAGE_ADDR 	0x0803F800
-#define FLASH_END_ADDR   	0x08040000
+#define FLASH_END_ADDR   	0x08040000		// This is just visual, not used
 #define SETTINGS_WORDS 		sizeof(struct flashConfiguration_s)/4
 
 void flashReadSettings(struct flashConfiguration_s *config);

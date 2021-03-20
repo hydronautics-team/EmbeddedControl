@@ -14,6 +14,7 @@
 #include "robot.h"
 #include "stabilization.h"
 #include "flash.h"
+#include "thrusters.h"
 
 #define PACKAGE_TOLLERANCE 	20
 #define THRUSTER_FILTERS_NUMBER 2
@@ -26,7 +27,6 @@ enum thrusterContours {
 extern TimerHandle_t UARTTimer;
 
 struct uartBus_s uartBus[UART_NUMBER];
-struct thrusterFilter_s thrusterFilter[THRUSTER_FILTERS_NUMBER];
 
 uint8_t VMAbrokenRxTolerance = 0;
 
@@ -50,6 +50,7 @@ void variableInit()
 	rState.flash = 0;
 	rState.operationMode = 0;
 	rState.pcCounter = 0;
+	rState.lag_error = 0;
 
 	rSensors.yaw = 0;
 	rSensors.raw_yaw = 0;
@@ -87,60 +88,17 @@ void variableInit()
 
 	rSensors.resetIMU = false;
 
-	thrusterFilter[CONTOUR_MARCH].K = &rStabConstants[STAB_PITCH].aFilter[POS_FILTER].K;
-	thrusterFilter[CONTOUR_MARCH].T = &rStabConstants[STAB_PITCH].aFilter[POS_FILTER].T;
-	thrusterFilter[CONTOUR_MARCH].input = &rJoySpeed.march;
-	thrusterFilter[CONTOUR_MARCH].LastTick = 0;
-	thrusterFilter[CONTOUR_MARCH].oldState = 0;
-	thrusterFilter[CONTOUR_MARCH].output = 0;
+	thrustersInit();
 
-	thrusterFilter[CONTOUR_LAG].K = &rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].K;
-	thrusterFilter[CONTOUR_LAG].T = &rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].T;
-	thrusterFilter[CONTOUR_LAG].input = &rJoySpeed.lag;
-	thrusterFilter[CONTOUR_LAG].LastTick = 0;
-	thrusterFilter[CONTOUR_LAG].oldState = 0;
-	thrusterFilter[CONTOUR_LAG].output = 0;
-
+	// Flash reading
 	struct flashConfiguration_s config;
 	flashReadSettings(&config);
 	flashReadStructure(&config);
+
+	// Thrusters initialization
 	if(rState.flash) {
 		return;
 	}
-
-    rThrusters[HLB].address = 6;
-    rThrusters[HLF].address = 5;
-    rThrusters[HRB].address = 3;
-    rThrusters[HRF].address = 4;
-    rThrusters[VB].address = 2;
-    rThrusters[VF].address = 1;
-    rThrusters[VL].address = 8;
-    rThrusters[VR].address = 7;
-
-    rThrusters[HLB].inverse = true;
-    rThrusters[HLF].inverse = true;
-    rThrusters[HRB].inverse = false;
-    rThrusters[HRF].inverse = false;
-    rThrusters[VB].inverse = false;
-    rThrusters[VF].inverse = false;
-    rThrusters[VL].inverse = false;
-    rThrusters[VR].inverse = false;
-
-    for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
-    	rThrusters[i].desiredSpeed = 0;
-    	rThrusters[i].kForward = 1;
-    	rThrusters[i].kBackward = 1;
-    	rThrusters[i].sForward = 127;
-    	rThrusters[i].sBackward = 127;
-    }
-
-    for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
-    	rThrusters[i].desiredSpeed = 0;
-    	rThrusters[i].kForward = 1;
-    	rThrusters[i].kBackward = 1;
-    	rThrusters[i].sForward = 127;
-    	rThrusters[i].sBackward = 127;
-    }
 }
 
 void uartBusesInit()
@@ -202,25 +160,6 @@ void uartBusesInit()
 		uartBus[i].timeoutCounter = 0;
 		uartBus[i].lastMessage = 0;
 	}
-}
-
-void resetThrusters()
-{
-	rJoySpeed.depth = 0;
-	rJoySpeed.lag = 0;
-	rJoySpeed.march = 0;
-	rJoySpeed.pitch = 0;
-	rJoySpeed.roll = 0;
-	rJoySpeed.yaw = 0;
-
-	rThrusters[HLB].desiredSpeed = 0;
-	rThrusters[HLF].desiredSpeed = 0;
-	rThrusters[HRB].desiredSpeed = 0;
-	rThrusters[HRF].desiredSpeed = 0;
-	rThrusters[VB].desiredSpeed = 0;
-	rThrusters[VF].desiredSpeed = 0;
-	rThrusters[VL].desiredSpeed = 0;
-	rThrusters[VR].desiredSpeed = 0;
 }
 
 bool transmitPackage(struct uartBus_s *bus, bool isrMode)
@@ -405,7 +344,7 @@ void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id)
 			struct pressureResponse_s res;
 			memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
 			if(res.code == 0xAA) {
-				rSensors.pressure = (9.124*res.value - 3.177) - rSensors.pressure_null;
+				rSensors.pressure = res.value;//(9.124*res.value - 3.177) - rSensors.pressure_null;
 			}
 		}
 		break;
@@ -525,58 +464,6 @@ void DevicesResponseUpdate(uint8_t *buf, uint8_t dev)
     }
 }
 
-void ThrustersRequestUpdate(uint8_t *buf, uint8_t thruster)
-{
-    struct thrustersRequest_s res;
-
-    res.AA = 0xAA;
-    res.type = 0x01;
-    res.address = rThrusters[thruster].address;
-    res.velocity = rThrusters[thruster].desiredSpeed;
-
-    // Inverting
-    if(rThrusters[thruster].inverse) {
-    	res.velocity *= -1;
-    }
-
-    //int16_t velocity = res.velocity;
-    // Multiplier constants
-    /*if(rThrusters[thruster].desiredSpeed > 0) {
-    	velocity = (int16_t) ((float) (res.velocity) * rThrusters[thruster].kForward);
-    }
-    else if(rThrusters[thruster].desiredSpeed < 0) {
-    	velocity = (int16_t) ((float) (res.velocity) * rThrusters[thruster].kBackward);
-    }
-*/
-    // Saturation
-    /*if(velocity > rThrusters[thruster].sForward) {
-    	velocity = rThrusters[thruster].sForward;
-    }
-    else if(velocity < -rThrusters[thruster].sBackward) {
-    	velocity = -rThrusters[thruster].sBackward;
-    }*/
-    //res.velocity = velocity;
-
-    memcpy((void*)buf, (void*)&res, THRUSTERS_REQUEST_LENGTH);
-    AddChecksumm8bVma(buf, THRUSTERS_REQUEST_LENGTH);
-}
-
-void ThrustersResponseUpdate(uint8_t *buf, uint8_t thruster)
-{
-	//TODO errors parsing! and what is all this new stuff means
-    if(IsChecksumm8bCorrectVma(buf, THRUSTERS_RESPONSE_LENGTH) && buf[0] != 0) {
-    	struct thrustersResponse_s res;
-    	memcpy((void*)&res, (void*)buf, THRUSTERS_RESPONSE_LENGTH);
-
-        rThrusters[thruster].current = res.current;
-
-        ++uartBus[THRUSTERS_UART].successRxCounter;
-    }
-    else {
-    	++uartBus[THRUSTERS_UART].brokenRxCounter;
-    }
-}
-
 void ShoreRequest(uint8_t *requestBuf)
 {
     if (IsCrc16ChecksummCorrect(requestBuf, SHORE_REQUEST_LENGTH)) {
@@ -608,6 +495,8 @@ void ShoreRequest(uint8_t *requestBuf)
         rDevice[DEV1].force = req.dev1;
         rDevice[DEV2].force = req.dev2;
 
+        rState.lag_error = (float) req.lag_error;
+
         rSensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
 
         if(PickBit(req.stabilize_flags, SHORE_STABILIZE_SAVE_BIT)) {
@@ -621,12 +510,12 @@ void ShoreRequest(uint8_t *requestBuf)
         uint8_t old_reset = rComputer.reset;
         if(old_reset != req.pc_reset) {
             if(req.pc_reset == PC_ON_CODE) {
-            	HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_RESET); // RESET
-            	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_RESET); // ONOFF
+            	HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_RESET); // RESET
+            	HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_RESET); // ONOFF
             }
             else if(req.pc_reset == PC_OFF_CODE) {
-            	HAL_GPIO_WritePin(GPIOE, RES_PC_1_Pin, GPIO_PIN_SET); // RESET
-            	HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
+            	HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
+            	HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
             }
         }
         rComputer.reset = req.pc_reset;
@@ -655,16 +544,28 @@ void ShoreRequest(uint8_t *requestBuf)
         	stabilizationStart(STAB_DEPTH);
         }
 
-        wasEnabled = rLogicDevice[LOGDEV_LIFTER].control;
-        rLogicDevice[LOGDEV_LIFTER].control = PickBit(req.stabilize_flags, SHORE_STABILIZE_LOGDEV_BIT);
-        if(wasEnabled != rLogicDevice[LOGDEV_LIFTER].control) {
-        	if(rLogicDevice[LOGDEV_LIFTER].control) {
-        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_FORWARD;
-        	}
-        	else {
-        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_BACKWARD;
-        	}
+        wasEnabled = rStabConstants[STAB_LAG].enable;
+        rStabConstants[STAB_LAG].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_LAG_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_LAG].enable == true) {
+        	stabilizationStart(STAB_LAG);
         }
+
+        wasEnabled = rStabConstants[STAB_MARCH].enable;
+        rStabConstants[STAB_MARCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_MARCH_BIT);
+        if(wasEnabled == false && rStabConstants[STAB_MARCH].enable == true) {
+        	stabilizationStart(STAB_MARCH);
+        }
+
+//        wasEnabled = rLogicDevice[LOGDEV_LIFTER].control;
+//        rLogicDevice[LOGDEV_LIFTER].control = PickBit(req.stabilize_flags, SHORE_STABILIZE_LOGDEV_BIT);
+//        if(wasEnabled != rLogicDevice[LOGDEV_LIFTER].control) {
+//        	if(rLogicDevice[LOGDEV_LIFTER].control) {
+//        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_FORWARD;
+//        	}
+//        	else {
+//        		rLogicDevice[LOGDEV_LIFTER].state = LOGDEV_BACKWARD;
+//        	}
+//        }
 
         if(tempCameraNum != rState.cameraNum) {
         	rState.cameraNum = tempCameraNum;
@@ -692,7 +593,7 @@ void ShoreRequest(uint8_t *requestBuf)
         }
 
         // TODO tuuuupoooo
-        formThrustVectors(&req);
+        formThrustVectors();
 
         ++uartBus[SHORE_UART].successRxCounter;
     }
@@ -753,9 +654,14 @@ void ShoreConfigRequest(uint8_t *requestBuf)
 		rStabConstants[req.contour].pid.iMax = req.pid_iMax;
 		rStabConstants[req.contour].pid.iMin = req.pid_iMin;
 
-		rStabConstants[req.contour].pThrustersCast = req.pThrustersCast;
 		rStabConstants[req.contour].pThrustersMin = req.pThrustersMin;
 		rStabConstants[req.contour].pThrustersMax = req.pThrustersMax;
+
+		rStabConstants[req.contour].aFilter[THRUSTERS_FILTER].T = req.thrustersFilterT;
+		rStabConstants[req.contour].aFilter[THRUSTERS_FILTER].K = req.thrustersFilterK;
+
+		rStabConstants[req.contour].sOutSummatorMax = req.sOutSummatorMax;
+		rStabConstants[req.contour].sOutSummatorMin = req.sOutSummatorMin;
 
 		if(rState.contourSelected != req.contour) {
 			for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
@@ -786,139 +692,24 @@ void ShoreDirectRequest(uint8_t *requestBuf)
 		}
 
 		for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
-			rThrusters[i].desiredSpeed = 0;
+			if(i != req.number) {
+				rThrusters[i].desiredSpeed = 0;
+			}
+			else {
+				rThrusters[req.number].desiredSpeed = req.velocity;
+				rThrusters[req.number].address = req.id;
+				rThrusters[req.number].kForward = req.kForward;
+				rThrusters[req.number].kBackward = req.kBackward;
+				rThrusters[req.number].sForward = req.sForward;
+				rThrusters[req.number].sBackward = req.sBackward;
+				rThrusters[req.number].inverse = req.reverse;
+			}
 		}
-
-		rThrusters[req.number].desiredSpeed = req.velocity;
-		rThrusters[req.number].address = req.id;
-		rThrusters[req.number].kForward = req.kForward;
-		rThrusters[req.number].kBackward = req.kBackward;
-		rThrusters[req.number].sForward = req.sForward;
-		rThrusters[req.number].sBackward = req.sBackward;
-		rThrusters[req.number].inverse = req.reverse;
 
 		++uartBus[SHORE_UART].successRxCounter;;
 	}
 	else {
 		++uartBus[SHORE_UART].brokenRxCounter;
-	}
-}
-
-void formThrustVectors()
-{
-	for(uint8_t i=0; i<THRUSTER_FILTERS_NUMBER; i++) {
-		float diffTime = fromTickToMs(xTaskGetTickCount() - thrusterFilter[i].LastTick) / 1000.0f;
-		thrusterFilter[i].LastTick = xTaskGetTickCount();
-
-		float K = *thrusterFilter[i].K;
-		float T = *thrusterFilter[i].T;
-		float input = *thrusterFilter[i].input;
-		float old = thrusterFilter[i].oldState;
-
-		if(T != 0) {
-			thrusterFilter[i].output = thrusterFilter[i].output*exp(-diffTime/T) + old*K*(1-exp(-diffTime/T));
-		}
-		else {
-			thrusterFilter[i].output = input*K;
-		}
-		thrusterFilter[i].oldState = input;
-	}
-
-	float bYaw, bDepth;//, bRoll, bPitch;
-//	if(rStabConstants[STAB_ROLL].enable) {
-//		bRoll = rStabState[STAB_ROLL].speedError;
-//	}
-//	else {
-//		bRoll = rJoySpeed.roll;
-//	}
-//
-//	if(rStabConstants[STAB_PITCH].enable) {
-//		bPitch = rStabState[STAB_PITCH].speedError;
-//	}
-//	else {
-//		bPitch = rJoySpeed.pitch;
-//	}
-
-	if(rStabConstants[STAB_YAW].enable) {
-		bYaw = rStabState[STAB_YAW].speedError;
-	}
-	else {
-		bYaw = rJoySpeed.yaw;
-	}
-
-	if(rStabConstants[STAB_DEPTH].enable) {
-		bDepth = rStabState[STAB_DEPTH].speedError;
-	}
-	else {
-		bDepth = rJoySpeed.depth;
-	}
-
-	int32_t velocity[THRUSTERS_NUMBER];
-	// March contour summator
-	velocity[HLB] = + thrusterFilter[CONTOUR_MARCH].output;
-	velocity[HRB] = + thrusterFilter[CONTOUR_MARCH].output;
-	velocity[HLF] = + thrusterFilter[CONTOUR_MARCH].output;
-	velocity[HRF] = + thrusterFilter[CONTOUR_MARCH].output;
-	// March contour saturation
-	for(uint8_t i=0; i<4; i++) {
-		if(velocity[i] > rStabConstants[STAB_PITCH].pThrustersMax) {
-			velocity[i] = rStabConstants[STAB_PITCH].pThrustersMax;
-		}
-		else if(velocity[i] < rStabConstants[STAB_PITCH].pThrustersMin) {
-			velocity[i] = rStabConstants[STAB_PITCH].pThrustersMin;
-		}
-	}
-	// Lag contour saturation
-	int16_t pLag = thrusterFilter[CONTOUR_LAG].output;
-	if(pLag > rStabConstants[STAB_PITCH].pid.iMax) {
-		pLag = rStabConstants[STAB_PITCH].pid.iMax;
-	}
-	else if(pLag < rStabConstants[STAB_PITCH].pid.iMin) {
-		pLag = rStabConstants[STAB_PITCH].pid.iMin;
-	}
-	// Lag contour summator
-	velocity[HLB] += - pLag;
-	velocity[HRB] += + pLag;
-	velocity[HLF] += + pLag;
-	velocity[HRF] += - pLag;
-	// Lag sumator saturation
-	for(uint8_t i=0; i<4; i++) {
-		if(velocity[i] > rStabConstants[STAB_ROLL].pThrustersMax) {
-			velocity[i] = rStabConstants[STAB_ROLL].pThrustersMax;
-		}
-		else if(velocity[i] < rStabConstants[STAB_ROLL].pThrustersMin) {
-			velocity[i] = rStabConstants[STAB_ROLL].pThrustersMin;
-		}
-	}
-	// Yaw contour summator
-	velocity[HLB] += + bYaw;
-	velocity[HRB] += - bYaw;
-	velocity[HLF] += + bYaw;
-	velocity[HRF] += - bYaw;
-	// Yaw summator saturation
-	for(uint8_t i=0; i<4; i++) {
-		if(velocity[i] > rStabConstants[STAB_ROLL].pid.iMax) {
-			velocity[i] = rStabConstants[STAB_ROLL].pid.iMax;
-		}
-		else if(velocity[i] < rStabConstants[STAB_ROLL].pid.iMin) {
-			velocity[i] = rStabConstants[STAB_ROLL].pid.iMin;
-		}
-	}
-
-	velocity[VB] = - bDepth;// + bPitch;
-	velocity[VF] = - bDepth;// - bPitch;
-	velocity[VL] = - bDepth;// + bRoll;
-	velocity[VR] = - bDepth;// - bRoll;
-
-	for (uint8_t i = 0; i < THRUSTERS_NUMBER; ++i) {
-		velocity[i] = velocity[i] / 0xFF;
-		if (velocity[i] > 127) {
-			velocity[i] = 127;
-		}
-		else if(velocity[i] < -127) {
-			velocity[i] = -127;
-		}
-		rThrusters[i].desiredSpeed = velocity[i];
 	}
 }
 
@@ -977,6 +768,9 @@ void ShoreConfigResponse(uint8_t *responseBuf)
 	res.posFiltered = rStabState[rState.contourSelected].posFiltered;
 
 	res.pid_iValue = rStabState[rState.contourSelected].pid_iValue;
+
+	res.thrustersFiltered = rStabState[rState.contourSelected].thrustersFiltered;
+	res.outputSignal = rStabState[rState.contourSelected].outputSignal;
 
 	memcpy((void*)responseBuf, (void*)&res, SHORE_CONFIG_RESPONSE_LENGTH);
 

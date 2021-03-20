@@ -18,6 +18,17 @@ enum VMA {
     VR
 };
 
+//enum VMA {
+//	HML = 0, 	// Horizontal march left
+//	HMR,		// Horizontal march right
+//	HLB,		// Horizontal lag back
+//	HLF,		// Horizontal lag front
+//	VL,			// Vertical left
+//	VR,			// Vertical right
+//	VB,			// Vertical back
+//	VF			// Vertical front
+//};
+
 #define DEV_AMOUNT 6
 
 enum DEV {
@@ -35,20 +46,23 @@ enum LOGDEV {
 	LOGDEV_LIFTER = 0
 };
 
-#define STABILIZATION_AMOUNT 4
+#define STABILIZATION_AMOUNT 6
 
 enum STAB_CIRCUITS {
 	STAB_DEPTH = 0,
+	STAB_MARCH,
+	STAB_LAG,
 	STAB_YAW,
 	STAB_ROLL,
 	STAB_PITCH
 };
 
-#define STABILIZATION_FILTERS 2
+#define STABILIZATION_FILTERS 3
 
 enum STAB_FILTERS {
 	POS_FILTER = 0,
-	SPEED_FILTER
+	SPEED_FILTER,
+	THRUSTERS_FILTER
 };
 
 enum I2C {
@@ -78,6 +92,7 @@ struct robotState_s {
 	uint8_t flash; // Was flash read successful
 	uint8_t operationMode; // Currrent operation type
 	uint8_t pcCounter;
+	float lag_error;
 };
 
 // Individual characteristics, controls and current state of each VMA
@@ -191,9 +206,11 @@ struct robotStabilizationConstants_s {
 		float iMin;
 	} pid;
 	// Thrusters unit cast
-	float pThrustersCast;
 	float pThrustersMin;
 	float pThrustersMax;
+	// Output summator saturation
+	float sOutSummatorMax;
+	float sOutSummatorMin;
 };
 
 struct robotStabilizationState_s {
@@ -218,6 +235,10 @@ struct robotStabilizationState_s {
 	float speedFiltered;
 	float posFiltered;
 	float oldPosFiltered;
+	float oldSpeedError;
+	float thrustersFiltered;
+
+	float outputSignal;
 
 	float LastTick;
 };

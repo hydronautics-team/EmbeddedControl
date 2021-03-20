@@ -66,9 +66,11 @@
 		</buildCommand>
 	</buildSpec>
 	<natures>
+		<nature>com.st.stm32cube.ide.mcu.MCUProjectNature</nature>
 		<nature>org.eclipse.cdt.core.cnature</nature>
-		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
+		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
+		<nature>com.st.stm32cube.ide.mcu.MCUTSConvertedProjectNature</nature>
 	</natures>
 	<linkedResources>
 		<link>
@@ -167,6 +169,11 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Src/main.c</locationURI>
 		</link>
 		<link>
+			<name>Application/Src/spi.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/spi.c</locationURI>
+		</link>
+		<link>
 			<name>Application/Src/stabilization.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/stabilization.c</locationURI>
@@ -185,6 +192,11 @@
 			<name>Application/Src/stm32f3xx_it.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/stm32f3xx_it.c</locationURI>
+		</link>
+		<link>
+			<name>Application/Src/thrusters.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/thrusters.c</locationURI>
 		</link>
 		<link>
 			<name>Application/Src/tim.c</name>
@@ -270,6 +282,16 @@
 			<name>Drivers/STM32F3xx_HAL_Driver/stm32f3xx_hal_rcc_ex.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_rcc_ex.c</locationURI>
+		</link>
+		<link>
+			<name>Drivers/STM32F3xx_HAL_Driver/stm32f3xx_hal_spi.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_spi.c</locationURI>
+		</link>
+		<link>
+			<name>Drivers/STM32F3xx_HAL_Driver/stm32f3xx_hal_spi_ex.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_spi_ex.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/STM32F3xx_HAL_Driver/stm32f3xx_hal_tim.c</name>

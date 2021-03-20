@@ -1,6 +1,8 @@
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
+#include "usart.h"
+
 #include "robot.h"
 
 #define UART_NUMBER 4
@@ -54,20 +56,6 @@ struct uartBus_s {
 	uint32_t transmitTimeout;		// How many milliseconds to wait until timeout
 	UART_HandleTypeDef *huart;		// Link to huart structure
 	uint8_t txrxType;				// How to send and receive messages (use DMA or regular interruptions)
-};
-
-
-// Structure for thrusters aperiodic filters
-struct thrusterFilter_s {
-	// Filter constants
-	float *T;
-	float *K;
-	// Filter state
-	float LastTick;
-	float oldState;
-	float output;
-	// Links
-	float *input;
 };
 
 extern struct uartBus_s uartBus[UART_NUMBER];

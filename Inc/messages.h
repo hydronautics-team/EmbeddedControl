@@ -5,16 +5,25 @@
 
 #pragma pack(push, 1)
 
-/* STM send requests and VMA send responses */
+/// Number of polling thrusters
 #define THRUSTERS_NUMBER             		8
 
+/// Request length for normal thrusters polling message (request from master)
 #define THRUSTERS_REQUEST_LENGTH   			5
+/// Request length for configation thrusters polling message (request from master)
 #define THRUSTERS_CONFIG_REQUEST_LENGTH  	13
+/// Response length for all thrusters answer message (response to master)
 #define THRUSTERS_RESPONSE_LENGTH  			9
 
+/// Code of the normal request message
 #define THRUSTERS_NORMAL_REQUEST_TYPE 		0x01
+/// Code of the configation request message
 #define THRUSTERS_CONFIG_REQUEST_TYPE 		0x02
 
+/** \brief Template for thrusters request message (main MCU to thrusters)
+  *
+  * Used to control thrusters velocity
+  */
 struct thrustersRequest_s
 {
 	uint8_t AA;
@@ -24,6 +33,10 @@ struct thrustersRequest_s
 	uint8_t crc;
 };
 
+/** \brief Template for thrusters configuration request message (main MCU to thrusters)
+  *
+  * Used to configure thrusters parameters or update firmware
+  */
 struct thrustersConfigRequest_s
 {
 	uint8_t AA;
@@ -38,6 +51,10 @@ struct thrustersConfigRequest_s
 	uint8_t crc;
 };
 
+/** \brief Template for thrusters response message (thrusters to main MCU)
+  *
+  * Response from thrusters with telemetry
+  */
 struct thrustersResponse_s
 {
 	uint8_t AA;
@@ -49,13 +66,15 @@ struct thrustersResponse_s
 	uint8_t crc;
 };
 
-/* STM send requests and DEV send responses */
-
 #define DEVICES_REQUEST_LENGTH 			7
 #define DEVICES_NULL					-1
 #define DEVICES_RESPONSE_LENGTH			10
 #define DEVICES_NUMBER      			6
 
+/** \brief Template for devices request message (main MCU to devices)
+  *
+  * Used to control devices velocity or/and other parameters
+  */
 struct devicesRequest_s
 {
 	uint8_t AA1;
@@ -67,6 +86,10 @@ struct devicesRequest_s
 	uint8_t checksum;
 };
 
+/** \brief Template for devices response message (devices to main MCU)
+  *
+  * Response from devices with telemetry or/and additional information
+  */
 struct devicesResponse_s
 {
     uint8_t AA;
@@ -79,25 +102,28 @@ struct devicesResponse_s
     uint8_t checksum;
 };
 
-///* Shore send requests and STM send responses */
-///* --- SHORE REQUEST NORMAL MODE --- */
 #define SHORE_REQUEST_CODE             0xA5
 
-#define SHORE_REQUEST_LENGTH           26
+#define SHORE_REQUEST_LENGTH           30
 
-#define SHORE_STABILIZE_DEPTH_BIT 		0
-#define SHORE_STABILIZE_ROLL_BIT 		1
-#define SHORE_STABILIZE_PITCH_BIT 		2
-#define SHORE_STABILIZE_YAW_BIT 		3
-#define SHORE_STABILIZE_IMU_BIT 		4
-#define SHORE_STABILIZE_SAVE_BIT		5
-#define SHORE_STABILIZE_LOGDEV_BIT		6
+#define SHORE_STABILIZE_DEPTH_BIT       0
+#define SHORE_STABILIZE_ROLL_BIT        1
+#define SHORE_STABILIZE_PITCH_BIT       2
+#define SHORE_STABILIZE_YAW_BIT         3
+#define SHORE_STABILIZE_LAG_BIT         4
+#define SHORE_STABILIZE_MARCH_BIT       5
+#define SHORE_STABILIZE_IMU_BIT         6
+#define SHORE_STABILIZE_SAVE_BIT        7
 
 #define SHORE_DEVICE_AC_BIT 			0
 
 #define PC_ON_CODE 0xAA
 #define PC_OFF_CODE 0x00
 
+/** \brief Template for shore normal request message (control unit to main MCU)
+  *
+  * Used to control various paramaters of underwater vehicle
+  */
 struct shoreRequest_s
 {
 	uint8_t type;
@@ -114,6 +140,7 @@ struct shoreRequest_s
 	int8_t grab_rotate;
 	int8_t dev1;
 	int8_t dev2;
+	int32_t lag_error;
 	uint8_t dev_flags;
 	uint8_t stabilize_flags;
 	uint8_t cameras;
@@ -122,8 +149,12 @@ struct shoreRequest_s
 };
 
 #define REQUEST_CONFIG_CODE             0x55
-#define REQUEST_CONFIG_LENGTH           72
+#define REQUEST_CONFIG_LENGTH           84
 
+/** \brief Template for shore configuration request message (surface control unit to main MCU)
+  *
+  * Response from main MCU with telemetry or/and additional information
+  */
 struct shoreConfigRequest_s
 {
     uint8_t type;
@@ -134,7 +165,7 @@ struct shoreConfigRequest_s
     int16_t depth;
     int16_t roll;
     int16_t pitch;
-    int16_t yaw;
+    int16_t yaw; // 14
 
 	float pJoyUnitCast;
 	float pSpeedDyn;
@@ -150,9 +181,14 @@ struct shoreConfigRequest_s
 	float pid_iMax;
 	float pid_iMin;
 
-	float pThrustersCast;
 	float pThrustersMin;
 	float pThrustersMax;
+
+	float thrustersFilterT;
+	float thrustersFilterK;
+
+	float sOutSummatorMax;
+	float sOutSummatorMin;
 
     uint16_t checksum;
 };
@@ -160,6 +196,10 @@ struct shoreConfigRequest_s
 #define DIRECT_REQUEST_CODE 			0xAA
 #define SHORE_REQUEST_DIRECT_LENGTH		17
 
+/** \brief Template for shore direct message (surface control unit to main MCU)
+  *
+  * Response from main MCU with telemetry or/and additional information
+  */
 struct shoreRequestDirect_s
 {
 	uint8_t type;
@@ -202,10 +242,10 @@ struct shoreResponse_s
     float yawSpeed;
 
     float pressure;
-    float in_pressure; // 32
+    float in_pressure;
 
-    uint8_t dev_state; // 33
-    int16_t leak_data; // 35
+    uint8_t dev_state;
+    int16_t leak_data;
 
     uint16_t thrusterCurrent[THRUSTERS_NUMBER];
     uint16_t devCurrent[DEVICES_NUMBER];
@@ -217,7 +257,7 @@ struct shoreResponse_s
     uint16_t checksum;
 };
 
-#define SHORE_CONFIG_RESPONSE_LENGTH			91
+#define SHORE_CONFIG_RESPONSE_LENGTH			99
 
 struct shoreConfigResponse_s
 {
@@ -249,6 +289,9 @@ struct shoreConfigResponse_s
 	float speedFiltered;
 	float posFiltered;
 	float pid_iValue;
+	float thrustersFiltered;
+
+	float outputSignal;
 
     uint16_t checksum;
 };
@@ -345,6 +388,7 @@ struct pressureResponse_s
 #define WAITING_PC					10
 #define WAITING_TIMER				5
 #define UART_SWITCH_DELAY			1000
+#define SILENCE_DELAY				10000
 
 
 #pragma pack(pop)
