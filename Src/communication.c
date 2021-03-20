@@ -344,7 +344,7 @@ void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id)
 			struct pressureResponse_s res;
 			memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
 			if(res.code == 0xAA) {
-				rSensors.pressure = (9.124*res.value - 3.177) - rSensors.pressure_null;
+				rSensors.pressure = res.value;//(9.124*res.value - 3.177) - rSensors.pressure_null;
 			}
 		}
 		break;
