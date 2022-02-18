@@ -378,7 +378,7 @@ struct pressureResponse_s
 #define DELAY_STABILIZATION_TASK 	10
 #define DELAY_TIMER_TASK 			30
 #define DELAY_SILENCE    			1000
-#define DELAY_UART_TIMEOUT    		5
+#define DELAY_UART_TIMEOUT    		50
 
 #define WAITING_DEVICES 			10
 #define WAITING_IMU 				10
@@ -388,7 +388,7 @@ struct pressureResponse_s
 #define WAITING_PC					10
 #define WAITING_TIMER				5
 #define UART_SWITCH_DELAY			1000
-#define SILENCE_DELAY				10000
+#define SILENCE_DELAY				5
 
 
 #pragma pack(pop)

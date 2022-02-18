@@ -528,16 +528,19 @@ void func_tUartTimer(void const * argument)
 void tSilence_func(void const * argument)
 {
   /* USER CODE BEGIN tSilence_func */
-	if(fromTickToMs(xTaskGetTickCount()) - uartBus[SHORE_UART].lastMessage > UART_SWITCH_DELAY && counterRx == 0) {
-		if(uartBus[SHORE_UART].huart == &huart1) {
-			uartBus[SHORE_UART].huart = &huart5;
+	if(fromTickToMs(xTaskGetTickCount()) - uartBus[SHORE_UART].lastMessage > UART_SWITCH_DELAY && counterRx == 0){
+		if(uartBus[SHORE_UART].lastMessage == 0) {
+			HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_RESET); // RESET
+			HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_RESET); // ONOFF
+			osDelay(10);
+			HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
+			HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
+			osDelay(8000);
+			uartBus[SHORE_UART].lastMessage = 100;
+			counterRx = 0;
 		}
-		else if(uartBus[SHORE_UART].huart == &huart5) {
-			uartBus[SHORE_UART].huart = &huart1;
-		}
-		HAL_UART_AbortReceive_IT(uartBus[SHORE_UART].huart);
-		HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
-
+	HAL_UART_AbortReceive_IT(uartBus[SHORE_UART].huart);
+	HAL_UART_Receive_IT(uartBus[SHORE_UART].huart, uartBus[SHORE_UART].rxBuffer, 1);
 		if(xSemaphoreTake(mutDataHandle, (TickType_t) WAITING_TIMER) == pdTRUE) {
 			resetThrusters();
 			for(uint8_t i=0; i<STABILIZATION_AMOUNT; i++) {
@@ -545,27 +548,9 @@ void tSilence_func(void const * argument)
 			}
 			xSemaphoreGive(mutDataHandle);
 		}
-
-		if(uartBus[SHORE_UART].lastMessage == 0) {
-			rState.pcCounter++;
-			switch(rState.pcCounter) {
-			case PC_POWERON_DELAY:
-				HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
-				HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
-				break;
-			case PC_POWERON_DELAY+1:
-			HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_RESET); // RESET
-			HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_RESET); // ONOFF
-			break;
-			case PC_POWERON_DELAY+2:
-			HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
-			HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
-			break;
-			}
-		}
 	}
 	//HAL_GPIO_WritePin(GPIOE, RES_PC_2_Pin, GPIO_PIN_SET); // ONOFF
-	xTimerStart(SilenceTimer, 10);
+	xTimerStart(SilenceTimer, 50);
   /* USER CODE END tSilence_func */
 }
 

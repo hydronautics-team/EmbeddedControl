@@ -56,7 +56,8 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOD, DEBUG_LED1_Pin|DEBUG_LED2_Pin|DEBUG_LED3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, PC_CONTROL1_Pin|PC_CONTROL2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, PC_CONTROL1_Pin|PC_CONTROL1_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, PC_CONTROL1_Pin|PC_CONTROL2_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : PAPin PAPin */
   GPIO_InitStruct.Pin = CAM1_Pin|CAM2_Pin;

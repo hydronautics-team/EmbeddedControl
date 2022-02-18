@@ -104,7 +104,7 @@ void variableInit()
 void uartBusesInit()
 {
 	// Shore UART configuration
-	uartBus[SHORE_UART].huart = &huart1; // Link to huart will be set before receiving
+	uartBus[SHORE_UART].huart = &huart5; // Link to huart will be set before receiving
 	uartBus[SHORE_UART].rxBuffer = ShoreRequestBuffer;
 	uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
 	uartBus[SHORE_UART].rxLength = 0; // Length of the received message will be determined when first byte will be received
@@ -495,8 +495,6 @@ void ShoreRequest(uint8_t *requestBuf)
         rDevice[DEV1].force = req.dev1;
         rDevice[DEV2].force = req.dev2;
 
-        rState.lag_error = (float) req.lag_error;
-
         rSensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
 
         if(PickBit(req.stabilize_flags, SHORE_STABILIZE_SAVE_BIT)) {
@@ -544,17 +542,17 @@ void ShoreRequest(uint8_t *requestBuf)
         	stabilizationStart(STAB_DEPTH);
         }
 
-        wasEnabled = rStabConstants[STAB_LAG].enable;
-        rStabConstants[STAB_LAG].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_LAG_BIT);
-        if(wasEnabled == false && rStabConstants[STAB_LAG].enable == true) {
-        	stabilizationStart(STAB_LAG);
-        }
-
-        wasEnabled = rStabConstants[STAB_MARCH].enable;
-        rStabConstants[STAB_MARCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_MARCH_BIT);
-        if(wasEnabled == false && rStabConstants[STAB_MARCH].enable == true) {
-        	stabilizationStart(STAB_MARCH);
-        }
+//        wasEnabled = rStabConstants[STAB_LAG].enable;
+//        rStabConstants[STAB_LAG].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_LAG_BIT);
+//        if(wasEnabled == false && rStabConstants[STAB_LAG].enable == true) {
+//        	stabilizationStart(STAB_LAG);
+//        }
+//
+//        wasEnabled = rStabConstants[STAB_MARCH].enable;
+//        rStabConstants[STAB_MARCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_MARCH_BIT);
+//        if(wasEnabled == false && rStabConstants[STAB_MARCH].enable == true) {
+//        	stabilizationStart(STAB_MARCH);
+//        }
 
 //        wasEnabled = rLogicDevice[LOGDEV_LIFTER].control;
 //        rLogicDevice[LOGDEV_LIFTER].control = PickBit(req.stabilize_flags, SHORE_STABILIZE_LOGDEV_BIT);

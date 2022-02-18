@@ -8,26 +8,15 @@
 #include "messages.h"
 
 enum VMA {
-	HLB = 0,
-    HLF,
-    HRB,
-    HRF,
-    VB,
-    VF,
-    VL,
-    VR
+	MarshLEFT = 0,
+    MarshRIGHT,
+    VertLEFT,
+    VertRIGHT,
+    VertBACK,
+	Lag1st,
+    Lag2nd,
+    Unused
 };
-
-//enum VMA {
-//	HML = 0, 	// Horizontal march left
-//	HMR,		// Horizontal march right
-//	HLB,		// Horizontal lag back
-//	HLF,		// Horizontal lag front
-//	VL,			// Vertical left
-//	VR,			// Vertical right
-//	VB,			// Vertical back
-//	VF			// Vertical front
-//};
 
 #define DEV_AMOUNT 6
 
