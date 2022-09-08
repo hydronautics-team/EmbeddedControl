@@ -120,7 +120,7 @@ void stabilizationUpdate(uint8_t contour)
 		state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T) + state->oldSpeed*filter->K*(1-exp(-diffTime/filter->T));
 	}
 	else {
-		state->speedFiltered = *state->speedSignal*filter->K;
+		state->speedFiltered = *state->speedSignal*filter->K*10;
 	}
 	state->oldSpeed = *state->speedSignal;
 
