@@ -8,14 +8,14 @@
 #include "messages.h"
 
 enum VMA {
-	HLB = 0,
-    HLF,
-    HRB,
-    HRF,
-    VB,
-    VF,
-    VL,
-    VR
+	MarshLEFT = 0,
+    MarshRIGHT,
+    VertLEFT,
+    VertRIGHT,
+    VertBACK,
+	Lag1st,
+    Lag2nd,
+    Unused
 };
 
 //enum VMA {

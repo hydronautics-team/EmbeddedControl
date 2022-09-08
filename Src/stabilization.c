@@ -195,6 +195,6 @@ void stabilizationUpdate(uint8_t contour)
     	state->thrustersFiltered = constants->pThrustersMin;
     }
 
-    state->outputSignal = state->thrustersFiltered;
+    state->outputSignal = state->speedError;
 }
 

@@ -20,28 +20,30 @@ uint8_t resizeFloatToUint8(float input);
 
 void thrustersInit()
 {
-	rThrusters[HRB].address = 1;
-	rThrusters[HRF].address = 2;
-	rThrusters[HLB].address = 3;
-	rThrusters[HLF].address = 4;
-	rThrusters[VL].address 	= 5;
-	rThrusters[VR].address 	= 6;
-	rThrusters[VB].address 	= 7;
-	rThrusters[VF].address 	= 8;
+	rThrusters[Lag1st].address = 1;
+	rThrusters[Lag2nd].address = 7;
 
-	rThrusters[HRB].address = 1;
-	rThrusters[HRF].address = 2;
-	rThrusters[HLB].inverse = false;
-	rThrusters[HLF].inverse = false;
-	rThrusters[VL].inverse 	= false;
-	rThrusters[VR].inverse 	= false;
-	rThrusters[VB].inverse 	= false;
-	rThrusters[VF].inverse 	= false;
+	rThrusters[MarshLEFT].address = 3;
+	rThrusters[MarshRIGHT].address = 2;
+
+	rThrusters[VertBACK].address 	= 6;
+	rThrusters[VertLEFT].address 	= 8;
+	rThrusters[VertRIGHT].address 	= 5;
+
+	rThrusters[Unused].address = 4;
+
+	rThrusters[Lag1st].inverse = true;
+	rThrusters[Lag2nd].inverse = true;
+	rThrusters[MarshLEFT].inverse = true;
+	rThrusters[MarshRIGHT].inverse = true;
+	rThrusters[VertBACK].inverse 	= false;
+	rThrusters[VertLEFT].inverse 	= false;
+	rThrusters[VertRIGHT].inverse 	= false;
 
 	for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
 		rThrusters[i].desiredSpeed = 0;
-		rThrusters[i].kForward = 1;
-		rThrusters[i].kBackward = 1;
+		rThrusters[i].kForward = 0.4;
+		rThrusters[i].kBackward = 0.4;
 		rThrusters[i].sForward = 127;
 		rThrusters[i].sBackward = 127;
 	}
@@ -56,14 +58,14 @@ void resetThrusters()
 	rJoySpeed.roll = 0;
 	rJoySpeed.yaw = 0;
 
-	rThrusters[HRB].desiredSpeed = 0;
-	rThrusters[HRF].desiredSpeed = 0;
-	rThrusters[HLB].desiredSpeed = 0;
-	rThrusters[HLF].desiredSpeed = 0;
-	rThrusters[VL].desiredSpeed = 0;
-	rThrusters[VR].desiredSpeed = 0;
-	rThrusters[VB].desiredSpeed = 0;
-	rThrusters[VF].desiredSpeed = 0;
+	rThrusters[Lag1st].desiredSpeed = 0;
+	rThrusters[Lag2nd].desiredSpeed = 0;
+	rThrusters[MarshLEFT].desiredSpeed = 0;
+	rThrusters[MarshRIGHT].desiredSpeed = 0;
+	rThrusters[VertBACK].desiredSpeed = 0;
+	rThrusters[VertLEFT].desiredSpeed = 0;
+	rThrusters[VertRIGHT].desiredSpeed = 0;
+	rThrusters[Unused].desiredSpeed = 0;
 }
 
 void fillThrustersRequest(uint8_t *buf, uint8_t thruster)
@@ -89,12 +91,12 @@ void fillThrustersRequest(uint8_t *buf, uint8_t thruster)
     }
 
     // Saturation
-    if(velocity > rThrusters[thruster].sForward) {
-    	velocity = rThrusters[thruster].sForward;
-    }
-    else if(velocity < -rThrusters[thruster].sBackward) {
-    	velocity = -rThrusters[thruster].sBackward;
-    }
+//    if(velocity > rThrusters[thruster].sForward) {
+//    	velocity = rThrusters[thruster].sForward;
+//    }
+//    else if(velocity < -rThrusters[thruster].sBackward) {
+//    	velocity = -rThrusters[thruster].sBackward;
+//    }
     res.velocity = velocity;
 
     memcpy((void*)buf, (void*)&res, THRUSTERS_REQUEST_LENGTH);
@@ -150,19 +152,17 @@ void addMarchToSumm(float *velocity)
 		value = rJoySpeed.march;
 	}
 	// March contour summ
-	velocity[HLB] += value;
-	velocity[HLF] += value;
-	velocity[HRB] += value;
-	velocity[HRF] += value;
+	velocity[MarshLEFT] += value;
+	velocity[MarshRIGHT] += value;
 	// March summ saturation
-	for(uint8_t i=HLB; i<HRF+1; i++) {
-		if(velocity[i] > rStabConstants[STAB_MARCH].sOutSummatorMax) {
-			velocity[i] = rStabConstants[STAB_MARCH].sOutSummatorMax;
-		}
-		else if(velocity[i] < rStabConstants[STAB_MARCH].sOutSummatorMin) {
-			velocity[i] = rStabConstants[STAB_MARCH].sOutSummatorMin;
-		}
-	}
+//	for(uint8_t i=MarshLEFT; i<Lag2nd+1; i++) {
+//		if(velocity[i] > rStabConstants[STAB_MARCH].sOutSummatorMax) {
+//			velocity[i] = rStabConstants[STAB_MARCH].sOutSummatorMax;
+//		}
+//		else if(velocity[i] < rStabConstants[STAB_MARCH].sOutSummatorMin) {
+//			velocity[i] = rStabConstants[STAB_MARCH].sOutSummatorMin;
+//		}
+//	}
 }
 
 void addLagToSumm(float *velocity)
@@ -176,19 +176,17 @@ void addLagToSumm(float *velocity)
 		value = rJoySpeed.lag;
 	}
 	// Lag contour summ
-	velocity[HLB] -= value;
-	velocity[HLF] += value;
-	velocity[HRB] += value;
-	velocity[HRF] -= value;
+	velocity[Lag1st] += value;
+	velocity[Lag2nd] += value;
 	// Lag summ saturation
-	for(uint8_t i=HLB; i<HRF+1; i++) {
-		if(velocity[i] > rStabConstants[STAB_LAG].sOutSummatorMax) {
-			velocity[i] = rStabConstants[STAB_LAG].sOutSummatorMax;
-		}
-		else if(velocity[i] < rStabConstants[STAB_LAG].sOutSummatorMin) {
-			velocity[i] = rStabConstants[STAB_LAG].sOutSummatorMin;
-		}
-	}
+//	for(uint8_t i=MarshLEFT; i<Lag2nd+1; i++) {
+//		if(velocity[i] > rStabConstants[STAB_LAG].sOutSummatorMax) {
+//			velocity[i] = rStabConstants[STAB_LAG].sOutSummatorMax;
+//		}
+//		else if(velocity[i] < rStabConstants[STAB_LAG].sOutSummatorMin) {
+//			velocity[i] = rStabConstants[STAB_LAG].sOutSummatorMin;
+//		}
+//	}
 }
 
 void addDepthToSumm(float *velocity)
@@ -202,19 +200,18 @@ void addDepthToSumm(float *velocity)
 		value = rJoySpeed.depth;
 	}
 	// Depth contour summ
-	velocity[VL] -= value;
-	velocity[VR] -= value;
-	velocity[VB] -= value;
-	velocity[VF] -= value;
+	velocity[VertBACK] -= value;
+	velocity[VertLEFT] -= value;
+	velocity[VertRIGHT] -= value;
 	// Depth summ saturation
-	for(uint8_t i=VL; i<VF+1; i++) {
-		if(velocity[i] > rStabConstants[STAB_DEPTH].sOutSummatorMax) {
-			velocity[i] = rStabConstants[STAB_DEPTH].sOutSummatorMax;
-		}
-		else if(velocity[i] < rStabConstants[STAB_DEPTH].sOutSummatorMin) {
-			velocity[i] = rStabConstants[STAB_DEPTH].sOutSummatorMin;
-		}
-	}
+//	for(uint8_t i=VertBACK; i<VertRIGHT+1; i++) {
+//		if(velocity[i] > rStabConstants[STAB_DEPTH].sOutSummatorMax) {
+//			velocity[i] = rStabConstants[STAB_DEPTH].sOutSummatorMax;
+//		}
+//		else if(velocity[i] < rStabConstants[STAB_DEPTH].sOutSummatorMin) {
+//			velocity[i] = rStabConstants[STAB_DEPTH].sOutSummatorMin;
+//		}
+//	}
 }
 
 void addYawToSumm(float *velocity)
@@ -228,19 +225,19 @@ void addYawToSumm(float *velocity)
 		value = rJoySpeed.yaw;
 	}
 	// Yaw contour summ
-	velocity[HLB] += value;
-	velocity[HLF] += value;
-	velocity[HRB] -= value;
-	velocity[HRF] -= value;
+//	velocity[MarshLEFT] += value;
+//	velocity[MarshRIGHT] -= value;
+	velocity[Lag1st] += value;
+	velocity[Lag2nd] -= value;
 	// Yaw summ saturation
-	for(uint8_t i=HLB; i<HRF+1; i++) {
-		if(velocity[i] > rStabConstants[STAB_YAW].sOutSummatorMax) {
-			velocity[i] = rStabConstants[STAB_YAW].sOutSummatorMax;
-		}
-		else if(velocity[i] < rStabConstants[STAB_YAW].sOutSummatorMin) {
-			velocity[i] = rStabConstants[STAB_YAW].sOutSummatorMin;
-		}
-	}
+//	for(uint8_t i=MarshLEFT; i<Lag2nd+1; i++) {
+//		if(velocity[i] > rStabConstants[STAB_YAW].sOutSummatorMax) {
+//			velocity[i] = rStabConstants[STAB_YAW].sOutSummatorMax;
+//		}
+//		else if(velocity[i] < rStabConstants[STAB_YAW].sOutSummatorMin) {
+//			velocity[i] = rStabConstants[STAB_YAW].sOutSummatorMin;
+//		}
+//	}
 }
 
 void addRollToSumm(float *velocity)
@@ -254,17 +251,16 @@ void addRollToSumm(float *velocity)
 		value = rJoySpeed.roll;
 	}
 	// Yaw contour summ
-	velocity[VL] += value;
-	velocity[VR] -= value;
+	velocity[VertBACK] += value;
 	// Yaw summ saturation
-	for(uint8_t i=VL; i<VR+1; i++) {
-		if(velocity[i] > rStabConstants[STAB_ROLL].sOutSummatorMax) {
-			velocity[i] = rStabConstants[STAB_ROLL].sOutSummatorMax;
-		}
-		else if(velocity[i] < rStabConstants[STAB_ROLL].sOutSummatorMin) {
-			velocity[i] = rStabConstants[STAB_ROLL].sOutSummatorMin;
-		}
-	}
+//	for(uint8_t i=VertBACK; i<VertRIGHT+1; i++) {
+//		if(velocity[i] > rStabConstants[STAB_ROLL].sOutSummatorMax) {
+//			velocity[i] = rStabConstants[STAB_ROLL].sOutSummatorMax;
+//		}
+//		else if(velocity[i] < rStabConstants[STAB_ROLL].sOutSummatorMin) {
+//			velocity[i] = rStabConstants[STAB_ROLL].sOutSummatorMin;
+//		}
+//	}
 }
 
 void addPitchToSumm(float *velocity)
@@ -278,17 +274,17 @@ void addPitchToSumm(float *velocity)
 		value = rJoySpeed.pitch;
 	}
 	// Pitch contour summ
-	velocity[VB] += value;
-	velocity[VF] -= value;
+	velocity[VertLEFT] += value;
+	velocity[VertRIGHT] -= value;
 	// Pitch summ saturation
-	for(uint8_t i=VB; i<VF+1; i++) {
-		if(velocity[i] > rStabConstants[STAB_PITCH].sOutSummatorMax) {
-			velocity[i] = rStabConstants[STAB_PITCH].sOutSummatorMax;
-		}
-		else if(velocity[i] < rStabConstants[STAB_PITCH].sOutSummatorMin) {
-			velocity[i] = rStabConstants[STAB_PITCH].sOutSummatorMin;
-		}
-	}
+//	for(uint8_t i=VertLEFT; i<VertRIGHT+1; i++) {
+//		if(velocity[i] > rStabConstants[STAB_PITCH].sOutSummatorMax) {
+//			velocity[i] = rStabConstants[STAB_PITCH].sOutSummatorMax;
+//		}
+//		else if(velocity[i] < rStabConstants[STAB_PITCH].sOutSummatorMin) {
+//			velocity[i] = rStabConstants[STAB_PITCH].sOutSummatorMin;
+//		}
+//	}
 }
 
 uint8_t resizeFloatToUint8(float input)

@@ -78,14 +78,14 @@ void flashFillStructure(struct flashConfiguration_s *config)
 		config->stabConstants[i].sOutSummatorMin = rStabConstants[i].sOutSummatorMin;
 	}
 
-	for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
-		config->thrusters[i].address = rThrusters[i].address;
-		config->thrusters[i].kForward = rThrusters[i].kForward;
-		config->thrusters[i].kBackward = rThrusters[i].kBackward;
-		config->thrusters[i].sForward = rThrusters[i].sForward;
-		config->thrusters[i].sBackward = rThrusters[i].sBackward;
-		config->thrusters[i].inverse = rThrusters[i].inverse;
-	}
+//	for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
+//		config->thrusters[i].address = rThrusters[i].address;
+//		config->thrusters[i].kForward = rThrusters[i].kForward;
+//		config->thrusters[i].kBackward = rThrusters[i].kBackward;
+//		config->thrusters[i].sForward = rThrusters[i].sForward;
+//		config->thrusters[i].sBackward = rThrusters[i].sBackward;
+//		config->thrusters[i].inverse = rThrusters[i].inverse;
+//	}
 }
 
 void flashReadStructure(struct flashConfiguration_s *config)
@@ -110,14 +110,14 @@ void flashReadStructure(struct flashConfiguration_s *config)
 		rStabConstants[i].sOutSummatorMin = config->stabConstants[i].sOutSummatorMin;
 	}
 
-	for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
-		rThrusters[i].address = config->thrusters[i].address;
-		rThrusters[i].kForward = config->thrusters[i].kForward;
-		rThrusters[i].kBackward = config->thrusters[i].kBackward;
-		rThrusters[i].sForward = config->thrusters[i].sForward;
-		rThrusters[i].sBackward = config->thrusters[i].sBackward;
-		rThrusters[i].inverse = config->thrusters[i].inverse;
-	}
+//	for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
+//		rThrusters[i].address = config->thrusters[i].address;
+//		rThrusters[i].kForward = config->thrusters[i].kForward;
+//		rThrusters[i].kBackward = config->thrusters[i].kBackward;
+//		rThrusters[i].sForward = config->thrusters[i].sForward;
+//		rThrusters[i].sBackward = config->thrusters[i].sBackward;
+//		rThrusters[i].inverse = config->thrusters[i].inverse;
+//	}
 
 	if(config->writeFlag == 0xAA) {
 		rState.flash = true;

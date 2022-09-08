@@ -86,7 +86,7 @@ void variableInit()
     rDevice[GRAB_ROTATION].address = 0x06;
     rDevice[TILT].address = 0x01;
 
-	rSensors.resetIMU = false;
+	rSensors.resetIMU = true;
 
 	thrustersInit();
 
