@@ -49,6 +49,26 @@ void stabilizationInit()
 			rStabConstants[i].sOutSummatorMin = -32000;
 		}
 	}
+
+//	rStabConstants[3].enable = true;
+//
+//	rStabConstants[3].pJoyUnitCast = 1;
+//	rStabConstants[3].pSpeedDyn = 1;
+//	rStabConstants[3].pErrGain = 120;
+//	rStabConstants[3].aFilter[SPEED_FILTER].T = 0;
+//	rStabConstants[3].aFilter[SPEED_FILTER].K = -60;
+//	rStabConstants[3].aFilter[POS_FILTER].T = 0;
+//	rStabConstants[3].aFilter[POS_FILTER].K = -15;
+//	rStabConstants[3].pid.pGain = 0;
+//	rStabConstants[3].pid.iGain = 0;
+//	rStabConstants[3].pid.iMax = -1000;
+//	rStabConstants[3].pid.iMin = 1000;
+//	rStabConstants[3].pThrustersMax = 32000;
+//	rStabConstants[3].pThrustersMin = -32000;
+//	rStabConstants[3].sOutSummatorMax = 32000;
+//	rStabConstants[3].sOutSummatorMin = -32000;
+
+
 	/////////////////////////////////////////////////////////////
     rStabState[STAB_ROLL].inputSignal = &rJoySpeed.roll;
     rStabState[STAB_ROLL].speedSignal = &rSensors.rollSpeed;
