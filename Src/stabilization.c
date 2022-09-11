@@ -86,15 +86,15 @@ void stabilizationInit()
 
 	rStabConstants[STAB_YAW].enable = true;
 
-	rStabConstants[STAB_YAW].pJoyUnitCast = -10;
+	rStabConstants[STAB_YAW].pJoyUnitCast = 1;
 	rStabConstants[STAB_YAW].pSpeedDyn = 1;
-	rStabConstants[STAB_YAW].pErrGain = 1;
+	rStabConstants[STAB_YAW].pErrGain = 70;
 	rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].T = 0;
 	rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].K = 120;
 	rStabConstants[STAB_YAW].aFilter[POS_FILTER].T = 0;
-	rStabConstants[STAB_YAW].aFilter[POS_FILTER].K = 70;
+	rStabConstants[STAB_YAW].aFilter[POS_FILTER].K = 1;
 	rStabConstants[STAB_YAW].pid.pGain = 25;
-	rStabConstants[STAB_YAW].pid.iGain = 60;
+	rStabConstants[STAB_YAW].pid.iGain = 0;
 	rStabConstants[STAB_YAW].pid.iMax = 3000;
 	rStabConstants[STAB_YAW].pid.iMin = -3000;
 	rStabConstants[STAB_YAW].pThrustersMax = 20000;
@@ -102,6 +102,25 @@ void stabilizationInit()
 	rStabConstants[STAB_YAW].sOutSummatorMax = 32000;
 	rStabConstants[STAB_YAW].sOutSummatorMin = -32000;
     rStabConstants[STAB_YAW].joyIntegration = false;
+
+	rStabConstants[STAB_DEPTH].enable = true;
+
+	rStabConstants[STAB_DEPTH].pJoyUnitCast = 1;
+	rStabConstants[STAB_DEPTH].pSpeedDyn = 1;
+	rStabConstants[STAB_DEPTH].pErrGain = 70;
+	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].T = 0;
+	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = 0;
+	rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].T = 0;
+	rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].K = -1;
+	rStabConstants[STAB_DEPTH].pid.pGain = 10;
+	rStabConstants[STAB_DEPTH].pid.iGain = 15;
+	rStabConstants[STAB_DEPTH].pid.iMax = 3600;
+	rStabConstants[STAB_DEPTH].pid.iMin = -3600;
+	rStabConstants[STAB_DEPTH].pThrustersMax = 32000;
+	rStabConstants[STAB_DEPTH].pThrustersMin = -32000;
+	rStabConstants[STAB_DEPTH].sOutSummatorMax = 32000;
+	rStabConstants[STAB_DEPTH].sOutSummatorMin = -32000;
+    rStabConstants[STAB_DEPTH].joyIntegration = false;
 
 
 }
