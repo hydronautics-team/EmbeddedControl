@@ -47,6 +47,13 @@ void thrustersInit()
 		rThrusters[i].sForward = 127;
 		rThrusters[i].sBackward = 127;
 	}
+
+	rThrusters[VertBACK].kForward = 0.7;
+	rThrusters[VertBACK].kBackward = 0.7;
+	rThrusters[VertLEFT].kForward = 0.7;
+	rThrusters[VertLEFT].kBackward = 0.7;
+	rThrusters[VertRIGHT].kForward = 0.7;
+	rThrusters[VertRIGHT].kBackward = 0.7;
 }
 
 void resetThrusters()

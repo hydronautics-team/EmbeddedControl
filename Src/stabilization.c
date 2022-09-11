@@ -50,23 +50,7 @@ void stabilizationInit()
 		}
 	}
 
-//	rStabConstants[3].enable = true;
-//
-//	rStabConstants[3].pJoyUnitCast = 1;
-//	rStabConstants[3].pSpeedDyn = 1;
-//	rStabConstants[3].pErrGain = 120;
-//	rStabConstants[3].aFilter[SPEED_FILTER].T = 0;
-//	rStabConstants[3].aFilter[SPEED_FILTER].K = -60;
-//	rStabConstants[3].aFilter[POS_FILTER].T = 0;
-//	rStabConstants[3].aFilter[POS_FILTER].K = -15;
-//	rStabConstants[3].pid.pGain = 0;
-//	rStabConstants[3].pid.iGain = 0;
-//	rStabConstants[3].pid.iMax = -1000;
-//	rStabConstants[3].pid.iMin = 1000;
-//	rStabConstants[3].pThrustersMax = 32000;
-//	rStabConstants[3].pThrustersMin = -32000;
-//	rStabConstants[3].sOutSummatorMax = 32000;
-//	rStabConstants[3].sOutSummatorMin = -32000;
+
 
 
 	/////////////////////////////////////////////////////////////
@@ -99,6 +83,27 @@ void stabilizationInit()
     rStabState[STAB_MARCH].speedSignal = &rStabState[STAB_MARCH].posDerivative;
     rStabState[STAB_MARCH].posSignal = &rJoySpeed.march;
     rStabConstants[STAB_MARCH].joyIntegration = false;
+
+	rStabConstants[STAB_YAW].enable = true;
+
+	rStabConstants[STAB_YAW].pJoyUnitCast = -10;
+	rStabConstants[STAB_YAW].pSpeedDyn = 1;
+	rStabConstants[STAB_YAW].pErrGain = 1;
+	rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].T = 0;
+	rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].K = 120;
+	rStabConstants[STAB_YAW].aFilter[POS_FILTER].T = 0;
+	rStabConstants[STAB_YAW].aFilter[POS_FILTER].K = 70;
+	rStabConstants[STAB_YAW].pid.pGain = 25;
+	rStabConstants[STAB_YAW].pid.iGain = 60;
+	rStabConstants[STAB_YAW].pid.iMax = 3000;
+	rStabConstants[STAB_YAW].pid.iMin = -3000;
+	rStabConstants[STAB_YAW].pThrustersMax = 20000;
+	rStabConstants[STAB_YAW].pThrustersMin = -20000;
+	rStabConstants[STAB_YAW].sOutSummatorMax = 32000;
+	rStabConstants[STAB_YAW].sOutSummatorMin = -32000;
+    rStabConstants[STAB_YAW].joyIntegration = false;
+
+
 }
 
 void stabilizationStart(uint8_t contour)
@@ -215,6 +220,6 @@ void stabilizationUpdate(uint8_t contour)
     	state->thrustersFiltered = constants->pThrustersMin;
     }
 
-    state->outputSignal = state->speedError;
+    state->outputSignal = -1*state->speedError;
 }
 
