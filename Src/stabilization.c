@@ -84,10 +84,12 @@ void stabilizationInit()
     rStabState[STAB_MARCH].posSignal = &rJoySpeed.march;
     rStabConstants[STAB_MARCH].joyIntegration = false;
 
-	rStabConstants[STAB_YAW].enable = true;
+
+    //upload coef
+	//rStabConstants[STAB_YAW].enable = true;
 
 	rStabConstants[STAB_YAW].pJoyUnitCast = 1;
-	rStabConstants[STAB_YAW].pSpeedDyn = 1;
+	rStabConstants[STAB_YAW].pSpeedDyn = 0;
 	rStabConstants[STAB_YAW].pErrGain = 70;
 	rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].T = 0;
 	rStabConstants[STAB_YAW].aFilter[SPEED_FILTER].K = 120;
@@ -103,10 +105,10 @@ void stabilizationInit()
 	rStabConstants[STAB_YAW].sOutSummatorMin = -32000;
     rStabConstants[STAB_YAW].joyIntegration = false;
 
-	rStabConstants[STAB_DEPTH].enable = true;
+	//rStabConstants[STAB_DEPTH].enable = true;
 
-	rStabConstants[STAB_DEPTH].pJoyUnitCast = 1;
-	rStabConstants[STAB_DEPTH].pSpeedDyn = 1;
+	rStabConstants[STAB_DEPTH].pJoyUnitCast = -1;
+	rStabConstants[STAB_DEPTH].pSpeedDyn = 0;
 	rStabConstants[STAB_DEPTH].pErrGain = 70;
 	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].T = 0;
 	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = 0;

@@ -104,7 +104,7 @@ void variableInit()
 void uartBusesInit()
 {
 	// Shore UART configuration
-	uartBus[SHORE_UART].huart = &huart5; // Link to huart will be set before receiving
+	uartBus[SHORE_UART].huart = &huart1; // Link to huart will be set before receiving
 	uartBus[SHORE_UART].rxBuffer = ShoreRequestBuffer;
 	uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
 	uartBus[SHORE_UART].rxLength = 0; // Length of the received message will be determined when first byte will be received
@@ -719,7 +719,7 @@ void ShoreResponse(uint8_t *responseBuf)
 
     res.roll = rSensors.roll;
     res.pitch = rSensors.pitch;
-    res.yaw = rSensors.yaw;
+    res.yaw =  *rStabState[STAB_YAW].posSignal;//rSensors.yaw;
     res.rollSpeed = rSensors.rollSpeed;
     res.pitchSpeed = rSensors.pitchSpeed;
     res.yawSpeed = rSensors.yawSpeed;
