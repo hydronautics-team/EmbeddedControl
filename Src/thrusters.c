@@ -28,9 +28,9 @@ void thrustersInit()
 
 	rThrusters[VertBACK].address 	= 6;
 	rThrusters[VertLEFT].address 	= 8;
-	rThrusters[VertRIGHT].address 	= 5;
+	rThrusters[VertRIGHT].address 	= 4;
 
-	rThrusters[Unused].address = 4;
+	rThrusters[Unused].address = 5;
 
 	rThrusters[Lag1st].inverse = true;
 	rThrusters[Lag2nd].inverse = true;
@@ -38,7 +38,7 @@ void thrustersInit()
 	rThrusters[MarshRIGHT].inverse = true;
 	rThrusters[VertBACK].inverse 	= false;
 	rThrusters[VertLEFT].inverse 	= false;
-	rThrusters[VertRIGHT].inverse 	= false;
+	rThrusters[VertRIGHT].inverse 	= true;
 
 	for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
 		rThrusters[i].desiredSpeed = 0;
@@ -54,6 +54,11 @@ void thrustersInit()
 	rThrusters[VertLEFT].kBackward = 0.7;
 	rThrusters[VertRIGHT].kForward = 0.7;
 	rThrusters[VertRIGHT].kBackward = 0.7;
+
+	rThrusters[MarshLEFT].kForward = 0.7;
+	rThrusters[MarshLEFT].kBackward = 0.7;
+	rThrusters[MarshRIGHT].kForward = 0.7;
+	rThrusters[MarshRIGHT].kBackward = 0.7;
 }
 
 void resetThrusters()

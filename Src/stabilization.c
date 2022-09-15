@@ -109,9 +109,9 @@ void stabilizationInit()
 
 	rStabConstants[STAB_DEPTH].pJoyUnitCast = -1;
 	rStabConstants[STAB_DEPTH].pSpeedDyn = 0;
-	rStabConstants[STAB_DEPTH].pErrGain = 2;
-	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].T = -25;
-	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = 80;
+	rStabConstants[STAB_DEPTH].pErrGain = 1;
+	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].T = 80;
+	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = -12;
 	rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].T = 0;
 	rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].K = -1;
 	rStabConstants[STAB_DEPTH].pid.pGain = 80;
@@ -211,11 +211,11 @@ void stabilizationUpdate(uint8_t contour)
     state->pid_iValue += (state->posErrorAmp * diffTime) * constants->pid.iGain;
 
     // PI integration saturation
-    if(state->pid_iValue > constants->pid.iMax) {
-    	state->pid_iValue = constants->pid.iMax;
+    if(state->pid_iValue > constants->pid.iMax*100) {
+    	state->pid_iValue = constants->pid.iMax*100;
     }
-    else if(state->pid_iValue < constants->pid.iMin) {
-    	state->pid_iValue = constants->pid.iMin;
+    else if(state->pid_iValue < constants->pid.iMin*100) {
+    	state->pid_iValue = constants->pid.iMin*100;
     }
 
     // PI summator
