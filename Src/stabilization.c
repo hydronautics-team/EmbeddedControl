@@ -70,7 +70,7 @@ void stabilizationInit()
     rStabConstants[STAB_YAW].joyIntegration = true;
     /////////////////////////////////////////////////////////////
     rStabState[STAB_DEPTH].inputSignal = &rJoySpeed.depth;
-    rStabState[STAB_DEPTH].speedSignal = &rStabState[STAB_DEPTH].posDerivative;
+    rStabState[STAB_DEPTH].speedSignal = &rSensors.velocity_pressure;//&rStabState[STAB_DEPTH].posDerivative;
     rStabState[STAB_DEPTH].posSignal = &rSensors.pressure;
     rStabConstants[STAB_DEPTH].joyIntegration = false;
     /////////////////////////////////////////////////////////////
@@ -109,15 +109,15 @@ void stabilizationInit()
 
 	rStabConstants[STAB_DEPTH].pJoyUnitCast = -1;
 	rStabConstants[STAB_DEPTH].pSpeedDyn = 0;
-	rStabConstants[STAB_DEPTH].pErrGain = 70;
-	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].T = 0;
-	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = 0;
+	rStabConstants[STAB_DEPTH].pErrGain = 2;
+	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].T = -25;
+	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = 80;
 	rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].T = 0;
 	rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].K = -1;
-	rStabConstants[STAB_DEPTH].pid.pGain = 10;
-	rStabConstants[STAB_DEPTH].pid.iGain = 15;
-	rStabConstants[STAB_DEPTH].pid.iMax = 3600;
-	rStabConstants[STAB_DEPTH].pid.iMin = -3600;
+	rStabConstants[STAB_DEPTH].pid.pGain = 80;
+	rStabConstants[STAB_DEPTH].pid.iGain = 0;
+	rStabConstants[STAB_DEPTH].pid.iMax = 0;
+	rStabConstants[STAB_DEPTH].pid.iMin = 0;
 	rStabConstants[STAB_DEPTH].pThrustersMax = 32000;
 	rStabConstants[STAB_DEPTH].pThrustersMin = -32000;
 	rStabConstants[STAB_DEPTH].sOutSummatorMax = 32000;
@@ -162,13 +162,16 @@ void stabilizationUpdate(uint8_t contour)
 
 	// Speed feedback filtering
 	struct AperiodicFilter *filter = &constants->aFilter[SPEED_FILTER];
+
 	if(filter->T != 0) {
-		state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T) + state->oldSpeed*filter->K*(1-exp(-diffTime/filter->T));
+		//state->speedFiltered = state->speedFiltered*exp(-diffTime/filter->T/1e5) + state->oldSpeed*filter->K*80*(1-exp(-diffTime/filter->T/1e5));
+		state->speedFiltered = state->oldSpeed + diffTime * (1/filter->T*100) * (*state->speedSignal * filter->K*70 - state->oldSpeed);
 	}
 	else {
 		state->speedFiltered = *state->speedSignal*filter->K*10;
 	}
-	state->oldSpeed = *state->speedSignal;
+	//state->oldSpeed = *state->speedSignal;
+	state->oldSpeed = state->speedFiltered;
 
 	// Position feedback filtering
 	filter = &constants->aFilter[POS_FILTER];

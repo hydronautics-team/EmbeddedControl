@@ -104,7 +104,7 @@ void variableInit()
 void uartBusesInit()
 {
 	// Shore UART configuration
-	uartBus[SHORE_UART].huart = &huart1; // Link to huart will be set before receiving
+	uartBus[SHORE_UART].huart = &huart5; // Link to huart will be set before receiving
 	uartBus[SHORE_UART].rxBuffer = ShoreRequestBuffer;
 	uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
 	uartBus[SHORE_UART].rxLength = 0; // Length of the received message will be determined when first byte will be received
@@ -345,6 +345,7 @@ void SensorsResponseUpdate(uint8_t *buf, uint8_t Sensor_id)
 			memcpy((void*)&res, (void*)buf, DEVICES_RESPONSE_LENGTH);
 			if(res.code == 0xAA) {
 				rSensors.pressure = res.value;//(9.124*res.value - 3.177) - rSensors.pressure_null;
+				rSensors.velocity_pressure = res.v_value;
 			}
 		}
 		break;

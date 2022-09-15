@@ -140,6 +140,7 @@ struct robotSensors_s {
 
 	float pressure;
 	float pressure_null;
+	float velocity_pressure;
 
 	float in_pressure;
 

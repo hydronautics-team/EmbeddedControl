@@ -353,7 +353,7 @@ struct imuResponse_s
 /* --- I2C2 Sensors communication info --- */
 
 #define SENSORS_DEVICES_NUM 		3
-#define PRESSURE_SENSOR_SIZE 		6
+#define PRESSURE_SENSOR_SIZE 		10
 #define PRESSURE_RESPONSE_CODE 		0xAA
 
 #define SENSORS_ADC1_ADDR 			0
@@ -364,6 +364,7 @@ struct pressureResponse_s
 {
 	uint8_t code;
 	float value;
+	float v_value;
 	uint8_t checksum;
 };
 
