@@ -57,7 +57,7 @@ void stabilizationInit()
     rStabState[STAB_ROLL].inputSignal = &rJoySpeed.roll;
     rStabState[STAB_ROLL].speedSignal = &rSensors.rollSpeed;
     rStabState[STAB_ROLL].posSignal = &rSensors.roll;
-    rStabConstants[STAB_ROLL].joyIntegration = true;
+    rStabConstants[STAB_ROLL].joyIntegration = false;
     /////////////////////////////////////////////////////////////
     rStabState[STAB_PITCH].inputSignal = &rJoySpeed.pitch;
     rStabState[STAB_PITCH].speedSignal = &rSensors.pitchSpeed;
@@ -108,21 +108,38 @@ void stabilizationInit()
 	//rStabConstants[STAB_DEPTH].enable = true;
 
 	rStabConstants[STAB_DEPTH].pJoyUnitCast = -1;
-	rStabConstants[STAB_DEPTH].pSpeedDyn = 0;
+	rStabConstants[STAB_DEPTH].pSpeedDyn = 1;
 	rStabConstants[STAB_DEPTH].pErrGain = 1;
 	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].T = 80;
-	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = -12;
+	rStabConstants[STAB_DEPTH].aFilter[SPEED_FILTER].K = -15;
 	rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].T = 0;
 	rStabConstants[STAB_DEPTH].aFilter[POS_FILTER].K = -1;
-	rStabConstants[STAB_DEPTH].pid.pGain = 80;
-	rStabConstants[STAB_DEPTH].pid.iGain = 0;
-	rStabConstants[STAB_DEPTH].pid.iMax = 0;
-	rStabConstants[STAB_DEPTH].pid.iMin = 0;
+	rStabConstants[STAB_DEPTH].pid.pGain = 30;
+	rStabConstants[STAB_DEPTH].pid.iGain = 5;
+	rStabConstants[STAB_DEPTH].pid.iMax = 40;
+	rStabConstants[STAB_DEPTH].pid.iMin = -40;
 	rStabConstants[STAB_DEPTH].pThrustersMax = 32000;
 	rStabConstants[STAB_DEPTH].pThrustersMin = -32000;
 	rStabConstants[STAB_DEPTH].sOutSummatorMax = 32000;
 	rStabConstants[STAB_DEPTH].sOutSummatorMin = -32000;
     rStabConstants[STAB_DEPTH].joyIntegration = false;
+
+	rStabConstants[STAB_PITCH].pJoyUnitCast = -1;
+	rStabConstants[STAB_PITCH].pSpeedDyn = 0;
+	rStabConstants[STAB_PITCH].pErrGain = 1;
+	rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].T = 0;
+	rStabConstants[STAB_PITCH].aFilter[SPEED_FILTER].K = 1;
+	rStabConstants[STAB_PITCH].aFilter[POS_FILTER].T = 0;
+	rStabConstants[STAB_PITCH].aFilter[POS_FILTER].K = -100;
+	rStabConstants[STAB_PITCH].pid.pGain = 25;
+	rStabConstants[STAB_PITCH].pid.iGain = 60;
+	rStabConstants[STAB_PITCH].pid.iMax = 50;
+	rStabConstants[STAB_PITCH].pid.iMin = -50;
+	rStabConstants[STAB_PITCH].pThrustersMax = 32000;
+	rStabConstants[STAB_PITCH].pThrustersMin = -32000;
+	rStabConstants[STAB_PITCH].sOutSummatorMax = 32000;
+	rStabConstants[STAB_PITCH].sOutSummatorMin = -32000;
+    rStabConstants[STAB_PITCH].joyIntegration = false;
 
 
 }
@@ -168,6 +185,11 @@ void stabilizationUpdate(uint8_t contour)
 		state->speedFiltered = state->oldSpeed + diffTime * (1/filter->T*100) * (*state->speedSignal * filter->K*70 - state->oldSpeed);
 	}
 	else {
+		if(contour==STAB_PITCH)
+		{
+			state->speedFiltered = *state->speedSignal*filter->K*500;
+		}
+		else
 		state->speedFiltered = *state->speedSignal*filter->K*10;
 	}
 	//state->oldSpeed = *state->speedSignal;

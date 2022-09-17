@@ -6,6 +6,7 @@
 #include "i2c.h"
 #include "main.h"
 #include "tim.h"
+#include "math.h"
 
 #include "communication.h"
 #include "global.h"
@@ -104,7 +105,7 @@ void variableInit()
 void uartBusesInit()
 {
 	// Shore UART configuration
-	uartBus[SHORE_UART].huart = &huart1; // Link to huart will be set before receiving
+	uartBus[SHORE_UART].huart = &huart5; // Link to huart will be set before receiving
 	uartBus[SHORE_UART].rxBuffer = ShoreRequestBuffer;
 	uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
 	uartBus[SHORE_UART].rxLength = 0; // Length of the received message will be determined when first byte will be received
@@ -836,12 +837,10 @@ void ImuReceive(uint8_t *ReceiveBuf)
     }
     rSensors.old_yaw = rSensors.raw_yaw;
 
-    //rSensors.yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
-    rSensors.roll =  (float) (MergeBytes(&ReceiveBuf[EULER_PHI])) * 0.0109863;
-    rSensors.pitch =  (float) (MergeBytes(&ReceiveBuf[EULER_TETA])) * 0.0109863;
 
-    rSensors.rollSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_X])) * 0.0610352;
-    rSensors.pitchSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Y])) * 0.0610352;
+
+    rSensors.rollSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Y])) * 0.0610352;
+    rSensors.pitchSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_X])) * 0.0610352;
     rSensors.yawSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Z])) * 0.0610352;
 
     rSensors.accelX = (float) (MergeBytes(&ReceiveBuf[ACCEL_PROC_X])) * 0.0109863;
@@ -856,6 +855,10 @@ void ImuReceive(uint8_t *ReceiveBuf)
     rSensors.quatB = (float) (MergeBytes(&ReceiveBuf[QUAT_B])) * 0.0000335693;
     rSensors.quatC = (float) (MergeBytes(&ReceiveBuf[QUAT_C])) * 0.0000335693;
     rSensors.quatD = (float) (MergeBytes(&ReceiveBuf[QUAT_D])) * 0.0000335693;
+
+    //rSensors.yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
+    rSensors.roll =  0;//asin(rSensors.accelX/62)*180/3.14;
+    rSensors.pitch =  (float) asin(rSensors.accelY/62)*180/3.14;//(float) (MergeBytes(&ReceiveBuf[EULER_PHI])) * 0.0109863;
 
     ++uartBus[IMU_UART].successRxCounter;
 }

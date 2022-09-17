@@ -15,7 +15,7 @@ enum VMA {
     VertBACK,
 	Lag1st,
     Lag2nd,
-    Unused
+	MarshDown
 };
 
 //enum VMA {

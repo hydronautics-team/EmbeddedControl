@@ -26,16 +26,20 @@ void thrustersInit()
 	rThrusters[MarshLEFT].address = 3;
 	rThrusters[MarshRIGHT].address = 2;
 
+	rThrusters[MarshDown].address = 5;//xer
+
 	rThrusters[VertBACK].address 	= 6;
+
 	rThrusters[VertLEFT].address 	= 8;
 	rThrusters[VertRIGHT].address 	= 4;
 
-	rThrusters[Unused].address = 5;
 
 	rThrusters[Lag1st].inverse = true;
 	rThrusters[Lag2nd].inverse = true;
 	rThrusters[MarshLEFT].inverse = true;
 	rThrusters[MarshRIGHT].inverse = true;
+	rThrusters[MarshDown].inverse = true;
+
 	rThrusters[VertBACK].inverse 	= false;
 	rThrusters[VertLEFT].inverse 	= false;
 	rThrusters[VertRIGHT].inverse 	= true;
@@ -48,8 +52,8 @@ void thrustersInit()
 		rThrusters[i].sBackward = 127;
 	}
 
-	rThrusters[VertBACK].kForward = 0.7;
-	rThrusters[VertBACK].kBackward = 0.7;
+	rThrusters[VertBACK].kForward = 0.4;
+	rThrusters[VertBACK].kBackward = 0.4;
 	rThrusters[VertLEFT].kForward = 0.7;
 	rThrusters[VertLEFT].kBackward = 0.7;
 	rThrusters[VertRIGHT].kForward = 0.7;
@@ -59,6 +63,9 @@ void thrustersInit()
 	rThrusters[MarshLEFT].kBackward = 0.7;
 	rThrusters[MarshRIGHT].kForward = 0.7;
 	rThrusters[MarshRIGHT].kBackward = 0.7;
+
+	rThrusters[MarshDown].kForward = 0.7;
+	rThrusters[MarshDown].kBackward = 0.7;
 }
 
 void resetThrusters()
@@ -77,7 +84,7 @@ void resetThrusters()
 	rThrusters[VertBACK].desiredSpeed = 0;
 	rThrusters[VertLEFT].desiredSpeed = 0;
 	rThrusters[VertRIGHT].desiredSpeed = 0;
-	rThrusters[Unused].desiredSpeed = 0;
+	rThrusters[MarshDown].desiredSpeed = 0;
 }
 
 void fillThrustersRequest(uint8_t *buf, uint8_t thruster)
@@ -166,6 +173,8 @@ void addMarchToSumm(float *velocity)
 	// March contour summ
 	velocity[MarshLEFT] += value;
 	velocity[MarshRIGHT] += value;
+	velocity[MarshDown] += value;
+
 	// March summ saturation
 //	for(uint8_t i=MarshLEFT; i<Lag2nd+1; i++) {
 //		if(velocity[i] > rStabConstants[STAB_MARCH].sOutSummatorMax) {
@@ -212,7 +221,7 @@ void addDepthToSumm(float *velocity)
 		value = rJoySpeed.depth;
 	}
 	// Depth contour summ
-	velocity[VertBACK] -= value;
+	//velocity[VertBACK] -= value;
 	velocity[VertLEFT] -= value;
 	velocity[VertRIGHT] -= value;
 	// Depth summ saturation
@@ -264,6 +273,8 @@ void addRollToSumm(float *velocity)
 	}
 	// Yaw contour summ
 	velocity[VertBACK] += value;
+	//velocity[MarshDown] += value;
+
 	// Yaw summ saturation
 //	for(uint8_t i=VertBACK; i<VertRIGHT+1; i++) {
 //		if(velocity[i] > rStabConstants[STAB_ROLL].sOutSummatorMax) {
@@ -285,9 +296,11 @@ void addPitchToSumm(float *velocity)
 	else {
 		value = rJoySpeed.pitch;
 	}
+	velocity[VertBACK] += value;
+
 	// Pitch contour summ
-	velocity[VertLEFT] += value;
-	velocity[VertRIGHT] -= value;
+//	velocity[VertLEFT] += value;
+//	velocity[VertRIGHT] -= value;
 	// Pitch summ saturation
 //	for(uint8_t i=VertLEFT; i<VertRIGHT+1; i++) {
 //		if(velocity[i] > rStabConstants[STAB_PITCH].sOutSummatorMax) {
