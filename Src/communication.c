@@ -721,7 +721,7 @@ void ShoreResponse(uint8_t *responseBuf)
 
     res.roll = rSensors.roll;
     res.pitch = rSensors.pitch;
-    res.yaw =  *rStabState[STAB_YAW].posSignal;//rSensors.yaw;
+    res.yaw =  rSensors.yaw;//*rStabState[STAB_YAW].posSignal;//rSensors.yaw;
     res.rollSpeed = rSensors.rollSpeed;
     res.pitchSpeed = rSensors.pitchSpeed;
     res.yawSpeed = rSensors.yawSpeed;
@@ -805,39 +805,13 @@ int16_t sign(int16_t in)
 
 void ImuReceive(uint8_t *ReceiveBuf)
 {
+
     for(uint8_t i = 0; i < IMU_CHECKSUMS; ++i) {
         if(!IsChecksum16bSCorrect(&ReceiveBuf[i*IMU_RESPONSE_LENGTH], IMU_RESPONSE_LENGTH)) {
             ++uartBus[IMU_UART].brokenRxCounter;
             return;
         }
     }
-
-    rSensors.raw_yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
-    if(abs(rSensors.old_yaw - rSensors.raw_yaw) > 180) {
-    	int16_t direction = rSensors.spins;
-    	if(rSensors.raw_yaw > 0) {
-    		rSensors.spins--;
-    	}
-    	else {
-    		rSensors.spins++;
-    	}
-    	direction = rSensors.spins - direction;
-
-     	if(rSensors.spins == 0) {
-     		rSensors.yaw = rSensors.raw_yaw;
-     	}
-     	else {
-     		rSensors.yaw = 360*rSensors.spins-sign(direction)*180;
-     		rSensors.yaw += sign(direction)*(180 - abs(rSensors.raw_yaw));
-     	}
-    }
-    else {
-    	float diff = rSensors.raw_yaw-rSensors.old_yaw;
-    	rSensors.yaw += diff;
-    }
-    rSensors.old_yaw = rSensors.raw_yaw;
-
-
 
     rSensors.rollSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_Y])) * 0.0610352;
     rSensors.pitchSpeed = (float) (MergeBytes(&ReceiveBuf[GYRO_PROC_X])) * 0.0610352;
@@ -855,6 +829,10 @@ void ImuReceive(uint8_t *ReceiveBuf)
     rSensors.quatB = (float) (MergeBytes(&ReceiveBuf[QUAT_B])) * 0.0000335693;
     rSensors.quatC = (float) (MergeBytes(&ReceiveBuf[QUAT_C])) * 0.0000335693;
     rSensors.quatD = (float) (MergeBytes(&ReceiveBuf[QUAT_D])) * 0.0000335693;
+
+	float diffTime = fromTickToMs(xTaskGetTickCount() - rSensors.LastTick) / 1000.0f;
+    rSensors.LastTick = xTaskGetTickCount();
+    rSensors.yaw += (rSensors.yawSpeed * diffTime);
 
     //rSensors.yaw = (float) (MergeBytes(&ReceiveBuf[EULER_PSI])) * 0.0109863;
     rSensors.roll =  0;//asin(rSensors.accelX/62)*180/3.14;

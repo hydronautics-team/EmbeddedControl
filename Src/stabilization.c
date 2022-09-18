@@ -66,7 +66,7 @@ void stabilizationInit()
     /////////////////////////////////////////////////////////////
     rStabState[STAB_YAW].inputSignal = &rJoySpeed.yaw;
     rStabState[STAB_YAW].speedSignal = &rSensors.yawSpeed;
-    rStabState[STAB_YAW].posSignal = &rStabState[STAB_YAW].speedIntegral;
+    rStabState[STAB_YAW].posSignal = &rSensors.yaw;//&rStabState[STAB_YAW].speedIntegral;
     rStabConstants[STAB_YAW].joyIntegration = true;
     /////////////////////////////////////////////////////////////
     rStabState[STAB_DEPTH].inputSignal = &rJoySpeed.depth;
@@ -152,7 +152,10 @@ void stabilizationStart(uint8_t contour)
 	rStabState[contour].oldPos = *rStabState[contour].posSignal;
 	rStabState[contour].posDerivative = 0;
 	//rStabState[contour].speedIntegral = 0;
-
+if(contour==STAB_YAW)
+{
+	rSensors.yaw =0;
+}
 	rStabState[contour].joyUnitCasted = 0;
 	rStabState[contour].joy_iValue = *rStabState[contour].posSignal;
 	rStabState[contour].posError = 0;

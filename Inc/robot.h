@@ -121,6 +121,7 @@ struct robotSensors_s {
 	float raw_yaw;
 
 	float old_yaw;
+	float LastTick;
 	int16_t spins;
 
 	float rollSpeed;
