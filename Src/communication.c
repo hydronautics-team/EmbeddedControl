@@ -535,7 +535,7 @@ void ShoreRequest(uint8_t *requestBuf)
         }
 
         wasEnabled = rStabConstants[STAB_PITCH].enable;
-        rStabConstants[STAB_PITCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
+        rStabConstants[STAB_PITCH].enable = true; //PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
         if(wasEnabled == false && rStabConstants[STAB_PITCH].enable == true) {
         	stabilizationStart(STAB_PITCH);
         }
