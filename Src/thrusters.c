@@ -59,10 +59,10 @@ void thrustersInit()
 	rThrusters[VertRIGHT].kForward = 0.7;
 	rThrusters[VertRIGHT].kBackward = 0.7;
 
-	rThrusters[MarshLEFT].kForward = 0.7;
-	rThrusters[MarshLEFT].kBackward = 0.7;
-	rThrusters[MarshRIGHT].kForward = 0.7;
-	rThrusters[MarshRIGHT].kBackward = 0.7;
+	rThrusters[MarshLEFT].kForward = 0.9;
+	rThrusters[MarshLEFT].kBackward = 0.9;
+	rThrusters[MarshRIGHT].kForward = 0.9;
+	rThrusters[MarshRIGHT].kBackward = 0.9;
 
 	rThrusters[MarshDown].kForward = 0.7;
 	rThrusters[MarshDown].kBackward = 0.7;
@@ -297,6 +297,9 @@ void addPitchToSumm(float *velocity)
 		value = rJoySpeed.pitch;
 	}
 	velocity[VertBACK] += value;
+
+	velocity[VertLEFT] -= 0.4*value;
+	velocity[VertRIGHT] -= 0.4*value;
 
 	// Pitch contour summ
 //	velocity[VertLEFT] += value;

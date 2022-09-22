@@ -190,7 +190,7 @@ void stabilizationUpdate(uint8_t contour)
 	else {
 		if(contour==STAB_PITCH)
 		{
-			state->speedFiltered = *state->speedSignal*filter->K*500;
+			state->speedFiltered = *state->speedSignal*filter->K*250;
 		}
 		else
 		state->speedFiltered = *state->speedSignal*filter->K*10;
