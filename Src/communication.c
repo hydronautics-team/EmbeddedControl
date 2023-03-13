@@ -105,7 +105,7 @@ void variableInit()
 void uartBusesInit()
 {
 	// Shore UART configuration
-	uartBus[SHORE_UART].huart = &huart5; // Link to huart will be set before receiving
+	uartBus[SHORE_UART].huart = &huart1; // Link to huart will be set before receiving
 	uartBus[SHORE_UART].rxBuffer = ShoreRequestBuffer;
 	uartBus[SHORE_UART].txBuffer = ShoreResponseBuffer;
 	uartBus[SHORE_UART].rxLength = 0; // Length of the received message will be determined when first byte will be received
@@ -496,67 +496,68 @@ void ShoreRequest(uint8_t *requestBuf)
 
         rDevice[DEV1].force = req.dev1;
         rDevice[DEV2].force = req.dev2;
+        // Test
 
-        rState.lag_error = (float) req.lag_error;
+        //rState.lag_error = (float) req.lag_error;
 
-        rSensors.resetIMU = PickBit(req.stabilize_flags, SHORE_STABILIZE_IMU_BIT);
+        rSensors.resetIMU = PickBit(req.flags, SHORE_FLAG_IMU);
 
-        if(PickBit(req.stabilize_flags, SHORE_STABILIZE_SAVE_BIT)) {
-        	struct flashConfiguration_s config;
-        	flashFillStructure(&config);
-        	flashWriteSettings(&config);
-        }
+//        if(PickBit(req.stabilize_flags, SHORE_STABILIZE_SAVE_BIT)) {
+//        	struct flashConfiguration_s config;
+//        	flashFillStructure(&config);
+//        	flashWriteSettings(&config);
+//        }
 
-        tempCameraNum = req.cameras;
+        //tempCameraNum = req.cameras;
 
-        uint8_t old_reset = rComputer.reset;
-        if(old_reset != req.pc_reset) {
-            if(req.pc_reset == PC_ON_CODE) {
-            	HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_RESET); // RESET
-            	HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_RESET); // ONOFF
-            }
-            else if(req.pc_reset == PC_OFF_CODE) {
-            	HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
-            	HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
-            }
-        }
-        rComputer.reset = req.pc_reset;
+//        uint8_t old_reset = rComputer.reset;
+//        if(old_reset != req.pc_reset) {
+//            if(req.pc_reset == PC_ON_CODE) {
+//            	HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_RESET); // RESET
+//            	HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_RESET); // ONOFF
+//            }
+//            else if(req.pc_reset == PC_OFF_CODE) {
+//            	HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
+//            	HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
+//            }
+//        }
+//        rComputer.reset = req.pc_reset;
 
         bool wasEnabled = rStabConstants[STAB_YAW].enable;
-        rStabConstants[STAB_YAW].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_YAW_BIT);
+        rStabConstants[STAB_YAW].enable = PickBit(req.flags, SHORE_FLAG_YAW);
         if(wasEnabled == false && rStabConstants[STAB_YAW].enable == true) {
         	stabilizationStart(STAB_YAW);
         }
 
         wasEnabled = rStabConstants[STAB_ROLL].enable;
-        rStabConstants[STAB_ROLL].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_ROLL_BIT);
+        rStabConstants[STAB_ROLL].enable = PickBit(req.flags, SHORE_FLAG_ROLL);
         if(wasEnabled == false && rStabConstants[STAB_ROLL].enable == true) {
         	stabilizationStart(STAB_ROLL);
         }
 
         wasEnabled = rStabConstants[STAB_PITCH].enable;
-        rStabConstants[STAB_PITCH].enable = true; //PickBit(req.stabilize_flags, SHORE_STABILIZE_PITCH_BIT);
+        rStabConstants[STAB_PITCH].enable = PickBit(req.flags, SHORE_FLAG_PITCH);
         if(wasEnabled == false && rStabConstants[STAB_PITCH].enable == true) {
         	stabilizationStart(STAB_PITCH);
         }
 
         wasEnabled = rStabConstants[STAB_DEPTH].enable;
-        rStabConstants[STAB_DEPTH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_DEPTH_BIT);
+        rStabConstants[STAB_DEPTH].enable = PickBit(req.flags, SHORE_FLAG_DEPTH);
         if(wasEnabled == false && rStabConstants[STAB_DEPTH].enable == true) {
         	stabilizationStart(STAB_DEPTH);
         }
 
-        wasEnabled = rStabConstants[STAB_LAG].enable;
-        rStabConstants[STAB_LAG].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_LAG_BIT);
-        if(wasEnabled == false && rStabConstants[STAB_LAG].enable == true) {
-        	stabilizationStart(STAB_LAG);
-        }
+//        wasEnabled = rStabConstants[STAB_LAG].enable;
+//        rStabConstants[STAB_LAG].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_LAG_BIT);
+//        if(wasEnabled == false && rStabConstants[STAB_LAG].enable == true) {
+//        	stabilizationStart(STAB_LAG);
+//        }
 
-        wasEnabled = rStabConstants[STAB_MARCH].enable;
-        rStabConstants[STAB_MARCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_MARCH_BIT);
-        if(wasEnabled == false && rStabConstants[STAB_MARCH].enable == true) {
-        	stabilizationStart(STAB_MARCH);
-        }
+//        wasEnabled = rStabConstants[STAB_MARCH].enable;
+//        rStabConstants[STAB_MARCH].enable = PickBit(req.stabilize_flags, SHORE_STABILIZE_MARCH_BIT);
+//        if(wasEnabled == false && rStabConstants[STAB_MARCH].enable == true) {
+//        	stabilizationStart(STAB_MARCH);
+//        }
 
 //        wasEnabled = rLogicDevice[LOGDEV_LIFTER].control;
 //        rLogicDevice[LOGDEV_LIFTER].control = PickBit(req.stabilize_flags, SHORE_STABILIZE_LOGDEV_BIT);
@@ -694,18 +695,21 @@ void ShoreDirectRequest(uint8_t *requestBuf)
 		}
 
 		for(uint8_t i=0; i<THRUSTERS_NUMBER; i++) {
-			if(i != req.number) {
-				rThrusters[i].desiredSpeed = 0;
-			}
-			else {
-				rThrusters[req.number].desiredSpeed = req.velocity;
-				rThrusters[req.number].address = req.id;
-				rThrusters[req.number].kForward = req.kForward;
-				rThrusters[req.number].kBackward = req.kBackward;
-				rThrusters[req.number].sForward = req.sForward;
-				rThrusters[req.number].sBackward = req.sBackward;
-				rThrusters[req.number].inverse = req.reverse;
-			}
+			req.id = 7;
+			req.slot = 7;
+			req.velocity = 15;
+//			if(i != req.id) {
+//				rThrusters[i].desiredSpeed = 0;
+//			}
+//			else {
+				rThrusters[req.id].desiredSpeed = req.velocity;
+				rThrusters[req.id].address = req.slot;
+				rThrusters[req.id].kForward = req.kForward;
+				rThrusters[req.id].kBackward = req.kBackward;
+				rThrusters[req.id].sForward = req.sForward;
+				rThrusters[req.id].sBackward = req.sBackward;
+				rThrusters[req.id].inverse = req.reverse;
+//			}
 		}
 
 		++uartBus[SHORE_UART].successRxCounter;;
@@ -721,17 +725,17 @@ void ShoreResponse(uint8_t *responseBuf)
 
     res.roll = rSensors.roll;
     res.pitch = rSensors.pitch;
-    res.yaw =  rSensors.yaw;//*rStabState[STAB_YAW].posSignal;//rSensors.yaw;
+    res.yaw = rSensors.yaw;
     res.rollSpeed = rSensors.rollSpeed;
     res.pitchSpeed = rSensors.pitchSpeed;
     res.yawSpeed = rSensors.yawSpeed;
 
-    res.pressure = rSensors.pressure;
+    res.depth = rSensors.pressure;
 
-    res.vma_errors = 0x55;         //!!!!!TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    //res.vma_errors = 0x55;         //!!!!!TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // TODO do this properly pls
-    res.dev_errors = 0;//robot->device.errors;
-    res.pc_errors = rComputer.errors;
+    //res.dev_errors = 0;//robot->device.errors;
+    //res.pc_errors = rComputer.errors;
 
     memcpy((void*)responseBuf, (void*)&res, SHORE_RESPONSE_LENGTH);
     AddCrc16Checksumm(responseBuf, SHORE_RESPONSE_LENGTH);
@@ -741,19 +745,19 @@ void ShoreConfigResponse(uint8_t *responseBuf)
 {
 	struct shoreConfigResponse_s res;
 
-	res.code = REQUEST_CONFIG_CODE;
+	//res.code = REQUEST_CONFIG_CODE;
 
 	res.roll = rSensors.roll;
 	res.pitch = rSensors.pitch;
 	res.yaw = rSensors.yaw;
-	res.raw_yaw = rSensors.raw_yaw;
+	//res.raw_yaw = rSensors.raw_yaw;
 
 	res.rollSpeed = rSensors.rollSpeed;
 	res.pitchSpeed = rSensors.pitchSpeed;
 	res.yawSpeed = rSensors.yawSpeed;
 
-	res.pressure = rSensors.pressure;
-	res.in_pressure = 0;
+	//res.pressure = rSensors.pressure;
+	//res.in_pressure = 0;
 
 	res.inputSignal = *rStabState[rState.contourSelected].inputSignal;
 	res.speedSignal = *rStabState[rState.contourSelected].speedSignal;
@@ -783,9 +787,10 @@ void ShoreDirectResponse(uint8_t *responseBuf)
 {
 	struct shoreResponseDirect_s res;
 
-	res.number = 0xFF;
-	res.connection = 0xAA;
-	res.current = 0xBB;
+	res.id = 0xFF;
+	//res.number = 0xFF;
+	//res.connection = 0xAA;
+	//res.current = 0xBB;
 
     memcpy((void*)responseBuf, (void*)&res, SHORE_DIRECT_RESPONSE_LENGTH);
 

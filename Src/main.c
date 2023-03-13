@@ -102,8 +102,7 @@ void MX_FREERTOS_Init(void);
   * @brief  The application entry point.
   * @retval int
   */
-int main(void)
-{
+int main(void) {
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -148,7 +147,7 @@ int main(void)
 	HAL_Delay(10);
 	HAL_GPIO_WritePin(PC_CONTROL1_GPIO_Port, PC_CONTROL1_Pin, GPIO_PIN_SET); // RESET
 	HAL_GPIO_WritePin(PC_CONTROL2_GPIO_Port, PC_CONTROL2_Pin, GPIO_PIN_SET); // ONOFF
-    HAL_Delay(60e3);
+    //HAL_Delay(60e3);
      //HAL_Delay(10e3);
 
   MX_FREERTOS_Init();

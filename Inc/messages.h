@@ -104,21 +104,19 @@ struct devicesResponse_s
 
 #define SHORE_REQUEST_CODE             0xA5
 
-#define SHORE_REQUEST_LENGTH           30
+#define SHORE_REQUEST_LENGTH           22
 
-#define SHORE_STABILIZE_DEPTH_BIT       0
-#define SHORE_STABILIZE_ROLL_BIT        1
-#define SHORE_STABILIZE_PITCH_BIT       2
-#define SHORE_STABILIZE_YAW_BIT         3
-#define SHORE_STABILIZE_LAG_BIT         4
-#define SHORE_STABILIZE_MARCH_BIT       5
-#define SHORE_STABILIZE_IMU_BIT         6
-#define SHORE_STABILIZE_SAVE_BIT        7
+#define SHORE_FLAG_ROLL            0
+#define SHORE_FLAG_YAW             1
+#define SHORE_FLAG_PITCH           2
+#define SHORE_FLAG_DEPTH           3
+#define SHORE_FLAG_IMU             4
+#define SHORE_FLAG_THRUSTERS_EN    5
 
-#define SHORE_DEVICE_AC_BIT 			0
+#define SHORE_DEVICE_AC_BIT 	   0
 
-#define PC_ON_CODE 0xAA
-#define PC_OFF_CODE 0x00
+//#define PC_ON_CODE 0xAA
+//#define PC_OFF_CODE 0x00
 
 /** \brief Template for shore normal request message (control unit to main MCU)
   *
@@ -134,22 +132,19 @@ struct shoreRequest_s
 	int16_t roll;
 	int16_t pitch;
 	int16_t yaw;
-	int8_t light;
+
 	int8_t grab;
-	int8_t tilt;
 	int8_t grab_rotate;
+	int8_t tilt;
 	int8_t dev1;
 	int8_t dev2;
-	int32_t lag_error;
-	uint8_t dev_flags;
-	uint8_t stabilize_flags;
-	uint8_t cameras;
-	uint8_t pc_reset;
+	int8_t dev3;
+
 	uint16_t checksum;
 };
 
 #define REQUEST_CONFIG_CODE             0x55
-#define REQUEST_CONFIG_LENGTH           84
+#define REQUEST_CONFIG_LENGTH           85
 
 /** \brief Template for shore configuration request message (surface control unit to main MCU)
   *
@@ -158,6 +153,8 @@ struct shoreRequest_s
 struct shoreConfigRequest_s
 {
     uint8_t type;
+    uint8_t flags;
+
     uint8_t contour;
 
     int16_t march;
@@ -194,7 +191,7 @@ struct shoreConfigRequest_s
 };
 
 #define DIRECT_REQUEST_CODE 			0xAA
-#define SHORE_REQUEST_DIRECT_LENGTH		17
+#define SHORE_REQUEST_DIRECT_LENGTH		11
 
 /** \brief Template for shore direct message (surface control unit to main MCU)
   *
@@ -203,14 +200,15 @@ struct shoreConfigRequest_s
 struct shoreRequestDirect_s
 {
 	uint8_t type;
-	uint8_t number;
+	//uint8_t number;
 	uint8_t id;
+	uint8_t slot;
 
 	int8_t velocity;
 
 	uint8_t reverse;
-	float kForward;
-	float kBackward;
+	uint8_t kForward;
+	uint8_t kBackward;
 
 	int8_t sForward;
 	int8_t sBackward;
@@ -218,62 +216,65 @@ struct shoreRequestDirect_s
 	uint16_t checksum;
 };
 
-#define SHORE_DIRECT_RESPONSE_LENGTH 6
+#define SHORE_DIRECT_RESPONSE_LENGTH 3
 
 struct shoreResponseDirect_s
 {
-	uint8_t number;
-	uint8_t connection;
-	uint16_t current;
+	uint8_t id;
+	//uint8_t number;
+	//uint8_t connection;
+	//uint16_t current;
 
 	uint16_t checksum;
 };
 
-#define SHORE_RESPONSE_LENGTH			70
+#define SHORE_RESPONSE_LENGTH			28
 
 struct shoreResponse_s
 {
     float roll;
     float pitch;
     float yaw;
+    float depth;
 
     float rollSpeed;
     float pitchSpeed;
     float yawSpeed;
 
-    float pressure;
-    float in_pressure;
-
-    uint8_t dev_state;
-    int16_t leak_data;
-
-    uint16_t thrusterCurrent[THRUSTERS_NUMBER];
-    uint16_t devCurrent[DEVICES_NUMBER];
-
-    uint16_t vma_errors;
-    uint16_t dev_errors;
-    uint8_t pc_errors;
+    //float pressure;
+//    float in_pressure;
+//
+//    uint8_t dev_state;
+//    int16_t leak_data;
+//
+//    uint16_t thrusterCurrent[THRUSTERS_NUMBER];
+//    uint16_t devCurrent[DEVICES_NUMBER];
+//
+//    uint16_t vma_errors;
+//    uint16_t dev_errors;
+//    uint8_t pc_errors;
 
     uint16_t checksum;
 };
 
-#define SHORE_CONFIG_RESPONSE_LENGTH			99
+#define SHORE_CONFIG_RESPONSE_LENGTH			90
 
 struct shoreConfigResponse_s
 {
-	uint8_t code;
+	//uint8_t code;
 
 	float roll;
 	float pitch;
 	float yaw;
-	float raw_yaw;
+	//float raw_yaw;
+	float depth;
 
 	float rollSpeed;
 	float pitchSpeed;
 	float yawSpeed;
-
-	float pressure;
-	float in_pressure;
+//
+//	float pressure;
+//	float in_pressure;
 
 	float inputSignal;
 	float speedSignal;
